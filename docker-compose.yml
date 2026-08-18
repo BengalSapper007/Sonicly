@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sonicly_postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sonicly}
+      POSTGRES_USER: ${POSTGRES_USER:-sonicly}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sonicly_dev_password}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sonicly} -d ${POSTGRES_DB:-sonicly}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+    name: sonicly_pgdata

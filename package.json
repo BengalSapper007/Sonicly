@@ -1,0 +1,22 @@
+{
+  "name": "sonicly",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Sonicly Listener — music streaming and discovery platform",
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter backend dev\" \"pnpm --filter frontend dev\"",
+    "dev:backend": "pnpm --filter backend dev",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "build": "pnpm --filter backend build && pnpm --filter frontend build",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:migrate": "pnpm --filter backend prisma:migrate",
+    "db:seed": "pnpm --filter backend prisma:seed",
+    "db:studio": "pnpm --filter backend prisma:studio",
+    "typecheck": "pnpm --filter backend typecheck && pnpm --filter frontend typecheck"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  },
+  "packageManager": "pnpm@10.28.0"
+}

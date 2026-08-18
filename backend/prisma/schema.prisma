@@ -1,0 +1,214 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Genre
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Genre {
+  id    String  @id
+  name  String  @unique
+  songs Song[]
+
+  @@map("genres")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Artist
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Artist {
+  id             String   @id
+  name           String
+  bio            String?
+  imageUrl       String?
+  monthlyListeners Int    @default(0)
+  isVerified     Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  albums    Album[]
+  followers Follow[]
+
+  @@map("artists")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Album
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Album {
+  id          String    @id
+  title       String
+  imageUrl    String?
+  releaseYear Int
+  type        AlbumType @default(ALBUM)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  artistId String
+  artist   Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  songs       Song[]
+  savedBy     SavedAlbum[]
+
+  @@map("albums")
+}
+
+enum AlbumType {
+  ALBUM
+  SINGLE
+  EP
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Song
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Song {
+  id        String   @id
+  title     String
+  duration  Int      // seconds
+  trackNum  Int      @default(1)
+  audioUrl  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  albumId String
+  album   Album  @relation(fields: [albumId], references: [id], onDelete: Cascade)
+
+  genreId String?
+  genre   Genre?  @relation(fields: [genreId], references: [id], onDelete: SetNull)
+
+  likes           Like[]
+  playlistEntries PlaylistSong[]
+  history         ListeningHistory[]
+
+  @@map("songs")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// User
+// ─────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id          String   @id
+  username    String   @unique
+  email       String   @unique
+  displayName String
+  passwordHash String
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  likes       Like[]
+  follows     Follow[]
+  playlists   Playlist[]
+  savedAlbums SavedAlbum[]
+  history     ListeningHistory[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Playlist
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Playlist {
+  id          String       @id
+  name        String
+  description String?
+  coverUrl    String?
+  isCurated   Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  songs PlaylistSong[]
+
+  @@map("playlists")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Join tables
+// ─────────────────────────────────────────────────────────────────────────────
+
+model PlaylistSong {
+  id        String   @id
+  position  Int
+  addedAt   DateTime @default(now())
+
+  playlistId String
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+
+  songId String
+  song   Song   @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@unique([playlistId, songId])
+  @@map("playlist_songs")
+}
+
+model Like {
+  id        String   @id
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  songId String
+  song   Song   @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, songId])
+  @@map("likes")
+}
+
+model Follow {
+  id        String   @id
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  artistId String
+  artist   Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, artistId])
+  @@map("follows")
+}
+
+model SavedAlbum {
+  id        String   @id
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  albumId String
+  album   Album  @relation(fields: [albumId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, albumId])
+  @@map("saved_albums")
+}
+
+model ListeningHistory {
+  id        String   @id
+  playedAt  DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  songId String
+  song   Song   @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@map("listening_history")
+}

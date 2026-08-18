@@ -1,0 +1,9 @@
+packages:
+  - "frontend"
+  - "backend"
+
+onlyBuiltDependencies:
+  - "@prisma/engines"
+  - "bcrypt"
+  - "prisma"
+  - "unrs-resolver"
