@@ -42,3 +42,15 @@ coverage/
 
 # pnpm
 .pnpm-store/
+
+# Media files — keep directory structure, ignore actual binaries
+# In development we track the .gitkeep files to preserve the dir structure.
+# Uncomment the lines below if you want to exclude audio/image from version control:
+# media/audio/*.mp3
+# media/audio/*.wav
+# media/albums/*.webp
+# media/albums/*.jpg
+# media/albums/*.png
+# media/artists/*.webp
+# media/artists/*.jpg
+# media/artists/*.png

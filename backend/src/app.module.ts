@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_FILTER } from '@nestjs/core';
 import { PrismaModule } from './prisma/prisma.module';
+import { MediaModule } from './media/media.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ArtistsModule } from './artists/artists.module';
@@ -12,6 +13,7 @@ import { PlaylistsModule } from './playlists/playlists.module';
 import { LibraryModule } from './library/library.module';
 import { HistoryModule } from './history/history.module';
 import { SearchModule } from './search/search.module';
+import { AdminCatalogModule } from './admin-catalog/admin-catalog.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
@@ -19,6 +21,7 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    MediaModule,        // Global — MediaService available everywhere
     AuthModule,
     UsersModule,
     ArtistsModule,
@@ -29,6 +32,7 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
     LibraryModule,
     HistoryModule,
     SearchModule,
+    AdminCatalogModule,
   ],
   providers: [
     // Apply JWT guard globally — use @Public() to opt out

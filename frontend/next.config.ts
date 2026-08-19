@@ -6,6 +6,19 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname, '..'),
   },
+
+  // Proxy /media/* to NestJS backend for audio streaming & images
+  // This keeps the frontend consuming consistent /media/... paths
+  // regardless of where the media server lives.
+  async rewrites() {
+    return [
+      {
+        source: '/media/:path*',
+        destination: `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001'}/media/:path*`,
+      },
+    ];
+  },
+
   images: {
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost' },
