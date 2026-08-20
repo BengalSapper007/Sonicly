@@ -33,8 +33,8 @@ export default function RegisterPage() {
 
       <div className="relative w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-sonic flex items-center justify-center shadow-sonic mx-auto mb-4">
-            <span className="text-white font-display font-bold text-xl">S</span>
+          <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-2xl mx-auto mb-4 relative" style={{ boxShadow: '0 0 30px rgba(208, 188, 255, 0.4)' }}>
+            <img src="/logo-icon.png" alt="Sonicly" className="w-full h-full object-cover scale-110" />
           </div>
           <h1 className="font-display font-bold text-2xl text-ink">Create your account</h1>
           <p className="text-ink-dim text-sm mt-1">Start listening with Sonicly</p>

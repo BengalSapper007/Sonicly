@@ -52,10 +52,19 @@ async function main() {
   // ── Songs ─────────────────────────────────────────────────────────────────
   console.log('  → Songs');
   for (const song of songs) {
+    const songData = {
+      id: song.id,
+      title: song.title,
+      duration: song.duration,
+      trackNum: song.trackNum,
+      albumId: song.albumId,
+      genreId: song.genreId,
+      audioKey: (song as any).audioKey ?? (song as any).audioUrl ?? `songs/${song.id}.mp3`,
+    };
     await prisma.song.upsert({
       where: { id: song.id },
-      create: song,
-      update: song,
+      create: songData,
+      update: songData,
     });
   }
 

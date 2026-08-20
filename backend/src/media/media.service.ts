@@ -1,70 +1,77 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import * as path from 'path';
-import * as fs from 'fs/promises';
-import { createReadStream, existsSync } from 'fs';
+import { Injectable } from '@nestjs/common';
+import { R2MediaProvider } from './providers/r2-media.provider';
 
-export type MediaType = 'audio' | 'albums' | 'artists';
-
+/**
+ * MediaService — thin facade that delegates all storage operations to
+ * R2MediaProvider. The catalog and songs layers interact exclusively with
+ * this service; they never touch the SDK directly.
+ *
+ * Architecture:
+ *   AdminCatalogService / SongsService
+ *          │
+ *          ▼
+ *     MediaService        ← this file
+ *          │
+ *          ▼
+ *    R2MediaProvider
+ *          │
+ *          ▼
+ *    Cloudflare R2
+ */
 @Injectable()
 export class MediaService {
-  private readonly logger = new Logger(MediaService.name);
-  private readonly mediaRoot: string;
+  constructor(private readonly r2: R2MediaProvider) {}
 
-  constructor(private config: ConfigService) {
-    // media/ is at the monorepo root — two levels above backend/src
-    this.mediaRoot = this.config.get<string>('MEDIA_ROOT') ||
-      path.resolve(process.cwd(), '..', 'media');
+  /**
+   * Upload an audio file to R2.
+   * @returns  The R2 object key, e.g. "audio/tr_abc123.mp3"
+   */
+  uploadAudio(songId: string, ext: string, buffer: Buffer): Promise<string> {
+    return this.r2.uploadAudio(songId, ext, buffer);
   }
 
-  /** Absolute path to the media root directory */
-  get root(): string {
-    return this.mediaRoot;
+  /**
+   * Upload artist artwork to R2.
+   * @returns  The R2 object key, e.g. "artists/ar_xyz.webp"
+   */
+  uploadArtistArtwork(
+    artistId: string,
+    ext: string,
+    buffer: Buffer,
+  ): Promise<string> {
+    return this.r2.uploadArtistArtwork(artistId, ext, buffer);
   }
 
-  /** Absolute path for a given media type subdirectory */
-  dirFor(type: MediaType): string {
-    return path.join(this.mediaRoot, type);
+  /**
+   * Upload album artwork to R2.
+   * @returns  The R2 object key, e.g. "albums/al_xyz.webp"
+   */
+  uploadAlbumArtwork(
+    albumId: string,
+    ext: string,
+    buffer: Buffer,
+  ): Promise<string> {
+    return this.r2.uploadAlbumArtwork(albumId, ext, buffer);
   }
 
-  /** Absolute path for a specific media file */
-  pathFor(type: MediaType, filename: string): string {
-    return path.join(this.dirFor(type), filename);
+  /** Delete an object from R2 by its key. */
+  deleteObject(key: string): Promise<void> {
+    return this.r2.deleteObject(key);
   }
 
-  /** Public URL path for a media file (served at /media/*) */
-  urlFor(type: MediaType, filename: string): string {
-    return `/media/${type}/${filename}`;
+  /** Check whether an object exists in R2. */
+  objectExists(key: string): Promise<boolean> {
+    return this.r2.objectExists(key);
   }
 
-  /** Save a buffer to the media filesystem */
-  async save(type: MediaType, filename: string, buffer: Buffer): Promise<string> {
-    await fs.mkdir(this.dirFor(type), { recursive: true });
-    const dest = this.pathFor(type, filename);
-    await fs.writeFile(dest, buffer);
-    this.logger.log(`Saved media: ${dest}`);
-    return this.urlFor(type, filename);
-  }
-
-  /** Delete a media file */
-  async delete(type: MediaType, filename: string): Promise<void> {
-    const target = this.pathFor(type, filename);
-    if (existsSync(target)) {
-      await fs.unlink(target);
-      this.logger.log(`Deleted media: ${target}`);
-    }
-  }
-
-  /** Replace (delete old, save new) a media file */
-  async replace(type: MediaType, oldFilename: string | null, newFilename: string, buffer: Buffer): Promise<string> {
-    if (oldFilename) {
-      await this.delete(type, oldFilename).catch(() => {});
-    }
-    return this.save(type, newFilename, buffer);
-  }
-
-  /** Extract filename from a stored mediaUrl like /media/audio/abc.mp3 */
-  filenameFromUrl(url: string): string {
-    return path.basename(url);
+  /**
+   * Generate a temporary presigned GET URL for a private R2 object.
+   * The URL is safe to send to the browser — it does not expose credentials.
+   *
+   * @param key        R2 object key (e.g. "audio/tr_abc123.mp3")
+   * @param expiresIn  URL lifetime in seconds (default: 3600 / 1 hour)
+   */
+  getPresignedUrl(key: string, expiresIn?: number): Promise<string> {
+    return this.r2.getPresignedUrl(key, expiresIn);
   }
 }

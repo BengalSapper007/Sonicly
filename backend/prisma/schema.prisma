@@ -29,7 +29,7 @@ model Artist {
   id             String   @id
   name           String
   bio            String?
-  imageUrl       String?
+  imageKey       String?
   monthlyListeners Int    @default(0)
   isVerified     Boolean  @default(false)
   createdAt      DateTime @default(now())
@@ -48,7 +48,7 @@ model Artist {
 model Album {
   id          String    @id
   title       String
-  imageUrl    String?
+  imageKey    String?
   releaseYear Int
   type        AlbumType @default(ALBUM)
   createdAt   DateTime  @default(now())
@@ -78,7 +78,7 @@ model Song {
   title     String
   duration  Int      // seconds
   trackNum  Int      @default(1)
-  audioUrl  String
+  audioKey  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

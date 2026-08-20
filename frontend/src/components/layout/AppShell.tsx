@@ -13,22 +13,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [fetchMe]);
 
   return (
-    <div className="h-full flex flex-col bg-void overflow-hidden">
+    <div className="h-full flex flex-col overflow-hidden" style={{ background: '#131316' }}>
       {/* Hidden audio element managed by AudioEngine */}
       <AudioEngine />
 
-      {/* Main layout: sidebar + content */}
-      <div className="flex flex-1 overflow-hidden" style={{ paddingBottom: 'var(--player-height)' }}>
-        {/* Sidebar */}
+      {/* Main layout: sidebar + scrollable content */}
+      <div
+        className="flex flex-1 overflow-hidden"
+        style={{ paddingBottom: 'var(--player-height)' }}
+      >
+        {/* Sidebar — fixed 280px */}
         <Sidebar />
 
         {/* Main scrollable content */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-void">
+        <main
+          className="flex-1 overflow-y-auto overflow-x-hidden"
+          style={{ background: '#131316' }}
+        >
           {children}
         </main>
       </div>
 
-      {/* Fixed player bar at bottom */}
+      {/* Persistent player bar */}
       <div
         className="fixed bottom-0 left-0 right-0 z-50"
         style={{ height: 'var(--player-height)' }}

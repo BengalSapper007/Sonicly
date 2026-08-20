@@ -32,7 +32,7 @@ export class ArtistsService {
     const popularSongs = await this.prisma.song.findMany({
       where: { album: { artistId: id } },
       include: {
-        album: { select: { id: true, title: true, imageUrl: true } },
+        album: { select: { id: true, title: true, imageKey: true } },
         _count: { select: { likes: true } },
         ...(userId ? { likes: { where: { userId } } } : {}),
       },

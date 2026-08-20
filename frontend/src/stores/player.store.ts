@@ -1,17 +1,16 @@
-'use client';
 import { create } from 'zustand';
-import { historyApi } from '@/lib/api';
+import { historyApi, songsApi } from '@/lib/api';
 
 export interface Song {
   id: string;
   title: string;
   duration: number;
-  audioUrl: string;
+  audioKey: string;
   trackNum?: number;
   album: {
     id: string;
     title: string;
-    imageUrl: string;
+    imageKey: string;
     artist: { id: string; name: string };
   };
   genre?: { id: string; name: string };
@@ -21,6 +20,41 @@ export interface Song {
 
 export type RepeatMode = 'none' | 'one' | 'all';
 
+export type ContextType = 'album' | 'playlist' | 'artist' | 'search' | null;
+
+/**
+ * The HTMLAudioElement lives outside Zustand state.
+ * Storing DOM nodes in Zustand causes SSR issues and breaks serialization.
+ * Use getAudio() / setAudio() to access it from actions.
+ */
+let _audioEl: HTMLAudioElement | null = null;
+
+export function setAudioElement(el: HTMLAudioElement | null) {
+  _audioEl = el;
+}
+
+export function getAudioElement(): HTMLAudioElement | null {
+  return _audioEl;
+}
+
+/**
+ * Fetch a presigned R2 stream URL for a song, then load and play it.
+ * This keeps R2 credentials entirely server-side — the browser only ever
+ * sees a short-lived signed URL.
+ */
+async function loadAndPlay(song: Song): Promise<void> {
+  const audio = getAudioElement();
+  if (!audio) return;
+
+  try {
+    const { data } = await songsApi.getStreamUrl(song.id);
+    audio.src = data.streamUrl;
+    await audio.play();
+  } catch (err) {
+    console.error(`[Player] Failed to load stream for ${song.id}:`, err);
+  }
+}
+
 interface PlayerState {
   // Queue
   queue: Song[];
@@ -29,26 +63,22 @@ interface PlayerState {
 
   // Playback state
   isPlaying: boolean;
-  progress: number;      // 0..1
-  volume: number;        // 0..1
-  duration: number;      // seconds
-  currentTime: number;   // seconds
+  progress: number;    // 0..1
+  volume: number;      // 0..1
+  duration: number;    // seconds
+  currentTime: number; // seconds
 
   // Mode
   shuffle: boolean;
   repeat: RepeatMode;
-  
+
   // Source context
-  contextType: 'album' | 'playlist' | 'artist' | 'search' | null;
+  contextType: ContextType;
   contextId: string | null;
 
-  // Audio element ref
-  audioRef: HTMLAudioElement | null;
-
   // Actions
-  setAudioRef: (el: HTMLAudioElement | null) => void;
-  playSong: (song: Song, queue?: Song[], contextType?: PlayerState['contextType'], contextId?: string) => void;
-  playQueue: (songs: Song[], startIndex: number, contextType?: PlayerState['contextType'], contextId?: string) => void;
+  playSong: (song: Song, queue?: Song[], contextType?: ContextType, contextId?: string | null) => void;
+  playQueue: (songs: Song[], startIndex: number, contextType?: ContextType, contextId?: string | null) => void;
   togglePlay: () => void;
   pause: () => void;
   resume: () => void;
@@ -77,12 +107,9 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
   repeat: 'none',
   contextType: null,
   contextId: null,
-  audioRef: null,
-
-  setAudioRef: (el) => set({ audioRef: el }),
 
   playSong: (song, queue, contextType = null, contextId = null) => {
-    const newQueue = queue || [song];
+    const newQueue = queue ?? [song];
     const index = newQueue.findIndex((s) => s.id === song.id);
     set({
       queue: newQueue,
@@ -92,18 +119,14 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       contextType,
       contextId,
     });
-    const { audioRef } = get();
-    if (audioRef) {
-      audioRef.src = song.audioUrl;
-      audioRef.play().catch(() => {});
-    }
-    // Record play history
+    // Fetch presigned URL, then play — R2 credentials stay server-side
+    loadAndPlay(song);
     historyApi.record(song.id).catch(() => {});
   },
 
   playQueue: (songs, startIndex, contextType = null, contextId = null) => {
     if (!songs.length) return;
-    const song = songs[startIndex] || songs[0];
+    const song = songs[startIndex] ?? songs[0];
     set({
       queue: songs,
       currentIndex: startIndex,
@@ -112,31 +135,28 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
       contextType,
       contextId,
     });
-    const { audioRef } = get();
-    if (audioRef) {
-      audioRef.src = song.audioUrl;
-      audioRef.play().catch(() => {});
-    }
+    loadAndPlay(song);
     historyApi.record(song.id).catch(() => {});
   },
 
   togglePlay: () => {
-    const { isPlaying, audioRef } = get();
+    const { isPlaying } = get();
+    const audio = getAudioElement();
     if (isPlaying) {
-      audioRef?.pause();
+      audio?.pause();
     } else {
-      audioRef?.play().catch(() => {});
+      audio?.play().catch(() => {});
     }
     set({ isPlaying: !isPlaying });
   },
 
   pause: () => {
-    get().audioRef?.pause();
+    getAudioElement()?.pause();
     set({ isPlaying: false });
   },
 
   resume: () => {
-    get().audioRef?.play().catch(() => {});
+    getAudioElement()?.play().catch(() => {});
     set({ isPlaying: true });
   },
 
@@ -160,42 +180,37 @@ export const usePlayerStore = create<PlayerState>()((set, get) => ({
 
     const song = queue[nextIndex];
     set({ currentIndex: nextIndex, currentSong: song, isPlaying: true });
-    const { audioRef } = get();
-    if (audioRef) {
-      audioRef.src = song.audioUrl;
-      audioRef.play().catch(() => {});
-    }
+    loadAndPlay(song);
     historyApi.record(song.id).catch(() => {});
   },
 
   prev: () => {
-    const { queue, currentIndex, audioRef, currentTime } = get();
-    // If past 3s, restart current song
-    if (currentTime > 3 && audioRef) {
-      audioRef.currentTime = 0;
+    const { queue, currentIndex, currentTime } = get();
+    const audio = getAudioElement();
+    // If past 3 seconds, restart current song
+    if (currentTime > 3 && audio) {
+      audio.currentTime = 0;
       return;
     }
     if (!queue.length) return;
     const prevIndex = currentIndex > 0 ? currentIndex - 1 : queue.length - 1;
     const song = queue[prevIndex];
     set({ currentIndex: prevIndex, currentSong: song, isPlaying: true });
-    if (audioRef) {
-      audioRef.src = song.audioUrl;
-      audioRef.play().catch(() => {});
-    }
+    loadAndPlay(song);
   },
 
   seek: (progress) => {
-    const { audioRef, duration } = get();
-    if (audioRef && duration) {
-      audioRef.currentTime = progress * duration;
+    const { duration } = get();
+    const audio = getAudioElement();
+    if (audio && duration) {
+      audio.currentTime = progress * duration;
     }
     set({ progress });
   },
 
   setVolume: (vol) => {
-    const { audioRef } = get();
-    if (audioRef) audioRef.volume = vol;
+    const audio = getAudioElement();
+    if (audio) audio.volume = vol;
     set({ volume: vol });
   },
 

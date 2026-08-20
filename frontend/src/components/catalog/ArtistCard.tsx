@@ -1,66 +1,47 @@
 'use client';
 import Link from 'next/link';
-import { formatNumber } from '@/lib/utils';
-import { gradientFromId } from '@/lib/gradient';
+import { cn } from '@/lib/utils';
+import { artworkUrl } from '@/lib/api';
+import { ArtworkImage } from '@/components/ui/ArtworkImage';
 
 interface Artist {
   id: string;
   name: string;
-  imageUrl?: string;
+  imageKey?: string;
   monthlyListeners?: number;
   isVerified?: boolean;
-  _count?: { followers: number };
 }
 
 interface ArtistCardProps {
   artist: Artist;
+  className?: string;
 }
 
-export function ArtistCard({ artist }: ArtistCardProps) {
+export function ArtistCard({ artist, className }: ArtistCardProps) {
+  const photo = artworkUrl(artist.imageKey);
+
   return (
     <Link
       href={`/artist/${artist.id}`}
-      className="group flex-shrink-0 w-36 flex flex-col items-center p-4 rounded-xl
-        bg-surface border border-rim/50 hover:border-rim hover:bg-elevated
-        transition-all duration-200 cursor-pointer hover:-translate-y-0.5 shadow-card"
+      className={cn(
+        'group flex flex-col items-center text-center p-4 rounded-2xl bg-zinc-900/40 border border-white/5',
+        'hover:border-white/10 hover:bg-zinc-900/80 transition-all duration-200 hover:-translate-y-1 shadow-lg',
+        className
+      )}
     >
-      {/* Avatar */}
-      <div className="relative w-20 h-20 rounded-full overflow-hidden mb-3 ring-2 ring-rim group-hover:ring-sonic/30 transition-all">
-        {artist.imageUrl && !artist.imageUrl.startsWith('/') ? (
-          <img
-            src={artist.imageUrl}
-            alt={artist.name}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-          />
-        ) : (
-          <div
-            className="w-full h-full flex items-center justify-center"
-            style={{ background: gradientFromId(artist.id) }}
-          >
-            <span className="text-white text-2xl font-bold">
-              {artist.name[0]?.toUpperCase()}
-            </span>
-          </div>
-        )}
-        {artist.isVerified && (
-          <div className="absolute bottom-0 right-0 w-5 h-5 bg-sonic rounded-full border-2 border-surface
-            flex items-center justify-center">
-            <span className="text-white text-xs">✓</span>
-          </div>
-        )}
+      <div className="relative w-28 h-28 rounded-full overflow-hidden mb-3 shadow-md ring-2 ring-transparent group-hover:ring-purple-400/50 transition-all">
+        <ArtworkImage
+          src={photo}
+          alt={artist.name}
+          type="artist"
+          id={artist.id}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+        />
       </div>
-
-      {/* Name */}
-      <p className="text-sm font-medium text-ink text-center line-clamp-1 group-hover:text-sonic transition-colors">
+      <p className="text-sm font-semibold text-zinc-100 truncate w-full group-hover:text-purple-300 transition-colors">
         {artist.name}
       </p>
-
-      {/* Listeners */}
-      {artist.monthlyListeners && (
-        <p className="text-xs text-ink-ghost mt-0.5 text-center">
-          {formatNumber(artist.monthlyListeners)} listeners
-        </p>
-      )}
+      <p className="text-xs text-zinc-400 mt-0.5">Artist</p>
     </Link>
   );
 }

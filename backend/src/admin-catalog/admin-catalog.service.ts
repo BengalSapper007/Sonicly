@@ -61,14 +61,19 @@ export class AdminCatalogService {
     if (!artist) throw new NotFoundException(`Artist ${artistId} not found`);
 
     const ext = this.validateImageExtension(file.originalname);
-    const filename = `${artistId}${ext}`;
 
-    const oldFilename = artist.imageUrl ? this.media.filenameFromUrl(artist.imageUrl) : null;
-    const imageUrl = await this.media.replace('artists', oldFilename, filename, file.buffer);
+    // Delete old artwork from R2 if it exists
+    if (artist.imageKey) {
+      await this.media.deleteObject(artist.imageKey).catch((e) =>
+        this.logger.warn(`Could not delete old artist artwork ${artist.imageKey}: ${e}`),
+      );
+    }
+
+    const imageKey = await this.media.uploadArtistArtwork(artistId, ext, file.buffer);
 
     return this.prisma.artist.update({
       where: { id: artistId },
-      data: { imageUrl },
+      data: { imageKey },
     });
   }
 
@@ -95,14 +100,19 @@ export class AdminCatalogService {
     if (!album) throw new NotFoundException(`Album ${albumId} not found`);
 
     const ext = this.validateImageExtension(file.originalname);
-    const filename = `${albumId}${ext}`;
 
-    const oldFilename = album.imageUrl ? this.media.filenameFromUrl(album.imageUrl) : null;
-    const imageUrl = await this.media.replace('albums', oldFilename, filename, file.buffer);
+    // Delete old artwork from R2 if it exists
+    if (album.imageKey) {
+      await this.media.deleteObject(album.imageKey).catch((e) =>
+        this.logger.warn(`Could not delete old album artwork ${album.imageKey}: ${e}`),
+      );
+    }
+
+    const imageKey = await this.media.uploadAlbumArtwork(albumId, ext, file.buffer);
 
     return this.prisma.album.update({
       where: { id: albumId },
-      data: { imageUrl },
+      data: { imageKey },
     });
   }
 
@@ -129,12 +139,11 @@ export class AdminCatalogService {
       this.logger.warn(`Could not extract duration from ${file.originalname}: ${e}`);
     }
 
-    // Generate Sonicly song ID and save file
+    // Generate Sonicly song ID and upload to R2
     const id = `tr_${nanoid(12)}`;
-    const filename = `${id}${ext}`;
-    const audioUrl = await this.media.save('audio', filename, file.buffer);
+    const audioKey = await this.media.uploadAudio(id, ext, file.buffer);
 
-    this.logger.log(`Ingested song: "${dto.title}" → ${audioUrl} (${duration}s)`);
+    this.logger.log(`Ingested song: "${dto.title}" → ${audioKey} (${duration}s)`);
 
     return this.prisma.song.create({
       data: {
@@ -142,7 +151,7 @@ export class AdminCatalogService {
         title: dto.title,
         duration,
         trackNum: dto.trackNum,
-        audioUrl,
+        audioKey,
         albumId: dto.albumId,
         genreId: dto.genreId,
       },

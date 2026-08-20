@@ -1,68 +1,64 @@
 'use client';
 import Link from 'next/link';
-import { PlayIcon, ListMusicIcon } from 'lucide-react';
-import { gradientFromId } from '@/lib/gradient';
+import { Play } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { artworkUrl } from '@/lib/api';
+import { ArtworkImage } from '@/components/ui/ArtworkImage';
 
 interface Playlist {
   id: string;
   name: string;
   description?: string;
-  imageUrl?: string;
+  imageKey?: string;
+  coverUrl?: string;
   _count?: { songs: number };
+  songs?: any[];
 }
 
 interface PlaylistCardProps {
   playlist: Playlist;
-  size?: 'sm' | 'md';
+  className?: string;
 }
 
-export function PlaylistCard({ playlist, size = 'md' }: PlaylistCardProps) {
-  const w = size === 'sm' ? 'w-36' : 'w-44';
+export function PlaylistCard({ playlist, className }: PlaylistCardProps) {
+  const cover = playlist.coverUrl || artworkUrl(playlist.imageKey);
 
   return (
     <Link
       href={`/playlist/${playlist.id}`}
-      className={`group flex-shrink-0 ${w} flex flex-col rounded-xl overflow-hidden
-        bg-surface border border-rim/50 hover:border-rim hover:bg-elevated
-        transition-all duration-200 hover:-translate-y-0.5 shadow-card cursor-pointer`}
+      className={cn(
+        'group relative flex flex-col rounded-2xl overflow-hidden bg-zinc-900/60 border border-white/5',
+        'hover:border-white/10 hover:bg-zinc-900/90 transition-all duration-200 hover:-translate-y-1 shadow-lg',
+        className
+      )}
     >
-      {/* Cover */}
-      <div className="relative aspect-square overflow-hidden">
-        {playlist.imageUrl && !playlist.imageUrl.startsWith('/') ? (
-          <img
-            src={playlist.imageUrl}
-            alt={playlist.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-        ) : (
-          <div
-            className="w-full h-full flex items-center justify-center"
-            style={{ background: gradientFromId(playlist.id) }}
-          >
-            <ListMusicIcon size={32} className="text-white/50" />
-          </div>
-        )}
+      <div className="relative aspect-square overflow-hidden bg-zinc-950">
+        <ArtworkImage
+          src={cover}
+          alt={playlist.name}
+          type="playlist"
+          id={playlist.id}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+        />
 
-        {/* Play overlay */}
-        <div className="absolute inset-0 bg-void/50 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-          <div className="w-11 h-11 rounded-full bg-sonic shadow-sonic flex items-center justify-center
-            translate-y-2 group-hover:translate-y-0 transition-transform duration-200">
-            <PlayIcon size={18} className="text-white ml-0.5" fill="currentColor" />
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+          <div
+            className="w-11 h-11 rounded-full bg-cyan-400 text-cyan-950 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform"
+            style={{ boxShadow: '0 0 20px rgba(76, 215, 246, 0.6)' }}
+          >
+            <Play className="w-5 h-5 fill-current ml-0.5" />
           </div>
         </div>
       </div>
 
-      {/* Info */}
-      <div className="p-3">
-        <p className="text-sm font-medium text-ink line-clamp-1 group-hover:text-sonic transition-colors">
+      <div className="p-3.5">
+        <p className="text-sm font-semibold text-zinc-100 truncate group-hover:text-purple-300 transition-colors">
           {playlist.name}
         </p>
-        {playlist.description && (
-          <p className="text-xs text-ink-dim mt-0.5 line-clamp-2">{playlist.description}</p>
-        )}
-        {playlist._count?.songs !== undefined && (
-          <p className="text-xs text-ink-ghost mt-1">{playlist._count.songs} songs</p>
-        )}
+        <p className="text-xs text-zinc-400 mt-0.5 line-clamp-2">
+          {playlist.description ||
+            `${playlist._count?.songs ?? playlist.songs?.length ?? 0} songs`}
+        </p>
       </div>
     </Link>
   );

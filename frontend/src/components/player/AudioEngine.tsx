@@ -1,24 +1,25 @@
 'use client';
 import { useEffect, useRef } from 'react';
-import { usePlayerStore } from '@/stores/player.store';
+import { usePlayerStore, setAudioElement } from '@/stores/player.store';
 
 /**
  * AudioEngine
  * -----------
  * Renders a hidden <audio> element and wires it to the player store.
- * This is the ONLY component that knows about HTMLAudioElement.
+ * This is the ONLY component that touches HTMLAudioElement.
  * It is completely decoupled from any UI.
+ *
+ * The audio element reference is stored in a module-level variable
+ * (not Zustand state) to avoid SSR/serialization issues.
  */
 export function AudioEngine() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const {
-    setAudioRef,
     setProgress,
     setCurrentTime,
     setDuration,
     setIsPlaying,
     next,
-    repeat,
     volume,
   } = usePlayerStore();
 
@@ -26,8 +27,8 @@ export function AudioEngine() {
     const el = audioRef.current;
     if (!el) return;
 
-    // Register the element in the store
-    setAudioRef(el);
+    // Register the element in the module-level variable
+    setAudioElement(el);
 
     // Sync initial volume
     el.volume = volume;
@@ -52,7 +53,7 @@ export function AudioEngine() {
       }
     };
     const onError = () => {
-      // Audio failed to load (missing file) — auto-advance to next
+      // Audio failed to load (missing file) — log and auto-advance
       console.warn('[AudioEngine] Error loading audio, advancing to next track');
       setTimeout(() => next(), 1500);
     };
@@ -71,11 +72,13 @@ export function AudioEngine() {
       el.removeEventListener('pause', onPause);
       el.removeEventListener('ended', onEnded);
       el.removeEventListener('error', onError);
+      // Unregister on unmount
+      setAudioElement(null);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Sync volume changes from store
+  // Sync volume changes from store → audio element
   useEffect(() => {
     const el = audioRef.current;
     if (el) el.volume = volume;

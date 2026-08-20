@@ -9,7 +9,7 @@ export class AlbumsService {
     return this.prisma.album.findMany({
       orderBy: { releaseYear: 'desc' },
       include: {
-        artist: { select: { id: true, name: true, imageUrl: true } },
+        artist: { select: { id: true, name: true, imageKey: true } },
         _count: { select: { songs: true } },
       },
     });
@@ -19,7 +19,7 @@ export class AlbumsService {
     const album = await this.prisma.album.findUnique({
       where: { id },
       include: {
-        artist: { select: { id: true, name: true, imageUrl: true, isVerified: true } },
+        artist: { select: { id: true, name: true, imageKey: true, isVerified: true } },
         songs: {
           orderBy: { trackNum: 'asc' },
           include: {

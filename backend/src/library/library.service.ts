@@ -5,13 +5,13 @@ const SONG_SELECT = {
   id: true,
   title: true,
   duration: true,
-  audioUrl: true,
+  audioKey: true,
   trackNum: true,
   album: {
     select: {
       id: true,
       title: true,
-      imageUrl: true,
+      imageKey: true,
       artist: { select: { id: true, name: true } },
     },
   },
@@ -39,7 +39,7 @@ export class LibraryService {
       include: {
         album: {
           include: {
-            artist: { select: { id: true, name: true, imageUrl: true } },
+            artist: { select: { id: true, name: true, imageKey: true } },
             _count: { select: { songs: true } },
           },
         },

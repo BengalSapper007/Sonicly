@@ -18,6 +18,19 @@ api.interceptors.response.use(
 
 export default api;
 
+/**
+ * Build the backend URL for an R2 artwork object key.
+ * The backend will redirect to a short-lived presigned R2 URL.
+ *
+ * Usage:  <img src={artworkUrl(artist.imageKey)} />
+ *
+ * @param key  R2 object key, e.g. "artists/ar_abc.webp" (or null/undefined)
+ */
+export function artworkUrl(key: string | null | undefined): string | undefined {
+  if (!key) return undefined;
+  return `${API_URL}/media/artwork?key=${encodeURIComponent(key)}`;
+}
+
 // ── API functions ──────────────────────────────────────────────────────────
 
 // Auth
@@ -49,6 +62,8 @@ export const albumsApi = {
 // Songs
 export const songsApi = {
   get: (id: string) => api.get(`/songs/${id}`),
+  /** Returns song metadata plus a short-lived presigned R2 streamUrl */
+  getStreamUrl: (id: string) => api.get<{ streamUrl: string }>(`/songs/${id}/stream`),
   like: (id: string) => api.post(`/songs/${id}/like`),
   unlike: (id: string) => api.delete(`/songs/${id}/like`),
 };
