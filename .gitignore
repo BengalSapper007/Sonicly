@@ -1,51 +1,90 @@
-# Dependencies
+# ── Dependencies ──────────────────────────────────────────────────────────────
 node_modules/
 .pnp
 .pnp.js
 
-# Build outputs
+# ── Build outputs ─────────────────────────────────────────────────────────────
 dist/
 build/
 .next/
 out/
+.turbo/
 
-# Environment variables
+# ── Environment variables ─────────────────────────────────────────────────────
 .env
 .env.local
 .env.*.local
 
-# Logs
+# ── Logs ──────────────────────────────────────────────────────────────────────
 *.log
 npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
 
-# Database
+# ── Database ──────────────────────────────────────────────────────────────────
 *.db
 *.sqlite
+*.sqlite3
 
-# Editor
+# ── TypeScript ────────────────────────────────────────────────────────────────
+*.tsbuildinfo
+
+# ── Test / Coverage ───────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ── Package managers ──────────────────────────────────────────────────────────
+.pnpm-store/
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+
+# ── OS junk ───────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ── Editor / IDE ──────────────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
-.DS_Store
-Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
-# Test coverage
-coverage/
-.nyc_output
+# ── Temp / scratch ────────────────────────────────────────────────────────────
+tmp/
+temp/
+*.tmp
+*.bak
+*.orig
 
-# TypeScript
-*.tsbuildinfo
+# ── Design assets (not needed in repo) ────────────────────────────────────────
+design/
 
-# pnpm
-.pnpm-store/
+# ── Loose root-level noise ────────────────────────────────────────────────────
+# Screenshots, PRDs, and other non-code docs dumped at the root
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.pdf
+*.md
+!README.md
+!CATALOG_INGESTION.md
 
-# Media files — keep directory structure, ignore actual binaries
-# In development we track the .gitkeep files to preserve the dir structure.
-# Uncomment the lines below if you want to exclude audio/image from version control:
+# ── Media binaries ────────────────────────────────────────────────────────────
+# Keep directory structure (.gitkeep files), ignore actual media binaries.
+# Uncomment to exclude audio/images from version control:
 # media/audio/*.mp3
 # media/audio/*.wav
 # media/albums/*.webp

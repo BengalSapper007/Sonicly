@@ -32,7 +32,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   const port = process.env.PORT ?? 3001;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   console.log(`🚀 Sonicly API running on http://localhost:${port}/api`);
   console.log(`☁️  Media storage: Cloudflare R2 (bucket: ${process.env.R2_BUCKET_NAME ?? 'sonicly'})`);
 }
