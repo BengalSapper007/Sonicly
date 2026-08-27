@@ -33,7 +33,8 @@ export default function ArtistPage({ params }: { params: Promise<{ artistId: str
   if (loading) return <ArtistSkeleton />;
   if (!artist) return <div className="p-8 text-zinc-400">Artist not found.</div>;
 
-  const topSongs = artist.songs?.slice(0, 5) || [];
+  const topSongs = artist.popularSongs?.slice(0, 5) || [];
+
   const albums = artist.albums || [];
 
   const handleFollow = async () => {

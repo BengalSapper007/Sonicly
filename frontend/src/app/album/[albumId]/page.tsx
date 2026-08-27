@@ -1,9 +1,10 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { use } from 'react';
-import { Play, Shuffle, Heart } from 'lucide-react';
+import { Play, Shuffle, Bookmark, BookmarkCheck, Loader2 } from 'lucide-react';
 import { albumsApi, artworkUrl } from '@/lib/api';
 import { usePlayerStore } from '@/stores/player.store';
+import { useAuthStore } from '@/stores/auth.store';
 import { SongRow } from '@/components/catalog/SongRow';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ArtworkImage } from '@/components/ui/ArtworkImage';
@@ -13,15 +14,38 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
   const { albumId } = use(params);
   const [album, setAlbum] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [saved, setSaved] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
   const { playQueue } = usePlayerStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   useEffect(() => {
     albumsApi
       .get(albumId)
-      .then((r) => setAlbum(r.data))
+      .then((r) => {
+        setAlbum(r.data);
+        setSaved(r.data.isSaved ?? false);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [albumId]);
+
+  const handleSave = useCallback(async () => {
+    if (!isAuthenticated || saveLoading) return;
+    setSaved((prev) => !prev);          // optimistic
+    setSaveLoading(true);
+    try {
+      if (saved) {
+        await albumsApi.unsave(albumId);
+      } else {
+        await albumsApi.save(albumId);
+      }
+    } catch {
+      setSaved((prev) => !prev);        // revert on error
+    } finally {
+      setSaveLoading(false);
+    }
+  }, [isAuthenticated, saved, saveLoading, albumId]);
 
   if (loading) return <AlbumSkeleton />;
   if (!album) return <NotFound />;
@@ -84,24 +108,43 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
       <div className="px-8 py-4 flex items-center gap-3">
         <button
           onClick={handlePlayAll}
-          className="btn-primary flex items-center gap-2 px-6 py-2.5 font-bold shadow-lg"
+          disabled={!songs.length}
+          className="btn-primary flex items-center gap-2 px-6 py-2.5 font-bold shadow-lg disabled:opacity-50"
         >
           <Play className="w-4 h-4 fill-current ml-0.5" />
           <span>Play</span>
         </button>
         <button
           onClick={handleShuffle}
-          className="btn-glass flex items-center gap-2 px-5 py-2.5 font-semibold"
+          disabled={!songs.length}
+          className="btn-glass flex items-center gap-2 px-5 py-2.5 font-semibold disabled:opacity-50"
         >
           <Shuffle className="w-4 h-4 text-zinc-300" />
           <span>Shuffle</span>
         </button>
-        <button
-          className="p-2.5 rounded-full border border-white/10 text-zinc-400 hover:text-rose-400 hover:bg-white/5 transition-all"
-          aria-label="Save album"
-        >
-          <Heart className="w-5 h-5" />
-        </button>
+
+        {/* Save / Unsave button */}
+        {isAuthenticated && (
+          <button
+            onClick={handleSave}
+            disabled={saveLoading}
+            className={`p-2.5 rounded-full border transition-all flex items-center justify-center ${
+              saved
+                ? 'border-purple-400/60 text-purple-300 bg-purple-500/10 hover:bg-purple-500/20'
+                : 'border-white/10 text-zinc-400 hover:text-purple-300 hover:border-purple-400/40 hover:bg-white/5'
+            }`}
+            aria-label={saved ? 'Remove from library' : 'Save to library'}
+            title={saved ? 'Remove from library' : 'Save to library'}
+          >
+            {saveLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : saved ? (
+              <BookmarkCheck className="w-5 h-5" />
+            ) : (
+              <Bookmark className="w-5 h-5" />
+            )}
+          </button>
+        )}
       </div>
 
       {/* ── Track List ─────────────────────────────────────────────────────── */}

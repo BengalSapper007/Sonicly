@@ -1,9 +1,11 @@
 'use client';
-import { Play, Pause, Heart, MoreHorizontal } from 'lucide-react';
+import { Play, Heart, MoreHorizontal, Loader2 } from 'lucide-react';
 import { usePlayerStore, type Song } from '@/stores/player.store';
+import { useAuthStore } from '@/stores/auth.store';
 import { cn, formatDuration } from '@/lib/utils';
 import { artworkUrl } from '@/lib/api';
 import { ArtworkImage } from '@/components/ui/ArtworkImage';
+import { useLike } from '@/hooks/useLike';
 
 interface SongRowProps {
   song: Song;
@@ -23,9 +25,14 @@ export function SongRow({
   showAlbum = true,
 }: SongRowProps) {
   const { currentSong, isPlaying, playSong, togglePlay } = usePlayerStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   const isCurrent = currentSong?.id === song.id;
   const isCurrentlyPlaying = isCurrent && isPlaying;
+
+  // Determine initial liked state from the song data (backend returns `likes: [...]` when userId is passed)
+  const initialLiked = Array.isArray((song as any).likes) && (song as any).likes.length > 0;
+  const { liked, isLoading: likeLoading, toggle: toggleLike } = useLike(song.id, initialLiked);
 
   const handlePlay = () => {
     if (isCurrent) {
@@ -62,9 +69,7 @@ export function SongRow({
             >
               {index !== undefined ? index + 1 : ''}
             </span>
-            <Play
-              className="w-4 h-4 absolute opacity-0 group-hover:opacity-100 transition-opacity text-white fill-current"
-            />
+            <Play className="w-4 h-4 absolute opacity-0 group-hover:opacity-100 transition-opacity text-white fill-current" />
           </>
         )}
       </div>
@@ -101,16 +106,26 @@ export function SongRow({
         </p>
       </div>
 
-      {/* Like */}
-      <button
-        className="p-1.5 text-zinc-400 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
-        onClick={(e) => {
-          e.stopPropagation();
-        }}
-        aria-label="Like song"
-      >
-        <Heart className="w-4 h-4" />
-      </button>
+      {/* Like button — only for authenticated users */}
+      {isAuthenticated && (
+        <button
+          className={cn(
+            'p-1.5 transition-all flex-shrink-0',
+            liked
+              ? 'opacity-100 text-rose-400 hover:text-rose-300'
+              : 'opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-rose-400'
+          )}
+          onClick={toggleLike}
+          aria-label={liked ? 'Unlike song' : 'Like song'}
+          title={liked ? 'Unlike' : 'Like'}
+        >
+          {likeLoading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Heart className={cn('w-4 h-4', liked && 'fill-current')} />
+          )}
+        </button>
+      )}
 
       {/* Duration */}
       <span className="text-xs text-zinc-400 tabular-nums font-mono w-10 text-right flex-shrink-0">
