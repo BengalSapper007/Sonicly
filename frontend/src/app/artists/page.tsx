@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { artistsApi } from '@/lib/api';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ArtistCard } from '@/components/catalog/ArtistCard';
-import { Users } from 'lucide-react';
 
 export default function ArtistsPage() {
   const [artists, setArtists] = useState<any[]>([]);
@@ -19,33 +18,32 @@ export default function ArtistsPage() {
   }, []);
 
   return (
-    <div className="p-8 pb-24 min-h-full" style={{ background: '#131316' }}>
-      <div className="flex items-center gap-3 mb-8">
-        <Users className="w-8 h-8 text-purple-400" />
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-100" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+    <div className="p-margin-mobile md:p-margin-desktop pb-32 min-h-full bg-background text-on-surface">
+      <div className="flex items-center gap-3 mb-8 border-l-8 border-crisp-green pl-4">
+        <h1 className="font-display-lg text-headline-lg-mobile md:text-display-lg text-prussian-blue">
           Artists
         </h1>
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-8 text-center">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6 text-center">
           {Array.from({ length: 12 }).map((_, i) => (
             <div key={i} className="flex flex-col items-center">
-              <Skeleton className="w-32 h-32 rounded-full shimmer mb-3" />
-              <Skeleton className="w-24 h-4 rounded shimmer" />
+              <Skeleton className="w-28 h-28 rounded-full border-2 border-prussian-blue/20 shimmer mb-3" />
+              <Skeleton className="w-20 h-4 rounded shimmer" />
             </div>
           ))}
         </div>
       ) : artists.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
           {artists.map((artist) => (
             <div key={artist.id} className="flex justify-center w-full">
-              <ArtistCard artist={artist} className="w-full max-w-[160px]" />
+              <ArtistCard artist={artist} className="w-full" />
             </div>
           ))}
         </div>
       ) : (
-        <div className="text-zinc-400">No artists found.</div>
+        <div className="text-outline font-medium">No artists found.</div>
       )}
     </div>
   );

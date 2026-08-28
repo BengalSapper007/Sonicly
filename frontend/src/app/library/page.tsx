@@ -6,13 +6,12 @@ import { useAuthStore } from '@/stores/auth.store';
 import { SongRow } from '@/components/catalog/SongRow';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ArtworkImage } from '@/components/ui/ArtworkImage';
-import { Heart, Play, Plus, Music, User, Disc, ListMusic } from 'lucide-react';
 import Link from 'next/link';
 
-type FilterTab = 'Playlists' | 'Artists' | 'Albums';
+type FilterTab = 'Playlists' | 'Artists' | 'Albums' | 'Podcasts & Shows';
 
 export default function LibraryPage() {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, logout } = useAuthStore();
   const router = useRouter();
   const [likedSongs, setLikedSongs] = useState<any[]>([]);
   const [savedAlbums, setSavedAlbums] = useState<any[]>([]);
@@ -43,39 +42,65 @@ export default function LibraryPage() {
 
   if (!isAuthenticated && !isLoading) return null;
 
-  const TABS: FilterTab[] = ['Playlists', 'Artists', 'Albums'];
+  const TABS: FilterTab[] = ['Playlists', 'Artists', 'Albums', 'Podcasts & Shows'];
 
   return (
-    <div className="min-h-full pb-16">
-      {/* ── Sticky Header ──────────────────────────────────────────────────── */}
-      <div
-        className="sticky top-0 z-20 px-8 pt-6 pb-4"
-        style={{
-          background: 'rgba(19, 19, 22, 0.85)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
-        }}
-      >
-        <h1
-          className="font-black text-3xl md:text-4xl text-white mb-4 tracking-tight"
-          style={{ fontFamily: 'Montserrat, sans-serif' }}
-        >
-          Your Library
-        </h1>
+    <div className="min-h-full pb-24 md:pb-32 bg-background text-on-background">
+      {/* ── TopNavBar (Desktop) ──────────────────────────────────────────────── */}
+      <header className="hidden md:flex bg-prussian-blue w-full h-16 px-margin-desktop justify-between items-center z-30 sticky top-0 border-b-2 border-midnight-blue">
+        <div className="flex items-center gap-6">
+          <Link href="/" className="font-headline-md text-headline-md font-black text-vibrant-saffron">
+            Sonicly
+          </Link>
+        </div>
+        <nav className="flex items-center gap-8 font-label-md text-label-md">
+          <Link href="/search" className="text-on-primary-container hover:text-vibrant-saffron transition-colors">
+            Podcasts
+          </Link>
+          <Link href="/search" className="text-on-primary-container hover:text-vibrant-saffron transition-colors">
+            Audiobooks
+          </Link>
+          <Link href="/search" className="text-on-primary-container hover:text-vibrant-saffron transition-colors">
+            Live
+          </Link>
+        </nav>
+        <div className="flex items-center gap-4 text-vibrant-saffron">
+          <button className="hover:text-white transition-colors p-1" title="Notifications">
+            <span className="material-symbols-outlined text-[20px]">notifications</span>
+          </button>
+          <button className="hover:text-white transition-colors p-1" title="Settings">
+            <span className="material-symbols-outlined text-[20px]">settings</span>
+          </button>
+          <button
+            onClick={() => logout()}
+            className="font-label-md text-xs border-2 border-vibrant-saffron px-3 py-1 hover:bg-vibrant-saffron hover:text-prussian-blue transition-colors font-bold"
+          >
+            Sign Out
+          </button>
+        </div>
+      </header>
 
-        {/* Filter Tabs */}
-        <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar pb-1">
+      {/* ── Canvas ──────────────────────────────────────────────────────────── */}
+      <div className="px-margin-mobile md:px-margin-desktop py-stack-lg flex-1">
+        {/* Header Section */}
+        <div className="mb-stack-lg border-l-8 border-vibrant-saffron pl-4">
+          <h2 className="font-display-lg text-headline-lg-mobile md:text-display-lg text-prussian-blue">
+            Your Library
+          </h2>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-4 mb-stack-lg border-b-2 border-surface-variant pb-2 overflow-x-auto no-scrollbar">
           {TABS.map((tab) => {
             const isActive = activeTab === tab;
             return (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                className={`font-label-md text-label-md pb-2 border-b-4 whitespace-nowrap transition-colors ${
                   isActive
-                    ? 'bg-purple-300 text-purple-950 shadow-md'
-                    : 'bg-zinc-800/60 text-zinc-300 border border-white/5 hover:border-white/20 hover:text-white'
+                    ? 'border-vibrant-saffron text-prussian-blue font-bold'
+                    : 'border-transparent text-outline hover:text-prussian-blue'
                 }`}
               >
                 {tab}
@@ -83,196 +108,137 @@ export default function LibraryPage() {
             );
           })}
         </div>
-      </div>
 
-      <div className="px-8 py-6">
-        {/* ── Library Grid ───────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5 mb-8">
-          {/* Liked Songs Special Card — spans 2 cols */}
-          <div
-            className="col-span-2 rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden group cursor-pointer shadow-xl transition-all duration-300 hover:-translate-y-1"
-            style={{
-              aspectRatio: '2/1',
-              background: 'linear-gradient(135deg, #a078ff 0%, #d0bcff 50%, #4cd7f6 100%)',
-            }}
+        {/* ── Bento Grid Library Layout ───────────────────────────────────────── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-stack-xl">
+          {/* Liked Songs Special Card (2 cols on md+) */}
+          <Link
+            href="/library/liked"
+            className="col-span-1 md:col-span-2 bg-crisp-green text-white p-6 relative overflow-hidden group border-2 border-prussian-blue hard-shadow shadow-prussian-blue h-64 flex flex-col justify-end hover:-translate-y-1 transition-transform duration-200"
           >
-            <div className="relative z-10 flex flex-col h-full justify-between">
-              <div className="flex items-start justify-between">
-                <Heart className="w-8 h-8 text-white fill-current drop-shadow-md" />
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-cyan-950 text-cyan-400 shadow-xl"
-                  style={{ boxShadow: '0 0 20px rgba(76,215,246,0.6)' }}
-                >
-                  <Play className="w-5 h-5 fill-current ml-0.5" />
-                </div>
-              </div>
-              <div>
-                {likedSongs.length > 0 && (
-                  <p className="text-xs text-white/80 mb-1 line-clamp-1">
-                    {likedSongs.slice(0, 3).map((s: any) => s.title).join(', ')}
-                    {likedSongs.length > 3 && '…'}
-                  </p>
-                )}
-                <h3
-                  className="text-2xl font-black text-white tracking-tight"
-                  style={{ fontFamily: 'Montserrat, sans-serif' }}
-                >
-                  Liked Songs
-                </h3>
-                <p className="text-xs font-semibold text-white/70 mt-0.5">
-                  {likedSongs.length} tracks
-                </p>
-              </div>
+            <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent pointer-events-none" />
+            <div className="absolute top-4 right-4">
+              <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                favorite
+              </span>
             </div>
-          </div>
+            <div className="relative z-10">
+              <h3 className="font-headline-md text-headline-md font-bold mb-1 text-white">
+                Liked Songs
+              </h3>
+              <p className="font-body-md text-body-md opacity-90">
+                {likedSongs.length} tracks saved
+              </p>
+            </div>
+          </Link>
 
           {/* Saved Album Cards */}
           {loading ? (
-            <>
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="aspect-square rounded-2xl shimmer" />
-              ))}
-            </>
+            Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-64 rounded border-2 border-prussian-blue/20 shimmer" />
+            ))
           ) : (
             <>
-              {savedAlbums.slice(0, 3).map((album: any) => (
-                <LibraryCard
-                  key={album.id}
-                  title={album.title}
-                  subtitle="Album"
-                  imageKey={album.imageKey}
-                  href={`/album/${album.id}`}
-                  id={album.id}
-                />
-              ))}
+              {savedAlbums.map((album: any, idx: number) => {
+                const borderStyles = [
+                  'border-t-vibrant-saffron',
+                  'border-t-prussian-blue',
+                  'border-t-crisp-green',
+                ];
+                const topBorder = borderStyles[idx % borderStyles.length];
+                const cover = artworkUrl(album.imageKey);
 
-              {/* Create Playlist Card */}
-              <div className="rounded-2xl p-4 flex flex-col items-center justify-center gap-3 cursor-pointer border-2 border-dashed border-white/10 hover:border-purple-400/50 hover:bg-purple-500/5 transition-all group min-h-[160px]">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center bg-zinc-800 text-zinc-300 group-hover:text-purple-300 group-hover:scale-110 transition-all shadow-md">
-                  <Plus className="w-6 h-6" />
+                return (
+                  <Link
+                    key={album.id}
+                    href={`/album/${album.id}`}
+                    className={`bg-surface border-t-4 ${topBorder} border-x-2 border-b-2 border-prussian-blue p-4 hover:-translate-y-1 transition-transform duration-200 h-64 flex flex-col hard-shadow shadow-prussian-blue`}
+                  >
+                    <div className="flex-1 w-full bg-surface-variant mb-3 overflow-hidden border-2 border-prussian-blue">
+                      <ArtworkImage
+                        src={cover}
+                        alt={album.title}
+                        type="album"
+                        id={album.id}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <h4 className="font-label-md text-label-md text-prussian-blue truncate font-bold">
+                      {album.title}
+                    </h4>
+                    <p className="font-caption text-caption text-outline truncate mt-0.5">
+                      {album.artist?.name || 'By Sonicly'}
+                    </p>
+                  </Link>
+                );
+              })}
+
+              {/* Create Playlist Action Card */}
+              <div className="bg-surface border-t-4 border-vibrant-saffron border-x-2 border-b-2 border-prussian-blue p-4 hover:-translate-y-1 transition-transform duration-200 h-64 flex flex-col items-center justify-center text-center cursor-pointer hard-shadow shadow-prussian-blue group">
+                <div className="w-14 h-14 rounded-full border-2 border-prussian-blue bg-vibrant-saffron flex items-center justify-center text-prussian-blue mb-3 group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined text-2xl font-bold">add</span>
                 </div>
-                <span className="text-xs font-semibold text-zinc-300 group-hover:text-purple-300 transition-colors">
+                <h4 className="font-label-md text-label-md text-prussian-blue font-bold">
                   Create Playlist
-                </span>
+                </h4>
+                <p className="font-caption text-caption text-outline mt-1">
+                  Custom collections
+                </p>
               </div>
             </>
           )}
         </div>
 
-        {/* ── Recently Added ─────────────────────────────────────────────────── */}
-        <div className="pt-8 border-t border-white/5">
-          <div className="flex items-center justify-between mb-4">
-            <h3
-              className="text-lg font-bold text-zinc-100"
-              style={{ fontFamily: 'Montserrat, sans-serif' }}
-            >
-              Recently Liked
-            </h3>
-          </div>
-
-          {/* Liked Songs List */}
-          {loading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-14 rounded-xl shimmer" />
-              ))}
+        {/* ── Recent Liked Tracks ──────────────────────────────────────────────── */}
+        {likedSongs.length > 0 && (
+          <section className="pt-stack-md border-t-2 border-surface-variant">
+            <div className="mb-4 border-l-4 border-crisp-green pl-3">
+              <h3 className="font-headline-md text-headline-md font-bold text-prussian-blue">
+                Recently Liked Tracks
+              </h3>
             </div>
-          ) : likedSongs.length === 0 ? (
-            <div className="py-12 text-center text-zinc-400">
-              <Heart className="w-12 h-12 mx-auto text-zinc-600 mb-2" />
-              <p className="text-sm">No liked songs yet.</p>
-            </div>
-          ) : (
             <div className="space-y-1">
               {likedSongs.slice(0, 10).map((song: any, i: number) => (
                 <SongRow key={song.id} song={song} index={i} queue={likedSongs} />
               ))}
             </div>
-          )}
-        </div>
+          </section>
+        )}
 
-        {/* ── Following Artists ──────────────────────────────────────────────── */}
+        {/* ── Followed Artists ────────────────────────────────────────────────── */}
         {followedArtists.length > 0 && (
-          <div className="mt-10 pt-8 border-t border-white/5">
-            <h3
-              className="text-lg font-bold text-zinc-100 mb-4"
-              style={{ fontFamily: 'Montserrat, sans-serif' }}
-            >
-              Artists You Follow
-            </h3>
+          <section className="mt-stack-lg pt-stack-md border-t-2 border-surface-variant">
+            <div className="mb-4 border-l-4 border-prussian-blue pl-3">
+              <h3 className="font-headline-md text-headline-md font-bold text-prussian-blue">
+                Artists You Follow
+              </h3>
+            </div>
             <div className="flex gap-5 flex-wrap">
               {followedArtists.map((artist: any) => (
                 <Link
                   key={artist.id}
                   href={`/artist/${artist.id}`}
-                  className="group text-center block flex-shrink-0 w-24"
+                  className="group text-center block w-28"
                 >
-                  <div className="w-24 h-24 rounded-full overflow-hidden mx-auto mb-2 shadow-lg ring-2 ring-transparent group-hover:ring-purple-400/50 transition-all bg-zinc-950">
+                  <div className="w-24 h-24 rounded-full overflow-hidden mx-auto mb-2 border-2 border-prussian-blue shadow-md bg-midnight-blue group-hover:border-vibrant-saffron transition-colors">
                     <ArtworkImage
                       src={artworkUrl(artist.imageKey)}
                       alt={artist.name}
                       type="artist"
                       id={artist.id}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
-                  <p className="text-sm font-semibold text-zinc-100 truncate group-hover:text-purple-300 transition-colors">
+                  <h4 className="font-label-md text-xs text-prussian-blue truncate font-bold group-hover:text-vibrant-saffron transition-colors">
                     {artist.name}
-                  </p>
-                  <p className="text-xs text-zinc-400">Artist</p>
+                  </h4>
+                  <p className="font-caption text-[10px] text-outline">Artist</p>
                 </Link>
               ))}
             </div>
-          </div>
+          </section>
         )}
       </div>
     </div>
-  );
-}
-
-function LibraryCard({
-  title,
-  subtitle,
-  imageKey,
-  href,
-  id,
-}: {
-  title: string;
-  subtitle: string;
-  imageKey?: string;
-  href: string;
-  id: string;
-}) {
-  const cover = artworkUrl(imageKey);
-  return (
-    <Link
-      href={href}
-      className="group cursor-pointer block rounded-2xl p-3 flex flex-col gap-2.5 bg-zinc-900/60 border border-white/5 hover:border-white/10 hover:bg-zinc-900/90 transition-all duration-300 shadow-lg hover:-translate-y-1"
-    >
-      <div className="relative aspect-square rounded-xl overflow-hidden bg-zinc-950">
-        <ArtworkImage
-          src={cover}
-          alt={title}
-          type="album"
-          id={id}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
-        {/* Hover play overlay */}
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-          <div
-            className="w-11 h-11 rounded-full flex items-center justify-center bg-cyan-400 text-cyan-950 shadow-lg group-hover:scale-110 transition-transform"
-            style={{ boxShadow: '0 0 20px rgba(76,215,246,0.6)' }}
-          >
-            <Play className="w-5 h-5 fill-current ml-0.5" />
-          </div>
-        </div>
-      </div>
-      <div>
-        <h4 className="text-sm font-semibold text-zinc-100 truncate group-hover:text-purple-300 transition-colors">
-          {title}
-        </h4>
-        <p className="text-xs text-zinc-400 mt-0.5">{subtitle}</p>
-      </div>
-    </Link>
   );
 }

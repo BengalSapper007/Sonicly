@@ -14,13 +14,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        {/* Montserrat (display) + Inter (body) + Material Symbols */}
+        {/* Montserrat font family + Material Symbols Outlined */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
           rel="stylesheet"
         />
       </head>
-      <body className="h-full overflow-hidden" style={{ background: '#131316', color: '#e4e1e6' }}>
+      <body className="h-full overflow-hidden antialiased bg-[#f9f9f9] text-[#1a1c1c] font-sans selection:bg-[#ff8800]/25 selection:text-[#003153]">
         <AppShell>{children}</AppShell>
       </body>
     </html>

@@ -3,271 +3,157 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth.store';
-import {
-  Home,
-  Search,
-  Library,
-  Heart,
-  Disc,
-  Users,
-  ListMusic,
-  Plus,
-  TrendingUp,
-  BarChart3,
-  Settings,
-  LogOut,
-  LucideIcon,
-} from 'lucide-react';
-
-interface NavItemConfig {
-  href: string;
-  icon: LucideIcon;
-  label: string;
-}
-
-const NAV_ITEMS: NavItemConfig[] = [
-  { href: '/', icon: Home, label: 'Home' },
-  { href: '/search', icon: Search, label: 'Search' },
-  { href: '/library', icon: Library, label: 'Library' },
-];
-
-const LIBRARY_ITEMS: NavItemConfig[] = [
-  { href: '/library/liked', icon: Heart, label: 'Liked Songs' },
-  { href: '/library/albums', icon: Disc, label: 'Saved Albums' },
-  { href: '/library/artists', icon: Users, label: 'Following' },
-];
 
 export function Sidebar() {
   const pathname = usePathname();
   const { isAuthenticated, user, logout } = useAuthStore();
 
   return (
-    <aside
-      className="flex-shrink-0 h-full flex flex-col overflow-hidden select-none"
-      style={{
-        width: 'var(--sidebar-width)',
-        background: 'rgba(25, 25, 29, 0.75)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        borderRight: '1px solid rgba(255, 255, 255, 0.08)',
-        boxShadow: '4px 0 30px rgba(0, 0, 0, 0.4)',
-      }}
-    >
-      {/* ── Brand ──────────────────────────────────────────────────────────── */}
-      <Link href="/" className="px-5 py-5 flex items-center gap-3.5 group">
-        {/* Official Logo mark */}
-        <div
-          className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 transition-transform group-hover:scale-105 shadow-lg relative"
-          style={{
-            boxShadow: '0 0 20px rgba(208, 188, 255, 0.35)',
-          }}
-        >
-          <img
-            src="/logo-icon.png"
-            alt="Sonicly"
-            className="w-full h-full object-cover scale-110"
-          />
-        </div>
-        <div>
-          <span
-            className="text-gradient-brand font-black text-xl block tracking-tight leading-none"
-            style={{ fontFamily: 'Montserrat, sans-serif' }}
-          >
+    <nav className="hidden md:flex flex-col h-full py-stack-md bg-midnight-blue w-64 fixed left-0 top-0 border-r-2 border-prussian-blue z-40 select-none">
+      {/* ── Brand & User Profile ────────────────────────────────────────────── */}
+      <div className="px-6 mb-6">
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="w-9 h-9 rounded bg-vibrant-saffron flex items-center justify-center text-prussian-blue font-black text-xl border-2 border-prussian-blue hard-shadow-sm transition-transform group-hover:scale-105">
+            S
+          </div>
+          <h2 className="font-headline-md text-headline-md font-black text-vibrant-saffron tracking-tight">
             Sonicly
-          </span>
-          <p className="text-[11px] text-zinc-400 font-medium tracking-wide mt-1">
-            Premium Music
-          </p>
-        </div>
-      </Link>
+          </h2>
+        </Link>
 
-      {/* ── Main Nav ───────────────────────────────────────────────────────── */}
-      <nav className="px-3 space-y-1">
-        {NAV_ITEMS.map(({ href, icon, label }) => {
-          const isActive =
-            href === '/' ? pathname === '/' : pathname.startsWith(href);
-          return (
-            <NavItem
-              key={href}
-              href={href}
-              icon={icon}
-              label={label}
-              active={isActive}
-            />
-          );
-        })}
-      </nav>
-
-      {/* ── Divider ────────────────────────────────────────────────────────── */}
-      <div
-        className="mx-5 my-4"
-        style={{ borderTop: '1px solid rgba(255, 255, 255, 0.07)' }}
-      />
-
-      {/* ── Library Section ────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-3 no-scrollbar space-y-4">
-        {isAuthenticated ? (
-          <>
-            <div>
-              <div className="px-3 mb-2 flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">
-                  Your Library
-                </span>
-                <button
-                  className="p-1 rounded-md text-zinc-400 hover:text-white hover:bg-white/10 transition-all"
-                  title="Create playlist"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="space-y-1">
-                {LIBRARY_ITEMS.map(({ href, icon, label }) => (
-                  <NavItem
-                    key={href}
-                    href={href}
-                    icon={icon}
-                    label={label}
-                    active={pathname === href}
-                    small
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div className="px-3 mb-2 flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">
-                  Playlists
-                </span>
-              </div>
-              <Link
-                href="/playlists"
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all',
-                  pathname.startsWith('/playlist')
-                    ? 'text-purple-200 font-semibold bg-purple-500/10 border-l-[3px] border-purple-400'
-                    : 'text-zinc-300 hover:text-white hover:bg-white/5'
-                )}
-              >
-                <ListMusic className="w-4 h-4 text-purple-300" />
-                <span>Discover Playlists</span>
-              </Link>
-            </div>
-          </>
-        ) : (
-          <div className="p-4 rounded-2xl bg-zinc-900/60 border border-white/5 shadow-inner">
-            <h4 className="text-sm font-semibold text-zinc-100 mb-1">
-              Log in to see your library
-            </h4>
-            <p className="text-xs text-zinc-400 leading-relaxed mb-4">
-              Save songs, create playlists, and follow your favorite artists.
+        <div className="flex items-center gap-3 mt-5 p-2 rounded bg-prussian-blue/40 border border-prussian-blue/60">
+          <div className="w-10 h-10 rounded-full border-2 border-vibrant-saffron overflow-hidden flex-shrink-0 bg-prussian-blue flex items-center justify-center text-white font-bold text-sm">
+            {user?.displayName ? user.displayName.slice(0, 1).toUpperCase() : 'S'}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-label-md text-xs text-white truncate">
+              {user ? user.displayName || 'Sonicly User' : 'Guest Listener'}
             </p>
-            <div className="flex flex-col gap-2">
-              <Link
-                href="/login"
-                className="btn-primary justify-center text-center text-xs py-2"
-              >
-                Log in
-              </Link>
-              <Link
-                href="/register"
-                className="btn-glass justify-center text-center text-xs py-2"
-              >
-                Sign up
-              </Link>
-            </div>
+            <p className="text-[11px] font-medium text-vibrant-saffron">
+              {isAuthenticated ? 'Premium Member' : 'Free Tier'}
+            </p>
           </div>
-        )}
-
-        {/* ── Trending Shelf ───────────────────────────────────────────────── */}
-        <div>
-          <div className="px-3 mb-2 flex items-center gap-1.5">
-            <TrendingUp className="w-3.5 h-3.5 text-purple-300" />
-            <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">
-              Trending
-            </span>
-          </div>
-          <Link
-            href="/search"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-zinc-300 hover:text-white hover:bg-white/5 transition-all"
-          >
-            <BarChart3 className="w-4 h-4 text-cyan-400" />
-            <span>Top 50 Charts</span>
-          </Link>
         </div>
       </div>
 
-      {/* ── User Footer ────────────────────────────────────────────────────── */}
-      {isAuthenticated && user && (
-        <div
-          className="p-3 bg-zinc-950/40"
-          style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}
-        >
-          <div className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-xl hover:bg-white/5 transition-all">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-purple-950 flex-shrink-0"
-                style={{
-                  background: 'linear-gradient(135deg, #d0bcff 0%, #ffb0cd 100%)',
-                }}
-              >
-                {user.displayName?.[0]?.toUpperCase() || 'U'}
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-zinc-100 truncate">
-                  {user.displayName}
-                </p>
-                <p className="text-[10px] font-bold text-purple-300 uppercase tracking-wider">
-                  Premium
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={logout}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all"
-              title="Log out"
+      {/* ── Nav Items ───────────────────────────────────────────────────────── */}
+      <ul className="flex flex-col gap-1.5 flex-grow mt-2 font-body-md text-body-md">
+        <li>
+          <Link
+            href="/"
+            className={cn(
+              'flex items-center gap-3.5 py-2.5 transition-colors font-medium text-sm',
+              pathname === '/'
+                ? 'text-vibrant-saffron font-bold border-l-4 border-vibrant-saffron pl-4 bg-prussian-blue/80'
+                : 'text-on-primary-container hover:text-white pl-5 hover:bg-prussian-blue/40'
+            )}
+          >
+            <span
+              className="material-symbols-outlined text-[20px]"
+              style={pathname === '/' ? { fontVariationSettings: "'FILL' 1" } : {}}
             >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
-    </aside>
-  );
-}
+              home
+            </span>
+            <span>Home</span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/search"
+            className={cn(
+              'flex items-center gap-3.5 py-2.5 transition-colors font-medium text-sm',
+              pathname.startsWith('/search')
+                ? 'text-vibrant-saffron font-bold border-l-4 border-vibrant-saffron pl-4 bg-prussian-blue/80'
+                : 'text-on-primary-container hover:text-white pl-5 hover:bg-prussian-blue/40'
+            )}
+          >
+            <span
+              className="material-symbols-outlined text-[20px]"
+              style={pathname.startsWith('/search') ? { fontVariationSettings: "'FILL' 1" } : {}}
+            >
+              explore
+            </span>
+            <span>Explore</span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/library"
+            className={cn(
+              'flex items-center gap-3.5 py-2.5 transition-colors font-medium text-sm',
+              pathname.startsWith('/library')
+                ? 'text-vibrant-saffron font-bold border-l-4 border-vibrant-saffron pl-4 bg-prussian-blue/80'
+                : 'text-on-primary-container hover:text-white pl-5 hover:bg-prussian-blue/40'
+            )}
+          >
+            <span
+              className="material-symbols-outlined text-[20px]"
+              style={pathname.startsWith('/library') ? { fontVariationSettings: "'FILL' 1" } : {}}
+            >
+              library_music
+            </span>
+            <span>Library</span>
+          </Link>
+        </li>
 
-function NavItem({
-  href,
-  icon: Icon,
-  label,
-  active,
-  small = false,
-}: {
-  href: string;
-  icon: LucideIcon;
-  label: string;
-  active: boolean;
-  small?: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        'flex items-center gap-3 rounded-xl transition-all group relative font-medium',
-        small ? 'px-3 py-2 text-xs' : 'px-3.5 py-2.5 text-sm',
-        active
-          ? 'text-purple-100 font-semibold bg-white/10 shadow-sm border-l-[3px] border-purple-400'
-          : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/5'
-      )}
-    >
-      <Icon
-        className={cn(
-          'transition-transform group-hover:scale-110 flex-shrink-0',
-          small ? 'w-4 h-4' : 'w-5 h-5',
-          active ? 'text-purple-300' : 'text-zinc-400 group-hover:text-zinc-200'
+        <div className="h-px bg-prussian-blue my-3 mx-4"></div>
+
+        <li className="px-5 mb-1">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-on-primary-container/80">
+            Playlists
+          </span>
+        </li>
+        <li>
+          <Link
+            href="/library"
+            className="flex items-center gap-3.5 py-2 text-on-primary-container hover:text-white pl-5 hover:bg-prussian-blue/40 transition-colors text-sm font-medium"
+          >
+            <span className="material-symbols-outlined text-[20px]">add_box</span>
+            <span>Create Playlist</span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/library"
+            className="flex items-center gap-3.5 py-2 text-on-primary-container hover:text-white pl-5 hover:bg-prussian-blue/40 transition-colors text-sm font-medium"
+          >
+            <span className="material-symbols-outlined text-[20px]">favorite</span>
+            <span>Liked Songs</span>
+          </Link>
+        </li>
+      </ul>
+
+      {/* ── Footer CTA & Auth ────────────────────────────────────────────────── */}
+      <div className="px-6 mt-auto flex flex-col gap-3">
+        <button className="w-full bg-vibrant-saffron text-prussian-blue font-label-md text-xs py-2.5 rounded font-bold border-2 border-prussian-blue shadow-[3px_3px_0px_0px_rgba(0,49,83,1)] hover:bg-deep-saffron transition-all active:translate-y-0.5 active:shadow-none">
+          Upgrade to Pro
+        </button>
+
+        {isAuthenticated ? (
+          <button
+            onClick={() => logout()}
+            className="text-xs text-on-primary-container hover:text-white py-1 flex items-center justify-center gap-1 transition-colors"
+          >
+            <span className="material-symbols-outlined text-[16px]">logout</span>
+            <span>Sign Out</span>
+          </button>
+        ) : (
+          <div className="flex gap-2">
+            <Link
+              href="/login"
+              className="flex-1 text-center py-1.5 text-xs text-white border border-on-primary-container rounded hover:bg-prussian-blue transition-colors font-semibold"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/register"
+              className="flex-1 text-center py-1.5 text-xs bg-white text-prussian-blue rounded font-bold hover:bg-zinc-200 transition-colors"
+            >
+              Sign Up
+            </Link>
+          </div>
         )}
-      />
-      <span className="truncate">{label}</span>
-    </Link>
+      </div>
+    </nav>
   );
 }
