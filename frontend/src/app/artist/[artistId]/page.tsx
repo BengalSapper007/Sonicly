@@ -1,5 +1,6 @@
 'use client';
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState } from 'react';
+import { use } from 'react';
 import { Play, UserPlus, UserCheck, Check } from 'lucide-react';
 import { artistsApi, artworkUrl } from '@/lib/api';
 import { usePlayerStore } from '@/stores/player.store';
@@ -9,7 +10,6 @@ import { SongRow } from '@/components/catalog/SongRow';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ArtworkImage } from '@/components/ui/ArtworkImage';
 import { formatNumber } from '@/lib/utils';
-import Link from 'next/link';
 
 export default function ArtistPage({ params }: { params: Promise<{ artistId: string }> }) {
   const { artistId } = use(params);
@@ -17,7 +17,7 @@ export default function ArtistPage({ params }: { params: Promise<{ artistId: str
   const [following, setFollowing] = useState(false);
   const [loading, setLoading] = useState(true);
   const { playQueue } = usePlayerStore();
-  const { isAuthenticated, logout } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
 
   useEffect(() => {
     artistsApi
@@ -31,9 +31,10 @@ export default function ArtistPage({ params }: { params: Promise<{ artistId: str
   }, [artistId]);
 
   if (loading) return <ArtistSkeleton />;
-  if (!artist) return <div className="p-8 text-prussian-blue font-bold">Artist not found.</div>;
+  if (!artist) return <div className="p-8 text-zinc-400">Artist not found.</div>;
 
   const topSongs = artist.popularSongs?.slice(0, 5) || [];
+
   const albums = artist.albums || [];
 
   const handleFollow = async () => {
@@ -47,105 +48,84 @@ export default function ArtistPage({ params }: { params: Promise<{ artistId: str
   };
 
   return (
-    <div className="min-h-full pb-24 md:pb-32 bg-background text-on-surface">
-      {/* ── TopNavBar (Desktop) ──────────────────────────────────────────────── */}
-      <header className="hidden md:flex justify-between items-center h-16 px-margin-desktop bg-prussian-blue sticky top-0 z-30 border-b-2 border-midnight-blue transition-all duration-200">
-        <div className="flex items-center gap-6">
-          <Link href="/" className="font-headline-md text-headline-md font-black text-vibrant-saffron">
-            Sonicly
-          </Link>
-          <nav className="flex items-center gap-6">
-            <Link href="/search" className="font-label-md text-label-md text-on-primary-container hover:text-vibrant-saffron transition-colors">
-              Podcasts
-            </Link>
-            <Link href="/search" className="font-label-md text-label-md text-on-primary-container hover:text-vibrant-saffron transition-colors">
-              Audiobooks
-            </Link>
-            <Link href="/search" className="font-label-md text-label-md text-on-primary-container hover:text-vibrant-saffron transition-colors">
-              Live
-            </Link>
-          </nav>
-        </div>
-        <div className="flex items-center gap-4">
-          <button className="text-on-primary-container hover:text-vibrant-saffron transition-colors p-1" title="Settings">
-            <span className="material-symbols-outlined text-[20px]">settings</span>
-          </button>
-          <button className="text-on-primary-container hover:text-vibrant-saffron transition-colors p-1" title="Notifications">
-            <span className="material-symbols-outlined text-[20px]">notifications</span>
-          </button>
-          <button
-            onClick={() => logout()}
-            className="font-label-md text-xs text-white hover:text-vibrant-saffron transition-colors border border-on-primary-container px-3 py-1 rounded"
-          >
-            Sign Out
-          </button>
-        </div>
-      </header>
-
-      {/* ── Hero (Saffron full bleed) ─────────────────────────────────────────── */}
-      <section className="bg-vibrant-saffron px-margin-desktop py-stack-xl flex flex-col md:flex-row items-end gap-8 border-b-2 border-prussian-blue">
-        <div className="w-48 h-48 md:w-56 md:h-56 rounded-full overflow-hidden border-4 border-prussian-blue bg-midnight-blue flex-shrink-0 shadow-lg">
+    <div className="min-h-full pb-16">
+      {/* ── Hero ─────────────────────────────────────────────────────────── */}
+      <div className="relative h-72 overflow-hidden">
+        <div className="absolute inset-0">
           <ArtworkImage
             src={artworkUrl(artist.imageKey)}
             alt={artist.name}
             type="artist"
             id={artist.id}
             size="hero"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-center"
           />
         </div>
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(to top, #131316 0%, rgba(19,19,22,0.6) 50%, rgba(19,19,22,0.2) 100%)',
+          }}
+        />
 
-        <div className="flex-1 text-prussian-blue">
-          {artist.isVerified && (
-            <span className="inline-block px-3 py-1 bg-prussian-blue text-white font-label-md text-xs rounded-full mb-3">
-              Verified Artist
-            </span>
-          )}
-          <h1 className="font-display-lg text-display-lg font-black mb-2">
+        {/* Verified Badge */}
+        {artist.isVerified && (
+          <div className="absolute top-6 left-8 flex items-center gap-1.5 bg-purple-500/20 backdrop-blur-md border border-purple-400/30 rounded-full px-3 py-1 text-purple-300 text-xs font-semibold shadow-md">
+            <Check className="w-3.5 h-3.5 text-purple-300" />
+            <span>Verified Artist</span>
+          </div>
+        )}
+
+        {/* Name */}
+        <div className="absolute bottom-0 left-0 right-0 px-8 pb-6">
+          <h1
+            className="font-black text-4xl md:text-6xl text-white tracking-tight drop-shadow-lg"
+            style={{ fontFamily: 'Montserrat, sans-serif' }}
+          >
             {artist.name}
           </h1>
           {artist.monthlyListeners !== undefined && (
-            <p className="font-body-md text-sm font-semibold mb-6">
+            <p className="text-sm text-zinc-300 mt-1 font-medium">
               {formatNumber(artist.monthlyListeners)} monthly listeners
             </p>
           )}
-
-          <div className="flex items-center gap-4">
-            {topSongs.length > 0 && (
-              <button
-                onClick={() => playQueue(topSongs, 0, 'artist', artistId)}
-                className="bg-prussian-blue text-white w-14 h-14 rounded-full flex items-center justify-center hover:bg-midnight-blue transition-all shadow-lg active:scale-95 group"
-                title="Play Artist"
-              >
-                <span
-                  className="material-symbols-outlined text-3xl group-hover:scale-110 transition-transform"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  play_arrow
-                </span>
-              </button>
-            )}
-
-            {isAuthenticated && (
-              <button
-                onClick={handleFollow}
-                className="border-2 border-prussian-blue text-prussian-blue font-label-md text-sm py-2.5 px-6 rounded hover:bg-prussian-blue hover:text-white transition-colors font-bold"
-              >
-                {following ? 'Following' : 'Follow'}
-              </button>
-            )}
-          </div>
         </div>
-      </section>
+      </div>
 
-      {/* ── Popular Tracks ───────────────────────────────────────────────────── */}
+      {/* ── Actions ──────────────────────────────────────────────────────── */}
+      <div className="px-8 py-5 flex items-center gap-4">
+        {topSongs.length > 0 && (
+          <button
+            onClick={() => playQueue(topSongs, 0, 'artist', artistId)}
+            className="btn-primary flex items-center gap-2 px-6 py-2.5 font-bold shadow-lg"
+          >
+            <Play className="w-4 h-4 fill-current ml-0.5" />
+            <span>Play</span>
+          </button>
+        )}
+        {isAuthenticated && (
+          <button
+            onClick={handleFollow}
+            className={`btn-glass flex items-center gap-2 px-5 py-2.5 text-sm font-semibold ${
+              following ? 'border-purple-400/50 text-purple-300 bg-purple-500/10' : ''
+            }`}
+          >
+            {following ? <UserCheck className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+            <span>{following ? 'Following' : 'Follow'}</span>
+          </button>
+        )}
+      </div>
+
+      {/* ── Top Songs ────────────────────────────────────────────────────── */}
       {topSongs.length > 0 && (
-        <section className="px-margin-desktop py-stack-md">
-          <div className="mb-4 border-l-4 border-vibrant-saffron pl-3">
-            <h2 className="font-headline-md text-headline-md font-bold text-prussian-blue">
-              Popular Tracks
-            </h2>
-          </div>
+        <section className="px-8 mb-8">
+          <h2
+            className="text-xl font-bold text-zinc-100 mb-4 tracking-tight"
+            style={{ fontFamily: 'Montserrat, sans-serif' }}
+          >
+            Popular Tracks
+          </h2>
           <div className="space-y-1">
             {topSongs.map((song: any, i: number) => (
               <SongRow
@@ -162,14 +142,15 @@ export default function ArtistPage({ params }: { params: Promise<{ artistId: str
         </section>
       )}
 
-      {/* ── Albums ───────────────────────────────────────────────────────────── */}
+      {/* ── Albums ───────────────────────────────────────────────────────── */}
       {albums.length > 0 && (
-        <section className="px-margin-desktop py-stack-md">
-          <div className="mb-4 border-l-4 border-crisp-green pl-3">
-            <h2 className="font-headline-md text-headline-md font-bold text-prussian-blue">
-              Discography
-            </h2>
-          </div>
+        <section className="px-8 mb-8">
+          <h2
+            className="text-xl font-bold text-zinc-100 mb-4 tracking-tight"
+            style={{ fontFamily: 'Montserrat, sans-serif' }}
+          >
+            Discography
+          </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
             {albums.map((album: any) => (
               <AlbumCard key={album.id} album={album} />
@@ -178,15 +159,16 @@ export default function ArtistPage({ params }: { params: Promise<{ artistId: str
         </section>
       )}
 
-      {/* ── Bio ──────────────────────────────────────────────────────────────── */}
+      {/* ── Bio ──────────────────────────────────────────────────────────── */}
       {artist.bio && (
-        <section className="px-margin-desktop py-stack-md">
-          <div className="mb-3 border-l-4 border-prussian-blue pl-3">
-            <h2 className="font-headline-md text-headline-md font-bold text-prussian-blue">
-              About
-            </h2>
-          </div>
-          <p className="font-body-md text-sm text-on-surface-variant max-w-2xl bg-surface border-2 border-prussian-blue p-5 rounded hard-shadow shadow-prussian-blue leading-relaxed">
+        <section className="px-8">
+          <h2
+            className="text-xl font-bold text-zinc-100 mb-3 tracking-tight"
+            style={{ fontFamily: 'Montserrat, sans-serif' }}
+          >
+            About
+          </h2>
+          <p className="text-zinc-300 text-sm leading-relaxed max-w-2xl bg-zinc-900/40 p-5 rounded-2xl border border-white/5">
             {artist.bio}
           </p>
         </section>
@@ -197,18 +179,12 @@ export default function ArtistPage({ params }: { params: Promise<{ artistId: str
 
 function ArtistSkeleton() {
   return (
-    <div className="min-h-full pb-32 animate-fade-in">
-      <div className="bg-vibrant-saffron/40 px-margin-desktop py-stack-xl flex flex-col md:flex-row items-end gap-8 border-b-2 border-prussian-blue">
-        <Skeleton className="w-48 h-48 rounded-full border-2 border-prussian-blue/20 shimmer" />
-        <div className="flex-1 space-y-3">
-          <Skeleton className="w-24 h-4 rounded shimmer" />
-          <Skeleton className="w-80 h-10 rounded shimmer" />
-          <Skeleton className="w-48 h-4 rounded shimmer" />
-        </div>
-      </div>
-      <div className="px-margin-desktop py-stack-md space-y-2">
+    <div className="animate-fade-in">
+      <Skeleton className="h-72 rounded-none shimmer" />
+      <div className="px-8 py-5 space-y-4">
+        <Skeleton className="h-10 w-48 shimmer rounded-full" />
         {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-14 rounded border border-prussian-blue/10 shimmer" />
+          <Skeleton key={i} className="h-12 rounded-xl shimmer" />
         ))}
       </div>
     </div>

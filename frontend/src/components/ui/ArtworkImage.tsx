@@ -12,12 +12,14 @@ interface ArtworkImageProps {
 }
 
 const GRADIENTS = [
-  'linear-gradient(135deg, #003153 0%, #ff8800 100%)',
-  'linear-gradient(135deg, #001D34 0%, #1B6D24 100%)',
-  'linear-gradient(135deg, #ff8800 0%, #cc6d00 100%)',
-  'linear-gradient(135deg, #003153 0%, #001D34 100%)',
-  'linear-gradient(135deg, #1B6D24 0%, #003153 100%)',
-  'linear-gradient(135deg, #ff8800 0%, #001D34 100%)',
+  'linear-gradient(135deg, #7928ca 0%, #ff0080 100%)',
+  'linear-gradient(135deg, #4cd7f6 0%, #d0bcff 100%)',
+  'linear-gradient(135deg, #ff0080 0%, #7928ca 50%, #4cd7f6 100%)',
+  'linear-gradient(135deg, #1b2838 0%, #2a475e 50%, #66c0f4 100%)',
+  'linear-gradient(135deg, #3c0091 0%, #aa0266 50%, #003640 100%)',
+  'linear-gradient(135deg, #d0bcff 0%, #ffb0cd 100%)',
+  'linear-gradient(135deg, #f12711 0%, #f5af19 100%)',
+  'linear-gradient(135deg, #654ea3 0%, #eaafc8 100%)',
 ];
 
 function getGradient(str: string = '') {
@@ -61,6 +63,7 @@ export function ArtworkImage({
           background: gradient,
         }}
       >
+        {/* Subtle decorative vinyl or radial glow */}
         <div
           className="absolute inset-0 pointer-events-none opacity-20"
           style={{
@@ -70,8 +73,8 @@ export function ArtworkImage({
 
         {size === 'hero' ? (
           <div className="flex flex-col items-center gap-3 z-10">
-            <Icon className="w-16 h-16 text-white/80" />
-            <span className="text-4xl font-black text-white drop-shadow-md">
+            <Icon className="w-16 h-16 text-white/70" />
+            <span className="text-4xl font-extrabold text-white/90 drop-shadow-md">
               {alt}
             </span>
           </div>
@@ -80,16 +83,16 @@ export function ArtworkImage({
             <span className="text-3xl font-black text-white drop-shadow-md">
               {initial}
             </span>
-            <Icon className="w-6 h-6 text-white/70" />
+            <Icon className="w-6 h-6 text-white/60" />
           </div>
         ) : size === 'sm' ? (
-          <Icon className="w-4 h-4 text-white/90 z-10" />
+          <Icon className="w-4 h-4 text-white/80 z-10" />
         ) : (
           <div className="flex flex-col items-center gap-1 z-10">
             <span className="text-2xl font-black text-white drop-shadow-md">
               {initial}
             </span>
-            <Icon className="w-5 h-5 text-white/80" />
+            <Icon className="w-5 h-5 text-white/70" />
           </div>
         )}
       </div>

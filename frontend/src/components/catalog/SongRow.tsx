@@ -1,4 +1,5 @@
 'use client';
+import { Play, Heart, MoreHorizontal, Loader2 } from 'lucide-react';
 import { usePlayerStore, type Song } from '@/stores/player.store';
 import { useAuthStore } from '@/stores/auth.store';
 import { cn, formatDuration } from '@/lib/utils';
@@ -29,6 +30,7 @@ export function SongRow({
   const isCurrent = currentSong?.id === song.id;
   const isCurrentlyPlaying = isCurrent && isPlaying;
 
+  // Determine initial liked state from the song data (backend returns `likes: [...]` when userId is passed)
   const initialLiked = Array.isArray((song as any).likes) && (song as any).likes.length > 0;
   const { liked, isLoading: likeLoading, toggle: toggleLike } = useLike(song.id, initialLiked);
 
@@ -43,100 +45,101 @@ export function SongRow({
   return (
     <div
       className={cn(
-        'group grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 py-2.5 px-4 rounded border border-transparent transition-colors cursor-pointer select-none',
-        'hover:bg-surface-container hover:border-prussian-blue/20',
-        isCurrent ? 'bg-surface-container-high border-prussian-blue/30' : 'bg-surface'
+        'group flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl transition-all cursor-pointer select-none',
+        'hover:bg-white/5',
+        isCurrent && 'bg-white/10'
       )}
       onClick={handlePlay}
     >
-      {/* Index or Equalizer / Play button */}
-      <div className="w-8 flex justify-center text-center">
+      {/* Index / Play button */}
+      <div className="w-6 flex-shrink-0 flex items-center justify-center relative">
         {isCurrentlyPlaying ? (
-          <div className="flex items-end gap-0.5 h-3.5 text-crisp-green">
-            <span className="w-0.5 bg-crisp-green rounded-full eq-bar-1" />
-            <span className="w-0.5 bg-crisp-green rounded-full eq-bar-2" />
-            <span className="w-0.5 bg-crisp-green rounded-full eq-bar-3" />
+          <div className="flex gap-0.5 items-end h-3.5">
+            <span className="w-0.5 bg-purple-300 rounded-full eq-bar-1" />
+            <span className="w-0.5 bg-purple-300 rounded-full eq-bar-2" />
+            <span className="w-0.5 bg-purple-300 rounded-full eq-bar-3" />
           </div>
         ) : (
           <>
             <span
               className={cn(
-                'text-xs tabular-nums group-hover:hidden',
-                isCurrent ? 'text-crisp-green font-bold' : 'text-on-surface-variant font-medium'
+                'text-xs tabular-nums transition-opacity group-hover:opacity-0',
+                isCurrent ? 'text-purple-300 font-bold' : 'text-zinc-400 font-mono'
               )}
             >
               {index !== undefined ? index + 1 : ''}
             </span>
-            <span className="material-symbols-outlined text-[20px] hidden group-hover:block text-prussian-blue" style={{ fontVariationSettings: "'FILL' 1" }}>
-              play_arrow
-            </span>
+            <Play className="w-4 h-4 absolute opacity-0 group-hover:opacity-100 transition-opacity text-white fill-current" />
           </>
         )}
       </div>
 
-      {/* Album artwork + Track info */}
-      <div className="flex items-center gap-3 min-w-0">
-        {showAlbum && song.album && (
-          <div className="w-10 h-10 rounded-sm border border-outline-variant overflow-hidden flex-shrink-0 bg-surface-variant">
-            <ArtworkImage
-              src={artworkUrl(song.album.imageKey)}
-              alt={song.album.title || song.title}
-              type="album"
-              id={song.album.id || song.id}
-              size="sm"
-              className="w-full h-full object-cover"
-            />
-          </div>
-        )}
-        <div className="min-w-0 flex-1">
-          <p
-            className={cn(
-              'font-label-md text-sm truncate font-bold',
-              isCurrent ? 'text-crisp-green' : 'text-prussian-blue group-hover:text-midnight-blue'
-            )}
-          >
-            {song.title}
-          </p>
-          <p className="font-caption text-xs text-on-surface-variant truncate">
-            {song.album?.artist?.name || 'Various Artists'}
-          </p>
+      {/* Album art */}
+      {showAlbum && song.album && (
+        <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 shadow-sm bg-zinc-950">
+          <ArtworkImage
+            src={artworkUrl(song.album.imageKey)}
+            alt={song.album.title || song.title}
+            type="album"
+            id={song.album.id || song.id}
+            size="sm"
+            className="w-full h-full object-cover"
+          />
         </div>
+      )}
+
+      {/* Track info */}
+      <div className="flex-1 min-w-0">
+        <p
+          className={cn(
+            'text-sm font-semibold truncate transition-colors',
+            isCurrent ? 'text-purple-300' : 'text-zinc-100 group-hover:text-white'
+          )}
+        >
+          {song.title}
+        </p>
+        <p className="text-xs text-zinc-400 truncate mt-0.5">
+          {song.album?.artist?.name}
+          {showAlbum && song.album && (
+            <span className="text-zinc-400"> · {song.album.title}</span>
+          )}
+        </p>
       </div>
 
-      {/* Album title (hidden on small) */}
-      <div className="hidden md:block w-36 font-body-md text-xs text-on-surface-variant truncate">
-        {song.album?.title || '—'}
-      </div>
+      {/* Like button — only for authenticated users */}
+      {isAuthenticated && (
+        <button
+          className={cn(
+            'p-1.5 transition-all flex-shrink-0',
+            liked
+              ? 'opacity-100 text-rose-400 hover:text-rose-300'
+              : 'opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-rose-400'
+          )}
+          onClick={toggleLike}
+          aria-label={liked ? 'Unlike song' : 'Like song'}
+          title={liked ? 'Unlike' : 'Like'}
+        >
+          {likeLoading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Heart className={cn('w-4 h-4', liked && 'fill-current')} />
+          )}
+        </button>
+      )}
 
-      {/* Like & Duration */}
-      <div className="flex items-center gap-3 justify-end">
-        {isAuthenticated && (
-          <button
-            className={cn(
-              'p-1 transition-all flex-shrink-0',
-              liked
-                ? 'opacity-100 text-crisp-green'
-                : 'opacity-0 group-hover:opacity-100 text-outline hover:text-prussian-blue'
-            )}
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleLike(e);
-            }}
-            title={liked ? 'Unlike' : 'Like'}
-          >
-            <span
-              className="material-symbols-outlined text-[18px]"
-              style={liked ? { fontVariationSettings: "'FILL' 1" } : {}}
-            >
-              {liked ? 'favorite' : 'favorite_border'}
-            </span>
-          </button>
-        )}
+      {/* Duration */}
+      <span className="text-xs text-zinc-400 tabular-nums font-mono w-10 text-right flex-shrink-0">
+        {formatDuration(song.duration)}
+      </span>
 
-        <span className="font-body-md text-xs text-prussian-blue font-medium tabular-nums w-12 text-right">
-          {formatDuration(song.duration)}
-        </span>
-      </div>
+      {/* More */}
+      <button
+        className="p-1.5 text-zinc-400 hover:text-white opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+        onClick={(e) => e.stopPropagation()}
+        aria-label="More options"
+      >
+        <MoreHorizontal className="w-4 h-4" />
+      </button>
     </div>
   );
 }

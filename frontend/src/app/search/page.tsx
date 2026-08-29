@@ -6,27 +6,62 @@ import { SongRow } from '@/components/catalog/SongRow';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ArtworkImage } from '@/components/ui/ArtworkImage';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useAuthStore } from '@/stores/auth.store';
 import Link from 'next/link';
+import {
+  Search,
+  X,
+  History,
+  Music,
+  User,
+  Disc,
+  ListMusic,
+  Headphones,
+  Radio,
+  Sparkles,
+  Zap,
+  Cloud,
+  SearchX,
+} from 'lucide-react';
 
-interface CategoryConfig {
-  label: string;
-  bgColor: string;
-  textColor: string;
-  shadowClass: string;
-  colSpan?: string;
-  aspect?: string;
-}
-
-const CATEGORIES: CategoryConfig[] = [
-  { label: 'Pop', bgColor: 'bg-vibrant-saffron', textColor: 'text-prussian-blue', shadowClass: 'shadow-[4px_4px_0px_0px_rgba(0,49,83,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,49,83,1)]' },
-  { label: 'Hip Hop', bgColor: 'bg-crisp-green', textColor: 'text-white', shadowClass: 'shadow-[4px_4px_0px_0px_rgba(0,49,83,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,49,83,1)]' },
-  { label: 'Electronic', bgColor: 'bg-prussian-blue', textColor: 'text-white', shadowClass: 'shadow-[4px_4px_0px_0px_rgba(255,136,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(255,136,0,1)]' },
-  { label: 'Rock', bgColor: 'bg-vibrant-saffron', textColor: 'text-prussian-blue', shadowClass: 'shadow-[4px_4px_0px_0px_rgba(0,49,83,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,49,83,1)]' },
-  { label: 'Podcasts', bgColor: 'bg-crisp-green', textColor: 'text-white', shadowClass: 'shadow-[4px_4px_0px_0px_rgba(0,49,83,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,49,83,1)]', colSpan: 'md:col-span-2', aspect: 'md:aspect-auto' },
-  { label: 'Jazz', bgColor: 'bg-prussian-blue', textColor: 'text-white', shadowClass: 'shadow-[4px_4px_0px_0px_rgba(255,136,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(255,136,0,1)]' },
-  { label: 'Classical', bgColor: 'bg-vibrant-saffron', textColor: 'text-prussian-blue', shadowClass: 'shadow-[4px_4px_0px_0px_rgba(0,49,83,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,49,83,1)]' },
+const GENRES = [
+  {
+    label: 'Synthwave',
+    gradient: 'linear-gradient(135deg, #d0bcff 0%, #ffb0cd 100%)',
+    icon: Music,
+  },
+  {
+    label: 'Lo-Fi Beats',
+    gradient: 'linear-gradient(135deg, #4cd7f6 0%, #a078ff 100%)',
+    icon: Headphones,
+  },
+  {
+    label: 'Techno',
+    gradient: 'linear-gradient(135deg, #aa0266 0%, #131316 100%)',
+    icon: Radio,
+  },
+  {
+    label: 'Pop',
+    gradient: 'linear-gradient(135deg, #ffb0cd 0%, #d0bcff 100%)',
+    icon: Sparkles,
+  },
+  {
+    label: 'Ambient',
+    gradient: 'linear-gradient(135deg, #009eb9 0%, #003640 100%)',
+    icon: Cloud,
+  },
+  {
+    label: 'Rock',
+    gradient: 'linear-gradient(135deg, #d0bcff 0%, #494454 100%)',
+    icon: Zap,
+  },
+  {
+    label: 'Dream Pop',
+    gradient: 'linear-gradient(135deg, #d0bcff 0%, #4cd7f6 100%)',
+    icon: Cloud,
+  },
 ];
+
+const RECENT_SEARCHES = ['Cyberpunk 2077 OST', 'Synthwave Mix', 'The Midnight', 'Neon Nights'];
 
 function SearchContent() {
   const searchParams = useSearchParams();
@@ -35,7 +70,6 @@ function SearchContent() {
   const [results, setResults] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const debouncedQuery = useDebounce(query, 350);
-  const { logout } = useAuthStore();
 
   useEffect(() => {
     if (initialQuery && initialQuery !== query) {
@@ -64,104 +98,117 @@ function SearchContent() {
       results.playlists?.length);
 
   return (
-    <div className="min-h-full pb-24 md:pb-32 bg-background text-on-background">
-      {/* ── TopNavBar (Desktop) ──────────────────────────────────────────────── */}
-      <header className="hidden md:flex justify-between items-center h-16 px-margin-desktop bg-prussian-blue border-b-2 border-midnight-blue sticky top-0 z-30 transition-all duration-200">
-        <div className="flex gap-6 items-center">
-          <Link href="/" className="font-headline-md text-headline-md font-black text-vibrant-saffron">
-            Sonicly
-          </Link>
-          <Link href="/search" className="text-on-primary-container hover:text-vibrant-saffron font-label-md text-label-md transition-colors">
-            Podcasts
-          </Link>
-          <Link href="/search" className="text-on-primary-container hover:text-vibrant-saffron font-label-md text-label-md transition-colors">
-            Audiobooks
-          </Link>
-          <Link href="/search" className="text-on-primary-container hover:text-vibrant-saffron font-label-md text-label-md transition-colors">
-            Live
-          </Link>
-        </div>
-        <div className="flex items-center gap-4">
-          <button className="text-white hover:text-vibrant-saffron transition-colors p-1" title="Notifications">
-            <span className="material-symbols-outlined text-[20px]">notifications</span>
-          </button>
-          <button className="text-white hover:text-vibrant-saffron transition-colors p-1" title="Settings">
-            <span className="material-symbols-outlined text-[20px]">settings</span>
-          </button>
-          <button
-            onClick={() => logout()}
-            className="bg-vibrant-saffron text-prussian-blue font-label-md text-xs px-4 py-1.5 rounded font-bold hover:bg-white transition-colors border border-prussian-blue"
+    <div className="min-h-full pb-16">
+      {/* ── Large Search Header ────────────────────────────────────────────── */}
+      <div
+        className="sticky top-0 z-20 px-8 py-5"
+        style={{
+          background: 'rgba(19, 19, 22, 0.85)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+        }}
+      >
+        <div className="relative max-w-2xl group">
+          <div
+            className="flex items-center rounded-full px-5 py-3.5 gap-3.5 shadow-lg"
+            style={{
+              background: 'rgba(42, 42, 45, 0.75)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+            }}
           >
-            Sign Out
-          </button>
-        </div>
-      </header>
-
-      {/* ── Search Canvas ───────────────────────────────────────────────────── */}
-      <div className="p-margin-mobile md:p-margin-desktop flex-1">
-        {/* Search Bar Section */}
-        <div className="max-w-4xl mx-auto mb-stack-xl">
-          <div className="relative flex items-center">
-            <span className="material-symbols-outlined absolute left-4 text-prussian-blue font-bold text-2xl">
-              search
-            </span>
+            <Search className="w-5 h-5 text-purple-300 flex-shrink-0" />
             <input
+              id="search-input"
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="What do you want to listen to?"
               autoFocus
-              className="w-full bg-white border-2 border-prussian-blue focus:border-vibrant-saffron focus:ring-0 rounded-full py-4 pl-14 pr-12 font-body-lg text-body-lg text-prussian-blue placeholder:text-outline-variant transition-colors shadow-[4px_4px_0px_0px_rgba(0,49,83,1)] outline-none"
+              className="bg-transparent border-none outline-none flex-1 text-base text-zinc-100 placeholder-zinc-400"
             />
             {query && (
               <button
                 onClick={() => setQuery('')}
-                className="absolute right-4 text-prussian-blue hover:text-vibrant-saffron p-1"
+                className="p-1 rounded-full text-zinc-400 hover:text-white transition-colors"
                 title="Clear search"
               >
-                <span className="material-symbols-outlined text-xl">close</span>
+                <X className="w-4 h-4" />
               </button>
             )}
           </div>
         </div>
+      </div>
 
-        {/* ── Browse Categories (No query) ────────────────────────────────────── */}
+      <div className="px-8 py-6">
+        {/* ── No query — Browse view ─────────────────────────────────────────── */}
         {!query && (
-          <div className="max-w-6xl mx-auto">
-            <h2 className="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-prussian-blue mb-stack-md flex items-center gap-4">
-              <span className="w-2 h-8 bg-vibrant-saffron rounded-full"></span>
-              Browse All
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-gutter">
-              {CATEGORIES.map((cat) => (
-                <div
-                  key={cat.label}
-                  onClick={() => setQuery(cat.label)}
-                  className={`group relative overflow-hidden rounded-xl ${cat.bgColor} ${cat.aspect || 'aspect-square'} ${cat.colSpan || ''} p-5 flex flex-col justify-between border-2 border-prussian-blue ${cat.shadowClass} hover:translate-y-[-4px] transition-all cursor-pointer select-none`}
-                >
-                  <h3 className={`font-headline-md text-headline-md ${cat.textColor} font-bold z-10 break-words`}>
-                    {cat.label}
-                  </h3>
-                  <div className="flex justify-end">
-                    <span className="material-symbols-outlined text-4xl opacity-30 group-hover:opacity-70 group-hover:scale-110 transition-all">
-                      music_note
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <>
+            {/* Recent Searches */}
+            <section className="mb-8">
+              <h2
+                className="text-sm font-bold uppercase tracking-wider text-zinc-300 mb-3 flex items-center gap-2"
+                style={{ fontFamily: 'Montserrat, sans-serif' }}
+              >
+                <History className="w-4 h-4 text-pink-300" />
+                <span>Recent Searches</span>
+              </h2>
+              <div className="flex flex-wrap gap-2.5">
+                {RECENT_SEARCHES.map((term) => (
+                  <button
+                    key={term}
+                    onClick={() => setQuery(term)}
+                    className="px-4 py-2 rounded-full text-xs font-semibold text-zinc-300 bg-zinc-800/60 border border-white/5 hover:border-white/20 hover:text-white hover:bg-zinc-800 transition-all"
+                  >
+                    {term}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {/* Browse All Genre Grid */}
+            <section>
+              <h2
+                className="text-xl font-bold text-zinc-100 mb-5"
+                style={{ fontFamily: 'Montserrat, sans-serif' }}
+              >
+                Browse All Genres
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+                {GENRES.map((g) => {
+                  const Icon = g.icon;
+                  return (
+                    <div
+                      key={g.label}
+                      className="relative aspect-[16/10] rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300 p-5 flex flex-col justify-between shadow-lg hover:-translate-y-1 hover:shadow-2xl"
+                      style={{ background: g.gradient }}
+                      onClick={() => setQuery(g.label)}
+                    >
+                      <h3
+                        className="font-black text-white text-xl drop-shadow-md z-10 tracking-tight"
+                        style={{ fontFamily: 'Montserrat, sans-serif' }}
+                      >
+                        {g.label}
+                      </h3>
+                      <Icon className="w-12 h-12 text-white/30 absolute bottom-3 right-3 transition-transform group-hover:scale-110 group-hover:text-white/50" />
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          </>
         )}
 
         {/* ── Loading state ──────────────────────────────────────────────────── */}
         {loading && (
-          <div className="max-w-6xl mx-auto space-y-6">
+          <div className="space-y-6">
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i}>
-                <Skeleton className="h-6 w-32 mb-4 shimmer rounded" />
+                <Skeleton className="h-5 w-28 mb-4 shimmer rounded" />
                 <div className="space-y-2">
                   {Array.from({ length: 3 }).map((_, j) => (
-                    <Skeleton key={j} className="h-14 rounded border border-prussian-blue/10 shimmer" />
+                    <Skeleton key={j} className="h-14 rounded-xl shimmer" />
                   ))}
                 </div>
               </div>
@@ -171,28 +218,30 @@ function SearchContent() {
 
         {/* ── No results ─────────────────────────────────────────────────────── */}
         {!loading && results && !hasResults && (
-          <div className="text-center py-20 text-prussian-blue">
-            <span className="material-symbols-outlined text-6xl text-outline mb-2">search_off</span>
-            <p className="text-lg font-bold">
+          <div className="text-center py-20 text-zinc-400">
+            <SearchX className="w-16 h-16 mx-auto text-zinc-600 mb-3" />
+            <p className="text-lg font-semibold text-zinc-200">
               No results found for &ldquo;{query}&rdquo;
             </p>
-            <p className="text-xs text-outline mt-1 font-medium">
-              Please check your spelling or search for another artist, song, or genre.
+            <p className="text-xs text-zinc-500 mt-1">
+              Please check your spelling or search for another artist or song.
             </p>
           </div>
         )}
 
-        {/* ── Search Results ──────────────────────────────────────────────────── */}
+        {/* ── Results ───────────────────────────────────────────────────────── */}
         {!loading && hasResults && (
-          <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
+          <div className="space-y-8 animate-fade-in">
             {/* Songs */}
             {results.songs?.length > 0 && (
               <section>
-                <div className="flex items-center gap-2 mb-4 border-l-4 border-vibrant-saffron pl-3">
-                  <h3 className="font-headline-md text-headline-md font-bold text-prussian-blue">
-                    Songs
-                  </h3>
-                </div>
+                <h2
+                  className="font-bold text-base text-zinc-200 mb-3 flex items-center gap-2"
+                  style={{ fontFamily: 'Montserrat, sans-serif' }}
+                >
+                  <Music className="w-4 h-4 text-purple-300" />
+                  <span>Songs</span>
+                </h2>
                 <div className="space-y-1">
                   {results.songs.slice(0, 8).map((song: any, i: number) => (
                     <SongRow
@@ -201,7 +250,6 @@ function SearchContent() {
                       index={i}
                       queue={results.songs}
                       contextType="search"
-                      showAlbum={true}
                     />
                   ))}
                 </div>
@@ -211,11 +259,13 @@ function SearchContent() {
             {/* Artists */}
             {results.artists?.length > 0 && (
               <section>
-                <div className="flex items-center gap-2 mb-4 border-l-4 border-crisp-green pl-3">
-                  <h3 className="font-headline-md text-headline-md font-bold text-prussian-blue">
-                    Artists
-                  </h3>
-                </div>
+                <h2
+                  className="font-bold text-base text-zinc-200 mb-4 flex items-center gap-2"
+                  style={{ fontFamily: 'Montserrat, sans-serif' }}
+                >
+                  <User className="w-4 h-4 text-pink-300" />
+                  <span>Artists</span>
+                </h2>
                 <div className="flex gap-5 flex-wrap">
                   {results.artists.map((artist: any) => (
                     <Link
@@ -223,19 +273,19 @@ function SearchContent() {
                       href={`/artist/${artist.id}`}
                       className="group text-center block w-28"
                     >
-                      <div className="w-24 h-24 rounded-full overflow-hidden mx-auto mb-2 border-2 border-prussian-blue shadow-md bg-midnight-blue group-hover:border-vibrant-saffron transition-colors">
+                      <div className="w-28 h-28 rounded-full overflow-hidden mx-auto mb-2 shadow-lg ring-2 ring-transparent group-hover:ring-purple-400/50 transition-all">
                         <ArtworkImage
                           src={artworkUrl(artist.imageKey)}
                           alt={artist.name}
                           type="artist"
                           id={artist.id}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       </div>
-                      <h4 className="font-label-md text-xs text-prussian-blue truncate font-bold group-hover:text-vibrant-saffron transition-colors">
+                      <p className="text-sm font-semibold text-zinc-200 truncate group-hover:text-purple-300 transition-colors">
                         {artist.name}
-                      </h4>
-                      <p className="font-caption text-[10px] text-outline">Artist</p>
+                      </p>
+                      <p className="text-xs text-zinc-400">Artist</p>
                     </Link>
                   ))}
                 </div>
@@ -245,32 +295,34 @@ function SearchContent() {
             {/* Albums */}
             {results.albums?.length > 0 && (
               <section>
-                <div className="flex items-center gap-2 mb-4 border-l-4 border-prussian-blue pl-3">
-                  <h3 className="font-headline-md text-headline-md font-bold text-prussian-blue">
-                    Albums
-                  </h3>
-                </div>
+                <h2
+                  className="font-bold text-base text-zinc-200 mb-4 flex items-center gap-2"
+                  style={{ fontFamily: 'Montserrat, sans-serif' }}
+                >
+                  <Disc className="w-4 h-4 text-cyan-300" />
+                  <span>Albums</span>
+                </h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
                   {results.albums.map((album: any) => (
                     <Link
                       key={album.id}
                       href={`/album/${album.id}`}
-                      className="group bg-surface border-2 border-prussian-blue p-3 rounded hover:-translate-y-1 transition-transform hard-shadow shadow-prussian-blue flex flex-col"
+                      className="group block"
                     >
-                      <div className="relative aspect-square mb-2.5 overflow-hidden border border-prussian-blue bg-surface-variant">
+                      <div className="relative aspect-square rounded-2xl overflow-hidden mb-2.5 shadow-lg bg-zinc-950">
                         <ArtworkImage
                           src={artworkUrl(album.imageKey)}
                           alt={album.title}
                           type="album"
                           id={album.id}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       </div>
-                      <h4 className="font-label-md text-xs text-prussian-blue truncate font-bold group-hover:text-vibrant-saffron transition-colors">
+                      <p className="text-sm font-semibold text-zinc-200 truncate group-hover:text-purple-300 transition-colors">
                         {album.title}
-                      </h4>
-                      <p className="font-caption text-[11px] text-outline truncate mt-0.5">
-                        {album.artist?.name || 'Album'}
+                      </p>
+                      <p className="text-xs text-zinc-400 truncate">
+                        {album.artist?.name}
                       </p>
                     </Link>
                   ))}
@@ -289,7 +341,7 @@ export default function SearchPage() {
     <Suspense
       fallback={
         <div className="p-8">
-          <Skeleton className="h-14 w-full max-w-4xl rounded-full border-2 border-prussian-blue/20 shimmer" />
+          <Skeleton className="h-12 w-64 rounded-full shimmer" />
         </div>
       }
     >

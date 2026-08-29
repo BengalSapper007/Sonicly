@@ -27,41 +27,38 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-full flex items-center justify-center px-4 py-16 bg-background text-on-surface">
+    <div className="min-h-full flex items-center justify-center px-4 py-16">
+      <div className="absolute inset-0 bg-gradient-glow opacity-30 pointer-events-none" />
+      <div className="absolute top-1/3 left-1/3 w-80 h-80 bg-neon-cyan/5 rounded-full blur-3xl pointer-events-none" />
+
       <div className="relative w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded bg-vibrant-saffron border-2 border-prussian-blue flex items-center justify-center text-prussian-blue font-black text-2xl mx-auto mb-3 hard-shadow shadow-prussian-blue">
-            S
+          <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-2xl mx-auto mb-4 relative" style={{ boxShadow: '0 0 30px rgba(208, 188, 255, 0.4)' }}>
+            <img src="/logo-icon.png" alt="Sonicly" className="w-full h-full object-cover scale-110" />
           </div>
-          <h1 className="font-headline-md text-headline-md font-bold text-prussian-blue">
-            Create an Account
-          </h1>
-          <p className="font-body-md text-xs text-outline mt-1 font-medium">
-            Start listening in high fidelity with Sonicly
-          </p>
+          <h1 className="font-display font-bold text-2xl text-ink">Create your account</h1>
+          <p className="text-ink-dim text-sm mt-1">Start listening with Sonicly</p>
         </div>
 
-        <div className="bg-surface border-2 border-prussian-blue rounded-xl p-6 hard-shadow shadow-prussian-blue">
+        <div className="bg-surface border border-rim rounded-2xl p-6 shadow-elevated">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="px-4 py-3 rounded bg-red-500/10 border-2 border-red-500/30 text-red-700 text-xs font-semibold animate-fade-in">
+              <div className="px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm animate-fade-in">
                 {error}
               </div>
             )}
 
             <FormField label="Display name" type="text" value={form.displayName}
-              onChange={handleChange('displayName')} placeholder="Your Name" required />
+              onChange={handleChange('displayName')} placeholder="Your name" required />
 
             <FormField label="Username" type="text" value={form.username}
-              onChange={handleChange('username')} placeholder="username" required />
+              onChange={handleChange('username')} placeholder="@username" required />
 
-            <FormField label="Email Address" type="email" value={form.email}
+            <FormField label="Email" type="email" value={form.email}
               onChange={handleChange('email')} placeholder="you@example.com" required />
 
             <div>
-              <label className="block font-label-md text-xs font-bold text-prussian-blue mb-1.5">
-                Password
-              </label>
+              <label className="block text-sm font-medium text-ink-dim mb-1.5">Password</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -70,12 +67,13 @@ export default function RegisterPage() {
                   required
                   minLength={8}
                   placeholder="Min. 8 characters"
-                  className="w-full bg-white border-2 border-prussian-blue focus:border-vibrant-saffron rounded px-4 py-2.5 pr-10 text-prussian-blue text-sm placeholder:text-outline-variant outline-none font-medium transition-colors"
+                  className="w-full bg-abyss border border-rim rounded-lg px-4 py-2.5 pr-10 text-ink text-sm
+                    placeholder-ink-ghost focus:outline-none focus:border-sonic focus:ring-1 focus:ring-sonic/30 transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-prussian-blue transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-ghost hover:text-ink"
                 >
                   {showPassword ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
                 </button>
@@ -85,17 +83,19 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 rounded bg-vibrant-saffron text-prussian-blue font-bold text-sm border-2 border-prussian-blue shadow-[3px_3px_0px_0px_rgba(0,49,83,1)] hover:bg-deep-saffron transition-all active:translate-y-0.5 active:shadow-none disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl bg-sonic hover:bg-sonic-light text-white font-semibold text-sm
+                transition-all shadow-sonic hover:shadow-glow-sm disabled:opacity-60
+                flex items-center justify-center gap-2"
             >
               {isLoading && <LoaderIcon size={16} className="animate-spin" />}
-              Create Account
+              Create account
             </button>
           </form>
         </div>
 
-        <p className="text-center font-body-md text-xs text-outline mt-4 font-medium">
+        <p className="text-center text-sm text-ink-dim mt-4">
           Already have an account?{' '}
-          <Link href="/login" className="text-prussian-blue hover:text-vibrant-saffron transition-colors font-bold underline">
+          <Link href="/login" className="text-sonic hover:text-sonic-light transition-colors font-medium">
             Sign in
           </Link>
         </p>
@@ -113,16 +113,15 @@ function FormField({
 }) {
   return (
     <div>
-      <label className="block font-label-md text-xs font-bold text-prussian-blue mb-1.5">
-        {label}
-      </label>
+      <label className="block text-sm font-medium text-ink-dim mb-1.5">{label}</label>
       <input
         type={type}
         value={value}
         onChange={onChange}
         required={required}
         placeholder={placeholder}
-        className="w-full bg-white border-2 border-prussian-blue focus:border-vibrant-saffron rounded px-4 py-2.5 text-prussian-blue text-sm placeholder:text-outline-variant outline-none font-medium transition-colors"
+        className="w-full bg-abyss border border-rim rounded-lg px-4 py-2.5 text-ink text-sm
+          placeholder-ink-ghost focus:outline-none focus:border-sonic focus:ring-1 focus:ring-sonic/30 transition-all"
       />
     </div>
   );

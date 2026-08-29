@@ -1,5 +1,6 @@
 'use client';
-import { useEffect, useState, useCallback, use } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { use } from 'react';
 import { Play, Shuffle, Bookmark, BookmarkCheck, Loader2 } from 'lucide-react';
 import { albumsApi, artworkUrl } from '@/lib/api';
 import { usePlayerStore } from '@/stores/player.store';
@@ -8,7 +9,6 @@ import { SongRow } from '@/components/catalog/SongRow';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ArtworkImage } from '@/components/ui/ArtworkImage';
 import { formatDuration } from '@/lib/utils';
-import Link from 'next/link';
 
 export default function AlbumPage({ params }: { params: Promise<{ albumId: string }> }) {
   const { albumId } = use(params);
@@ -17,7 +17,7 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
   const [saved, setSaved] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const { playQueue } = usePlayerStore();
-  const { isAuthenticated, logout } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   useEffect(() => {
     albumsApi
@@ -32,7 +32,7 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
 
   const handleSave = useCallback(async () => {
     if (!isAuthenticated || saveLoading) return;
-    setSaved((prev) => !prev);
+    setSaved((prev) => !prev);          // optimistic
     setSaveLoading(true);
     try {
       if (saved) {
@@ -41,20 +41,14 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
         await albumsApi.save(albumId);
       }
     } catch {
-      setSaved((prev) => !prev);
+      setSaved((prev) => !prev);        // revert on error
     } finally {
       setSaveLoading(false);
     }
   }, [isAuthenticated, saved, saveLoading, albumId]);
 
   if (loading) return <AlbumSkeleton />;
-  if (!album) {
-    return (
-      <div className="p-12 text-center text-prussian-blue font-bold">
-        Album not found.
-      </div>
-    );
-  }
+  if (!album) return <NotFound />;
 
   const songs = album.songs || [];
   const totalDuration = songs.reduce((acc: number, s: any) => acc + (s.duration || 0), 0);
@@ -66,126 +60,99 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
   };
 
   return (
-    <div className="min-h-full pb-24 md:pb-32 bg-background text-on-surface">
-      {/* ── TopNavBar (Desktop) ──────────────────────────────────────────────── */}
-      <header className="hidden md:flex justify-between items-center h-16 px-margin-desktop bg-prussian-blue sticky top-0 z-30 border-b-2 border-midnight-blue transition-all duration-200">
-        <div className="flex items-center gap-6">
-          <Link href="/" className="font-headline-md text-headline-md font-black text-vibrant-saffron">
-            Sonicly
-          </Link>
-          <nav className="flex items-center gap-6">
-            <Link href="/search" className="font-label-md text-label-md text-on-primary-container hover:text-vibrant-saffron transition-colors">
-              Podcasts
-            </Link>
-            <Link href="/search" className="font-label-md text-label-md text-on-primary-container hover:text-vibrant-saffron transition-colors">
-              Audiobooks
-            </Link>
-            <Link href="/search" className="font-label-md text-label-md text-on-primary-container hover:text-vibrant-saffron transition-colors">
-              Live
-            </Link>
-          </nav>
+    <div className="min-h-full pb-16">
+      {/* ── Hero ───────────────────────────────────────────────────────────── */}
+      <div className="relative">
+        <div className="px-8 pt-10 pb-6 flex flex-col md:flex-row md:items-end gap-6">
+          {/* Cover */}
+          <div className="w-48 h-48 rounded-2xl overflow-hidden flex-shrink-0 shadow-2xl bg-zinc-950">
+            <ArtworkImage
+              src={artworkUrl(album.imageKey)}
+              alt={album.title}
+              type="album"
+              id={album.id}
+              size="lg"
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          {/* Info */}
+          <div className="flex-1 min-w-0 pb-1">
+            <span className="text-xs font-bold uppercase tracking-widest text-purple-300">
+              {album.type || 'Album'}
+            </span>
+            <h1
+              className="font-black text-3xl md:text-5xl text-white my-2 tracking-tight line-clamp-2"
+              style={{ fontFamily: 'Montserrat, sans-serif' }}
+            >
+              {album.title}
+            </h1>
+            <div className="flex flex-wrap items-center gap-2 text-sm text-zinc-400 font-medium">
+              <span className="text-zinc-100 font-semibold">{album.artist?.name}</span>
+              {album.releaseYear && (
+                <>
+                  <span>•</span>
+                  <span>{album.releaseYear}</span>
+                </>
+              )}
+              <span>•</span>
+              <span>{songs.length} songs</span>
+              <span>•</span>
+              <span className="font-mono">{formatDuration(totalDuration)}</span>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <button className="text-on-primary-container hover:text-vibrant-saffron transition-colors p-1" title="Settings">
-            <span className="material-symbols-outlined text-[20px]">settings</span>
-          </button>
-          <button className="text-on-primary-container hover:text-vibrant-saffron transition-colors p-1" title="Notifications">
-            <span className="material-symbols-outlined text-[20px]">notifications</span>
-          </button>
+      </div>
+
+      {/* ── Actions ────────────────────────────────────────────────────────── */}
+      <div className="px-8 py-4 flex items-center gap-3">
+        <button
+          onClick={handlePlayAll}
+          disabled={!songs.length}
+          className="btn-primary flex items-center gap-2 px-6 py-2.5 font-bold shadow-lg disabled:opacity-50"
+        >
+          <Play className="w-4 h-4 fill-current ml-0.5" />
+          <span>Play</span>
+        </button>
+        <button
+          onClick={handleShuffle}
+          disabled={!songs.length}
+          className="btn-glass flex items-center gap-2 px-5 py-2.5 font-semibold disabled:opacity-50"
+        >
+          <Shuffle className="w-4 h-4 text-zinc-300" />
+          <span>Shuffle</span>
+        </button>
+
+        {/* Save / Unsave button */}
+        {isAuthenticated && (
           <button
-            onClick={() => logout()}
-            className="font-label-md text-xs text-white hover:text-vibrant-saffron transition-colors border border-on-primary-container px-3 py-1 rounded"
+            onClick={handleSave}
+            disabled={saveLoading}
+            className={`p-2.5 rounded-full border transition-all flex items-center justify-center ${
+              saved
+                ? 'border-purple-400/60 text-purple-300 bg-purple-500/10 hover:bg-purple-500/20'
+                : 'border-white/10 text-zinc-400 hover:text-purple-300 hover:border-purple-400/40 hover:bg-white/5'
+            }`}
+            aria-label={saved ? 'Remove from library' : 'Save to library'}
+            title={saved ? 'Remove from library' : 'Save to library'}
           >
-            Sign Out
+            {saveLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : saved ? (
+              <BookmarkCheck className="w-5 h-5" />
+            ) : (
+              <Bookmark className="w-5 h-5" />
+            )}
           </button>
-        </div>
-      </header>
+        )}
+      </div>
 
-      {/* ── Album Header (Saffron full bleed) ─────────────────────────────────── */}
-      <section className="bg-vibrant-saffron px-margin-desktop py-stack-xl flex flex-col md:flex-row items-end gap-8 border-b-2 border-prussian-blue">
-        <div className="w-48 h-48 md:w-64 md:h-64 shrink-0 shadow-lg border-2 border-prussian-blue bg-white overflow-hidden">
-          <ArtworkImage
-            src={artworkUrl(album.imageKey)}
-            alt={album.title}
-            type="album"
-            id={album.id}
-            size="lg"
-            className="w-full h-full object-cover"
-          />
-        </div>
-
-        <div className="flex-1 text-prussian-blue">
-          <p className="font-label-md text-label-md uppercase tracking-widest mb-2 font-bold">
-            {album.albumType || 'Album'}
-          </p>
-          <h1 className="font-display-lg text-display-lg font-black mb-2">
-            {album.title}
-          </h1>
-          <div className="flex flex-wrap items-center gap-2 text-sm font-semibold mb-6">
-            <span className="font-bold">{album.artist?.name || 'Artist'}</span>
-            {album.releaseYear && (
-              <>
-                <span>•</span>
-                <span>{album.releaseYear}</span>
-              </>
-            )}
-            <span>•</span>
-            <span>{songs.length} songs</span>
-            <span>•</span>
-            <span>{formatDuration(totalDuration)}</span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handlePlayAll}
-              disabled={!songs.length}
-              className="bg-prussian-blue text-white w-14 h-14 rounded-full flex items-center justify-center hover:bg-midnight-blue transition-all shadow-lg active:scale-95 group disabled:opacity-50"
-              title="Play Album"
-            >
-              <span
-                className="material-symbols-outlined text-3xl group-hover:scale-110 transition-transform"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                play_arrow
-              </span>
-            </button>
-
-            <button
-              onClick={handleShuffle}
-              disabled={!songs.length}
-              className="w-12 h-12 rounded-full border-2 border-prussian-blue flex items-center justify-center text-prussian-blue hover:bg-prussian-blue hover:text-white transition-colors"
-              title="Shuffle"
-            >
-              <span className="material-symbols-outlined text-[22px]">shuffle</span>
-            </button>
-
-            {isAuthenticated && (
-              <button
-                onClick={handleSave}
-                disabled={saveLoading}
-                className="w-12 h-12 rounded-full border-2 border-prussian-blue flex items-center justify-center text-prussian-blue hover:bg-prussian-blue hover:text-white transition-colors"
-                title={saved ? 'Remove from library' : 'Save to library'}
-              >
-                <span
-                  className="material-symbols-outlined text-[22px]"
-                  style={saved ? { fontVariationSettings: "'FILL' 1" } : {}}
-                >
-                  {saved ? 'bookmark' : 'bookmark_border'}
-                </span>
-              </button>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Track List ───────────────────────────────────────────────────────── */}
-      <section className="px-margin-desktop py-stack-md bg-background flex-1">
-        <div className="grid grid-cols-[auto_1fr_auto_auto] gap-4 py-2 border-b-2 border-prussian-blue mb-4 text-prussian-blue font-label-md text-label-md px-4">
-          <div className="w-8 text-center">#</div>
-          <div>Title</div>
-          <div className="w-16 text-right flex justify-end">
-            <span className="material-symbols-outlined text-sm">schedule</span>
-          </div>
+      {/* ── Track List ─────────────────────────────────────────────────────── */}
+      <div className="px-6 mt-4">
+        <div className="flex items-center px-4 py-2 mb-2 border-b border-white/5 text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+          <div className="w-6 text-center">#</div>
+          <div className="flex-1 ml-3.5">Title</div>
+          <div className="w-20 text-right pr-10">Duration</div>
         </div>
 
         <div className="space-y-1">
@@ -201,27 +168,35 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
             />
           ))}
         </div>
-      </section>
+      </div>
     </div>
   );
 }
 
 function AlbumSkeleton() {
   return (
-    <div className="min-h-full pb-32 animate-fade-in">
-      <div className="bg-vibrant-saffron/40 px-margin-desktop py-stack-xl flex flex-col md:flex-row items-end gap-8 border-b-2 border-prussian-blue">
-        <Skeleton className="w-48 h-48 md:w-64 md:h-64 rounded border-2 border-prussian-blue/20 shimmer" />
+    <div className="px-8 pt-10 pb-8 animate-fade-in">
+      <div className="flex items-end gap-6 mb-8">
+        <Skeleton className="w-48 h-48 rounded-2xl shimmer" />
         <div className="flex-1 space-y-3">
-          <Skeleton className="w-20 h-4 rounded shimmer" />
-          <Skeleton className="w-80 h-10 rounded shimmer" />
-          <Skeleton className="w-48 h-4 rounded shimmer" />
+          <Skeleton className="w-20 h-4 shimmer rounded" />
+          <Skeleton className="w-72 h-10 shimmer rounded-lg" />
+          <Skeleton className="w-48 h-4 shimmer rounded" />
         </div>
       </div>
-      <div className="px-margin-desktop py-stack-md space-y-2">
+      <div className="space-y-2">
         {Array.from({ length: 8 }).map((_, i) => (
-          <Skeleton key={i} className="h-14 rounded border border-prussian-blue/10 shimmer" />
+          <Skeleton key={i} className="h-12 rounded-xl shimmer" />
         ))}
       </div>
+    </div>
+  );
+}
+
+function NotFound() {
+  return (
+    <div className="flex items-center justify-center h-64 text-zinc-400">
+      <p>Album not found.</p>
     </div>
   );
 }

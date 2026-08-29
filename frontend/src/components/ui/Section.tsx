@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { ChevronRightIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SectionProps {
@@ -13,21 +14,19 @@ interface SectionProps {
 
 export function Section({ title, href, icon, children, className }: SectionProps) {
   return (
-    <section className={cn('py-4', className)}>
-      <div className="flex items-center justify-between mb-4 border-l-4 border-vibrant-saffron pl-3">
+    <section className={cn('px-8 py-5', className)}>
+      <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
           {icon}
-          <h2 className="font-headline-md text-headline-md font-bold text-prussian-blue">{title}</h2>
+          <h2 className="font-display font-semibold text-lg text-ink">{title}</h2>
         </div>
         {href && (
           <Link
             href={href}
-            className="flex items-center gap-1 text-xs font-bold text-prussian-blue hover:text-vibrant-saffron transition-colors group"
+            className="flex items-center gap-1 text-sm text-ink-dim hover:text-sonic transition-colors group"
           >
             See all
-            <span className="material-symbols-outlined text-sm group-hover:translate-x-0.5 transition-transform">
-              chevron_right
-            </span>
+            <ChevronRightIcon size={14} className="group-hover:translate-x-0.5 transition-transform" />
           </Link>
         )}
       </div>
