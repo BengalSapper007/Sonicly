@@ -7,6 +7,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto } from './dto/auth.dto';
 import { Public } from '../common/decorators/public.decorator';
@@ -28,6 +29,7 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 3 } }) // 3 registrations / min per IP
   @Post('register')
   async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: any) {
     const { token, user } = await this.authService.register(dto);
@@ -36,6 +38,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 5 } }) // 5 login attempts / min per IP
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: any) {
@@ -56,6 +59,7 @@ export class AuthController {
     return { success: true, message: 'Logged out' };
   }
 
+  @SkipThrottle() // called on every page load — no need to throttle
   @Get('me')
   async getMe(@CurrentUser() user: any) {
     const userData = await this.authService.getMe(user.sub);
