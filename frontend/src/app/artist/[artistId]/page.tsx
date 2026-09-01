@@ -31,7 +31,7 @@ export default function ArtistPage({ params }: { params: Promise<{ artistId: str
   }, [artistId]);
 
   if (loading) return <ArtistSkeleton />;
-  if (!artist) return <div className="p-8 text-zinc-400">Artist not found.</div>;
+  if (!artist) return <div className="p-8 text-on-surface-muted">Artist not found.</div>;
 
   const topSongs = artist.popularSongs?.slice(0, 5) || [];
 
@@ -65,14 +65,14 @@ export default function ArtistPage({ params }: { params: Promise<{ artistId: str
           className="absolute inset-0"
           style={{
             background:
-              'linear-gradient(to top, #131316 0%, rgba(19,19,22,0.6) 50%, rgba(19,19,22,0.2) 100%)',
+              'linear-gradient(to top, #0C1626 0%, rgba(12,22,38,0.55) 50%, rgba(12,22,38,0.1) 100%)',
           }}
         />
 
         {/* Verified Badge */}
         {artist.isVerified && (
-          <div className="absolute top-6 left-8 flex items-center gap-1.5 bg-purple-500/20 backdrop-blur-md border border-purple-400/30 rounded-full px-3 py-1 text-purple-300 text-xs font-semibold shadow-md">
-            <Check className="w-3.5 h-3.5 text-purple-300" />
+          <div className="absolute top-6 left-8 flex items-center gap-1.5 bg-vibrant-saffron/20 backdrop-blur-md border border-vibrant-saffron/30 rounded-full px-3 py-1 text-white text-xs font-semibold">
+            <Check className="w-3.5 h-3.5 text-vibrant-saffron" />
             <span>Verified Artist</span>
           </div>
         )}
@@ -80,13 +80,12 @@ export default function ArtistPage({ params }: { params: Promise<{ artistId: str
         {/* Name */}
         <div className="absolute bottom-0 left-0 right-0 px-8 pb-6">
           <h1
-            className="font-black text-4xl md:text-6xl text-white tracking-tight drop-shadow-lg"
-            style={{ fontFamily: 'Montserrat, sans-serif' }}
+            className="font-bold text-4xl md:text-6xl text-white tracking-tight"
           >
             {artist.name}
           </h1>
           {artist.monthlyListeners !== undefined && (
-            <p className="text-sm text-zinc-300 mt-1 font-medium">
+            <p className="text-sm text-on-primary-muted mt-1">
               {formatNumber(artist.monthlyListeners)} monthly listeners
             </p>
           )}
@@ -98,7 +97,7 @@ export default function ArtistPage({ params }: { params: Promise<{ artistId: str
         {topSongs.length > 0 && (
           <button
             onClick={() => playQueue(topSongs, 0, 'artist', artistId)}
-            className="btn-primary flex items-center gap-2 px-6 py-2.5 font-bold shadow-lg"
+            className="btn-primary flex items-center gap-2 px-6 py-2.5"
           >
             <Play className="w-4 h-4 fill-current ml-0.5" />
             <span>Play</span>
@@ -107,8 +106,8 @@ export default function ArtistPage({ params }: { params: Promise<{ artistId: str
         {isAuthenticated && (
           <button
             onClick={handleFollow}
-            className={`btn-glass flex items-center gap-2 px-5 py-2.5 text-sm font-semibold ${
-              following ? 'border-purple-400/50 text-purple-300 bg-purple-500/10' : ''
+            className={`btn-secondary flex items-center gap-2 px-5 py-2.5 text-sm ${
+              following ? 'border-crisp-green/50 text-crisp-green bg-crisp-green/10' : ''
             }`}
           >
             {following ? <UserCheck className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
@@ -121,8 +120,7 @@ export default function ArtistPage({ params }: { params: Promise<{ artistId: str
       {topSongs.length > 0 && (
         <section className="px-8 mb-8">
           <h2
-            className="text-xl font-bold text-zinc-100 mb-4 tracking-tight"
-            style={{ fontFamily: 'Montserrat, sans-serif' }}
+            className="text-xl font-semibold text-on-surface mb-4 tracking-tight"
           >
             Popular Tracks
           </h2>
@@ -146,8 +144,8 @@ export default function ArtistPage({ params }: { params: Promise<{ artistId: str
       {albums.length > 0 && (
         <section className="px-8 mb-8">
           <h2
-            className="text-xl font-bold text-zinc-100 mb-4 tracking-tight"
-            style={{ fontFamily: 'Montserrat, sans-serif' }}
+            className="text-xl font-bold text-on-surface mb-4 tracking-tight"
+           
           >
             Discography
           </h2>
@@ -163,12 +161,12 @@ export default function ArtistPage({ params }: { params: Promise<{ artistId: str
       {artist.bio && (
         <section className="px-8">
           <h2
-            className="text-xl font-bold text-zinc-100 mb-3 tracking-tight"
-            style={{ fontFamily: 'Montserrat, sans-serif' }}
+            className="text-xl font-bold text-on-surface mb-3 tracking-tight"
+           
           >
             About
           </h2>
-          <p className="text-zinc-300 text-sm leading-relaxed max-w-2xl bg-zinc-900/40 p-5 rounded-2xl border border-white/5">
+          <p className="text-on-surface-muted text-sm leading-relaxed max-w-2xl bg-surface-raised p-5 rounded-2xl border border-border-light">
             {artist.bio}
           </p>
         </section>

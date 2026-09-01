@@ -1,247 +1,148 @@
 @import "tailwindcss";
 
-/* ── Google Fonts loaded in layout.tsx ─────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────────────────────
+   SONICLY — Saffron, Green & Indigo Undertone
+   A warm, spiced palette anchored by a deep indigo undertone.
+   globals.css — single source of truth for tokens, base styles, utilities
+───────────────────────────────────────────────────────────────────────────── */
 
-/* ── Tailwind v4 Theme ─────────────────────────────────────────────────────── */
+/* ── 1. Tailwind v4 @theme tokens ──────────────────────────────────────────── */
 @theme {
-  /* Fonts */
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-display: 'Montserrat', system-ui, sans-serif;
+  /* Typography */
+  --font-sans:    'Sora', system-ui, sans-serif;
+  --font-display: 'Sora', system-ui, sans-serif;
 
-  /* ── Material You Dark Palette ──────────────────────────────────────────── */
-  --color-background:               #131316;
-  --color-surface:                  #131316;
-  --color-surface-dim:              #131316;
-  --color-surface-bright:           #39393c;
-  --color-surface-container-lowest: #0e0e11;
-  --color-surface-container-low:    #1b1b1e;
-  --color-surface-container:        #1f1f22;
-  --color-surface-container-high:   #2a2a2d;
-  --color-surface-container-highest:#353438;
-  --color-surface-variant:          #353438;
+  /* ── Brand palette ───────────────────────────────────────────────────────── */
+  --color-prussian-blue:    #14213D;  /* indigo undertone — structure, text-on-light accents */
+  --color-midnight-blue:    #0C1626;  /* deep indigo — sidebar / player bg */
+  --color-vibrant-saffron:  #E8720C;  /* primary action */
+  --color-deep-saffron:     #B85A08;  /* saffron hover/active */
+  --color-crisp-green:      #146B3A;  /* secondary action, success, liked */
+  --color-light-saffron:    #FBE4C8;  /* saffron tint, badges */
 
-  --color-on-surface:               #e4e1e6;
-  --color-on-surface-variant:       #cbc3d7;
-  --color-inverse-surface:          #e4e1e6;
-  --color-inverse-on-surface:       #303033;
+  /* Surfaces */
+  --color-background:       #FAF6EF; /* warm paper, not stark white */
+  --color-surface:          #FFFDF8;
+  --color-surface-raised:   #F2EBDB;
 
-  --color-outline:                  #958ea0;
-  --color-outline-variant:          #494454;
+  /* Text */
+  --color-on-surface:           #1C1B18;
+  --color-on-surface-muted:     #6B6558;
+  --color-on-primary:           #FFFFFF;
+  --color-on-primary-muted:     #9AA6C2;
 
-  /* Primary — Electric Purple */
-  --color-primary:                  #d0bcff;
-  --color-on-primary:               #3c0091;
-  --color-primary-container:        #a078ff;
-  --color-on-primary-container:     #340080;
-  --color-inverse-primary:          #6d3bd7;
-  --color-primary-fixed:            #e9ddff;
-  --color-primary-fixed-dim:        #d0bcff;
-  --color-on-primary-fixed:         #23005c;
-  --color-on-primary-fixed-variant: #5516be;
-  --color-surface-tint:             #d0bcff;
-
-  /* Secondary — Magenta Pulse */
-  --color-secondary:                #ffb0cd;
-  --color-on-secondary:             #640039;
-  --color-secondary-container:      #aa0266;
-  --color-on-secondary-container:   #ffbad3;
-  --color-secondary-fixed:          #ffd9e4;
-  --color-secondary-fixed-dim:      #ffb0cd;
-  --color-on-secondary-fixed:       #3e0022;
-  --color-on-secondary-fixed-variant:#8c0053;
-
-  /* Tertiary — Neon Cyan */
-  --color-tertiary:                 #4cd7f6;
-  --color-on-tertiary:              #003640;
-  --color-tertiary-container:       #009eb9;
-  --color-on-tertiary-container:    #002f38;
-  --color-tertiary-fixed:           #acedff;
-  --color-tertiary-fixed-dim:       #4cd7f6;
-  --color-on-tertiary-fixed:        #001f26;
-  --color-on-tertiary-fixed-variant:#004e5c;
-
-  /* Error */
-  --color-error:                    #ffb4ab;
-  --color-on-error:                 #690005;
-  --color-error-container:          #93000a;
-  --color-on-error-container:       #ffdad6;
-
-  /* Gradients */
-  --background-image-gradient-brand:  linear-gradient(135deg, #d0bcff 0%, #ffb0cd 50%, #4cd7f6 100%);
-  --background-image-gradient-primary: linear-gradient(135deg, #d0bcff 0%, #ffb0cd 100%);
-  --background-image-gradient-hero:   linear-gradient(to top, #131316 0%, rgba(19,19,22,0.6) 50%, transparent 100%);
-  --background-image-gradient-glow:   radial-gradient(ellipse at top, rgba(208,188,255,0.12) 0%, transparent 60%);
-
-  /* Shadows */
-  --shadow-neon:    0 0 30px rgba(208,188,255,0.3);
-  --shadow-neon-sm: 0 0 15px rgba(208,188,255,0.2);
-  --shadow-card:    0 4px 24px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.05);
-  --shadow-player:  0 -10px 40px rgba(208,188,255,0.15);
-  --shadow-sidebar: 2px 0 20px rgba(0,0,0,0.3);
+  /* Borders */
+  --color-border:           #14213D;
+  --color-border-light:     #E7DFCB;
 
   /* Animations */
-  --animate-fade-in:   fadeIn 0.3s ease-out;
-  --animate-slide-up:  slideUp 0.4s cubic-bezier(0.16,1,0.3,1);
-  --animate-scale-in:  scaleIn 0.2s ease-out;
-
-  /* Keyframes */
   @keyframes fadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-  }
-  @keyframes slideUp {
-    from { transform: translateY(16px); opacity: 0; }
-    to   { transform: translateY(0); opacity: 1; }
-  }
-  @keyframes scaleIn {
-    from { transform: scale(0.95); opacity: 0; }
-    to   { transform: scale(1); opacity: 1; }
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
   @keyframes shimmer {
     0%   { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
+    100% { background-position:  200% 0; }
   }
-  @keyframes equalizer {
-    0%, 100% { height: 4px; }
-    50%       { height: 20px; }
-  }
-  @keyframes pulse-neon {
-    0%, 100% { box-shadow: 0 0 15px rgba(208,188,255,0.3); }
-    50%       { box-shadow: 0 0 30px rgba(208,188,255,0.6); }
-  }
+  @keyframes eq1 { 0%,100% { height: 4px;  } 50% { height: 16px; } }
+  @keyframes eq2 { 0%,100% { height: 10px; } 50% { height: 4px;  } }
+  @keyframes eq3 { 0%,100% { height: 6px;  } 50% { height: 14px; } }
+  @keyframes equalizer { 0%,100% { transform: scaleY(0.4); } 50% { transform: scaleY(1); } }
+  @keyframes ringSpin { to { transform: rotate(360deg); } }
 }
 
+/* ── 2. Root CSS variables ─────────────────────────────────────────────────── */
 :root {
-  --player-height: 96px;
-  --sidebar-width: 280px;
+  --player-height: 88px;
+  --sidebar-width: 260px;
 }
 
-/* ── Base ─────────────────────────────────────────────────────────────────── */
+/* ── 3. Base reset ─────────────────────────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html { height: 100%; }
+html, body { height: 100%; }
 
 body {
-  height: 100%;
-  background-color: #131316;
-  color: #e4e1e6;
-  font-family: 'Inter', system-ui, sans-serif;
+  background-color: #FAF6EF;
+  color: #1C1B18;
+  font-family: 'Sora', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
 }
 
-/* ── Scrollbar ────────────────────────────────────────────────────────────── */
-::-webkit-scrollbar         { width: 6px; height: 6px; }
+/* ── 4. Scrollbar ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar         { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track   { background: transparent; }
-::-webkit-scrollbar-thumb   { background: rgba(208,188,255,0.2); border-radius: 100px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(208,188,255,0.35); }
-
-::selection { background: rgba(208,188,255,0.25); color: #e4e1e6; }
-
+::-webkit-scrollbar-thumb   { background: rgba(20,33,61,0.2); border-radius: 100px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(20,33,61,0.4); }
+::selection { background: rgba(232,114,12,0.18); color: #14213D; }
 :focus-visible {
-  outline: 2px solid rgba(208,188,255,0.6);
+  outline: 2px solid #E8720C;
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: 2px;
 }
 
-/* ── Typography ───────────────────────────────────────────────────────────── */
-.font-display { font-family: 'Montserrat', system-ui, sans-serif; }
-
-/* ── Gradient text ────────────────────────────────────────────────────────── */
-.text-gradient-brand {
-  background: linear-gradient(135deg, #d0bcff 0%, #ffb0cd 50%, #4cd7f6 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.text-gradient-primary {
-  background: linear-gradient(135deg, #d0bcff 0%, #ffb0cd 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* ── Glass panels ─────────────────────────────────────────────────────────── */
-.glass {
-  background: rgba(42,42,45,0.4);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.1);
-}
-
-.glass-dark {
-  background: rgba(19,19,22,0.8);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255,255,255,0.07);
-}
-
-.glass-high {
-  background: rgba(42,42,45,0.6);
-  backdrop-filter: blur(32px);
-  -webkit-backdrop-filter: blur(32px);
-  border: 1px solid rgba(255,255,255,0.12);
-}
-
-/* ── Noise texture overlay ────────────────────────────────────────────────── */
-.noise-overlay {
-  position: relative;
-}
-.noise-overlay::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  opacity: 0.05;
-  pointer-events: none;
-  mix-blend-mode: overlay;
-  border-radius: inherit;
-  z-index: 0;
-}
-
-/* ── Neon shadows ─────────────────────────────────────────────────────────── */
-.neon-glow {
-  box-shadow: 0 0 30px rgba(208,188,255,0.3);
-}
-.neon-glow-sm {
-  box-shadow: 0 0 15px rgba(208,188,255,0.2);
-}
-.neon-glow-cyan {
-  box-shadow: 0 0 20px rgba(76,215,246,0.4);
-}
-.player-glow {
-  box-shadow: 0 -10px 40px rgba(208,188,255,0.12), 0 -1px 0 rgba(255,255,255,0.08);
-}
-
-/* ── Shimmer skeleton ─────────────────────────────────────────────────────── */
+/* ── 5. Shimmer skeleton ───────────────────────────────────────────────────── */
 .shimmer {
-  background: linear-gradient(90deg,
-    rgba(42,42,45,0.8) 0%,
-    rgba(53,52,56,0.6) 50%,
-    rgba(42,42,45,0.8) 100%);
+  background: linear-gradient(90deg, #EFE8D9 0%, #E2D9C4 50%, #EFE8D9 100%);
   background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  animation: shimmer 1.4s ease-in-out infinite;
 }
 
-/* ── Equalizer bars (now playing) ─────────────────────────────────────────── */
-.eq-bar {
+/* ── 6. Elevation — calm, tonal, no offset hard-shadows ──────────────────── */
+.surface-card {
+  background: #FFFDF8;
+  border: 1px solid #E7DFCB;
+  border-radius: 10px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.surface-card:hover {
+  border-color: rgba(232,114,12,0.45);
+  background: #FFFFFF;
+}
+
+/* ── 7. Equalizer bars (now-playing indicator) ────────────────────────────── */
+.eq-bar   {
   display: inline-block;
   width: 3px;
-  height: 4px;
-  background: #d0bcff;
-  border-radius: 2px;
-  animation: equalizer 1.2s ease-in-out infinite;
+  background: #146B3A;
+  border-radius: 1px;
 }
-.eq-bar:nth-child(2) { animation-delay: 0.15s; }
-.eq-bar:nth-child(3) { animation-delay: 0.3s; }
+.eq-bar-1 { animation: eq1 1.0s ease-in-out infinite; }
+.eq-bar-2 { animation: eq2 1.1s ease-in-out infinite; }
+.eq-bar-3 { animation: eq3 0.9s ease-in-out infinite; }
 
-/* ── Range slider ─────────────────────────────────────────────────────────── */
+/* ── 8. Animations ─────────────────────────────────────────────────────────── */
+.animate-fade-in  { animation: fadeIn 0.25s ease-out; }
+
+/* ── 9. Signature element — the progress ring ─────────────────────────────
+   A spoked-ring nod (abstracted, not literal) used in exactly one place:
+   wraps the play/pause button and fills as the track progresses.
+   Built with conic-gradient; --progress is set inline (0–360deg). ────────── */
+.progress-ring {
+  --progress: 0deg;
+  position: relative;
+  border-radius: 50%;
+  padding: 3px;
+  background: conic-gradient(
+    from 0deg,
+    #E8720C 0deg,
+    #146B3A var(--progress),
+    rgba(20,33,61,0.15) var(--progress)
+  );
+  transition: background 0.2s linear;
+}
+.progress-ring--loading {
+  background: conic-gradient(from 0deg, #E8720C 0deg, #146B3A 120deg, rgba(20,33,61,0.15) 121deg);
+  animation: ringSpin 1.1s linear infinite;
+}
+
+/* ── 10. Range slider ──────────────────────────────────────────────────────── */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
@@ -250,128 +151,72 @@ input[type="range"] {
 }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  height: 12px;
-  width: 12px;
+  height: 14px;
+  width: 14px;
   border-radius: 50%;
-  background: #fff;
+  background: #14213D;
   cursor: pointer;
-  margin-top: -4px;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  margin-top: -5px;
   opacity: 0;
+  transition: opacity 0.15s, transform 0.1s;
 }
 input[type="range"]:hover::-webkit-slider-thumb {
   opacity: 1;
-  transform: scale(1.2);
-  box-shadow: 0 0 10px rgba(255,255,255,0.8);
+  transform: scale(1.15);
 }
 input[type="range"]::-webkit-slider-runnable-track {
   height: 4px;
   border-radius: 100px;
-  background: rgba(255,255,255,0.1);
+  background: rgba(20,33,61,0.15);
 }
 
-/* ── Utilities ────────────────────────────────────────────────────────────── */
+/* ── 11. Utilities ─────────────────────────────────────────────────────────── */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
 .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
-/* ── Button variants ──────────────────────────────────────────────────────── */
+/* ── 12. Button system ─────────────────────────────────────────────────────── */
 .btn-primary {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem 1.5rem;
-  border-radius: 9999px;
-  background: linear-gradient(135deg, #d0bcff 0%, #ffb0cd 100%);
-  color: #3c0091;
-  font-family: 'Inter', sans-serif;
+  border-radius: 8px;
+  background: #E8720C;
+  color: #FFFFFF;
+  font-family: 'Sora', sans-serif;
   font-size: 0.875rem;
   font-weight: 600;
-  letter-spacing: 0.05em;
-  transition: all 0.2s ease;
-  cursor: pointer;
   border: none;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
 }
-.btn-primary:hover {
-  box-shadow: 0 0 20px rgba(208,188,255,0.4);
-  transform: translateY(-1px);
-}
+.btn-primary:hover  { background: #B85A08; }
+.btn-primary:active { transform: scale(0.98); }
 
-.btn-glass {
+.btn-secondary {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem 1.5rem;
-  border-radius: 9999px;
-  background: rgba(42,42,45,0.4);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.1);
-  color: #e4e1e6;
-  font-family: 'Inter', sans-serif;
+  border-radius: 8px;
+  background: transparent;
+  color: #14213D;
+  font-family: 'Sora', sans-serif;
   font-size: 0.875rem;
   font-weight: 600;
-  letter-spacing: 0.05em;
-  transition: all 0.2s ease;
+  border: 1px solid rgba(20,33,61,0.3);
+  transition: all 0.15s ease;
   cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
 }
-.btn-glass:hover {
-  background: rgba(255,255,255,0.1);
-}
+.btn-secondary:hover  { background: rgba(20,33,61,0.06); border-color: #14213D; }
+.btn-secondary:active { opacity: 0.85; }
 
-/* ── Track row hover ──────────────────────────────────────────────────────── */
-.track-row { transition: background 0.15s ease; }
-.track-row:hover { background: rgba(255,255,255,0.05); }
-.track-row:hover .track-index { display: none; }
-.track-row:hover .track-play { display: flex; }
-.track-play { display: none; }
-
-/* ── Text glow ────────────────────────────────────────────────────────────── */
-.text-glow {
-  text-shadow: 0 0 10px rgba(208,188,255,0.5);
-}
-.text-glow-cyan {
-  text-shadow: 0 0 10px rgba(76,215,246,0.5);
-}
-
-/* ── Neon glow additional variants ───────────────────────────────────────── */
-.neon-glow-secondary {
-  box-shadow: 0 0 25px rgba(255,176,205,0.35);
-}
-.neon-glow-strong {
-  box-shadow: 0 0 40px rgba(208,188,255,0.5);
-}
-
-/* ── Hero gradient overlay ────────────────────────────────────────────────── */
-.hero-gradient {
-  background: linear-gradient(to top, #131316 0%, rgba(19,19,22,0.6) 50%, transparent 100%);
-}
-
-/* ── Glass panel with noise ───────────────────────────────────────────────── */
-.glass-noise {
-  position: relative;
-  background: rgba(42,42,45,0.4);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.1);
-}
-.glass-noise::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  opacity: 0.05;
-  pointer-events: none;
-  mix-blend-mode: overlay;
-  border-radius: inherit;
-  z-index: 0;
-}
-
-/* ── Animate equalizer bar (active track) ─────────────────────────────────── */
-@keyframes eq1 { 0%,100%{height:4px} 50%{height:16px} }
-@keyframes eq2 { 0%,100%{height:8px} 50%{height:4px} }
-@keyframes eq3 { 0%,100%{height:6px} 50%{height:14px} }
-.eq-bar-1 { animation: eq1 1s ease-in-out infinite; }
-.eq-bar-2 { animation: eq2 1.1s ease-in-out infinite; }
-.eq-bar-3 { animation: eq3 0.9s ease-in-out infinite; }
+/* ── 13. Track row ─────────────────────────────────────────────────────────── */
+.track-row { transition: background 0.12s ease; }
+.track-row:hover { background: rgba(20,33,61,0.05); }

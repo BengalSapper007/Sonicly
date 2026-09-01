@@ -33,15 +33,15 @@ export default function LoginPage() {
       <div className="relative w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-2xl mx-auto mb-4 relative" style={{ boxShadow: '0 0 30px rgba(208, 188, 255, 0.4)' }}>
+          <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-2xl mx-auto mb-4 relative" style={{ boxShadow: '0 0 30px rgba(232, 114, 12, 0.35)' }}>
             <img src="/logo-icon.png" alt="Sonicly" className="w-full h-full object-cover scale-110" />
           </div>
-          <h1 className="font-display font-bold text-2xl text-ink">Welcome back</h1>
-          <p className="text-ink-dim text-sm mt-1">Sign in to your Sonicly account</p>
+          <h1 className="font-display font-bold text-2xl text-on-surface">Welcome back</h1>
+          <p className="text-on-surface-muted text-sm mt-1">Sign in to your Sonicly account</p>
         </div>
 
         {/* Card */}
-        <div className="bg-surface border border-rim rounded-2xl p-6 shadow-elevated">
+        <div className="bg-surface border border-border-light rounded-2xl p-6 shadow-elevated">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div className="px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm animate-fade-in">
@@ -50,20 +50,20 @@ export default function LoginPage() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-ink-dim mb-1.5">Email</label>
+              <label className="block text-sm font-medium text-on-surface-muted mb-1.5">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="you@example.com"
-                className="w-full bg-abyss border border-rim rounded-lg px-4 py-2.5 text-ink text-sm
+                className="w-full bg-surface border border-border-light rounded-lg px-4 py-2.5 text-on-surface text-sm
                   placeholder-ink-ghost focus:outline-none focus:border-sonic focus:ring-1 focus:ring-sonic/30 transition-all"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-ink-dim mb-1.5">Password</label>
+              <label className="block text-sm font-medium text-on-surface-muted mb-1.5">Password</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -71,13 +71,13 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="••••••••"
-                  className="w-full bg-abyss border border-rim rounded-lg px-4 py-2.5 pr-10 text-ink text-sm
+                  className="w-full bg-surface border border-border-light rounded-lg px-4 py-2.5 pr-10 text-on-surface text-sm
                     placeholder-ink-ghost focus:outline-none focus:border-sonic focus:ring-1 focus:ring-sonic/30 transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-ghost hover:text-ink transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-muted/60 hover:text-on-surface transition-colors"
                 >
                   {showPassword ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
                 </button>
@@ -97,9 +97,9 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-sm text-ink-dim mt-4">
+        <p className="text-center text-sm text-on-surface-muted mt-4">
           Don&apos;t have an account?{' '}
-          <Link href="/register" className="text-sonic hover:text-sonic-light transition-colors font-medium">
+          <Link href="/register" className="text-vibrant-saffron hover:text-deep-saffron transition-colors font-medium">
             Sign up
           </Link>
         </p>

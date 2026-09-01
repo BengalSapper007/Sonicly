@@ -19,10 +19,10 @@ export default function AlbumsPage() {
   }, []);
 
   return (
-    <div className="p-8 pb-24 min-h-full" style={{ background: '#131316' }}>
+    <div className="p-8 pb-24 min-h-full" style={{ background: '#FAF6EF' }}>
       <div className="flex items-center gap-3 mb-8">
         <Compass className="w-8 h-8 text-cyan-400" />
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-100" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+        <h1 className="text-3xl font-bold tracking-tight text-on-surface">
           Browse Albums
         </h1>
       </div>
@@ -40,7 +40,7 @@ export default function AlbumsPage() {
           ))}
         </div>
       ) : (
-        <div className="text-zinc-400">No albums found.</div>
+        <div className="text-on-surface-muted">No albums found.</div>
       )}
     </div>
   );

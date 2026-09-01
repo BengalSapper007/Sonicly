@@ -19,10 +19,10 @@ export default function ArtistsPage() {
   }, []);
 
   return (
-    <div className="p-8 pb-24 min-h-full" style={{ background: '#131316' }}>
+    <div className="p-8 pb-24 min-h-full" style={{ background: '#FAF6EF' }}>
       <div className="flex items-center gap-3 mb-8">
-        <Users className="w-8 h-8 text-purple-400" />
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-100" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+        <Users className="w-8 h-8 text-vibrant-saffron" />
+        <h1 className="text-3xl font-bold tracking-tight text-on-surface">
           Artists
         </h1>
       </div>
@@ -45,7 +45,7 @@ export default function ArtistsPage() {
           ))}
         </div>
       ) : (
-        <div className="text-zinc-400">No artists found.</div>
+        <div className="text-on-surface-muted">No artists found.</div>
       )}
     </div>
   );

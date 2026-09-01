@@ -19,10 +19,10 @@ export default function PlaylistsPage() {
   }, []);
 
   return (
-    <div className="p-8 pb-24 min-h-full" style={{ background: '#131316' }}>
+    <div className="p-8 pb-24 min-h-full" style={{ background: '#FAF6EF' }}>
       <div className="flex items-center gap-3 mb-8">
-        <Sparkles className="w-8 h-8" style={{ color: '#ffb0cd' }} />
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-100" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+        <Sparkles className="w-8 h-8" style={{ color: '#E8720C' }} />
+        <h1 className="text-3xl font-bold tracking-tight text-on-surface">
           Discover Playlists
         </h1>
       </div>
@@ -40,7 +40,7 @@ export default function PlaylistsPage() {
           ))}
         </div>
       ) : (
-        <div className="text-zinc-400">No playlists found.</div>
+        <div className="text-on-surface-muted">No playlists found.</div>
       )}
     </div>
   );

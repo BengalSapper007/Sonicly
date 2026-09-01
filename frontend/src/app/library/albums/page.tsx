@@ -29,17 +29,17 @@ export default function SavedAlbumsPage() {
   if (!isAuthenticated && !isLoading) return null;
 
   return (
-    <div className="min-h-full pb-24 p-8" style={{ background: '#131316' }}>
+    <div className="min-h-full pb-24 p-8" style={{ background: '#FAF6EF' }}>
       <div className="flex items-center gap-3 mb-8">
         <Disc className="w-8 h-8 text-cyan-400" />
         <div>
           <h1
             className="text-3xl font-black text-white tracking-tight"
-            style={{ fontFamily: 'Montserrat, sans-serif' }}
+           
           >
             Saved Albums
           </h1>
-          <p className="text-sm text-zinc-400 mt-0.5">
+          <p className="text-sm text-on-surface-muted mt-0.5">
             {loading ? '—' : `${savedAlbums.length} albums`}
           </p>
         </div>
@@ -53,9 +53,9 @@ export default function SavedAlbumsPage() {
         </div>
       ) : savedAlbums.length === 0 ? (
         <div className="py-16 text-center">
-          <Disc className="w-16 h-16 mx-auto text-zinc-700 mb-4" />
-          <h2 className="text-xl font-bold text-zinc-300 mb-2">No saved albums yet</h2>
-          <p className="text-sm text-zinc-500">Save albums by clicking the bookmark icon on any album.</p>
+          <Disc className="w-16 h-16 mx-auto text-border-light mb-4" />
+          <h2 className="text-xl font-bold text-on-surface-muted mb-2">No saved albums yet</h2>
+          <p className="text-sm text-on-surface-muted">Save albums by clicking the bookmark icon on any album.</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5">

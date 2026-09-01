@@ -29,17 +29,17 @@ export default function FollowingPage() {
   if (!isAuthenticated && !isLoading) return null;
 
   return (
-    <div className="min-h-full pb-24 p-8" style={{ background: '#131316' }}>
+    <div className="min-h-full pb-24 p-8" style={{ background: '#FAF6EF' }}>
       <div className="flex items-center gap-3 mb-8">
-        <Users className="w-8 h-8 text-purple-400" />
+        <Users className="w-8 h-8 text-vibrant-saffron" />
         <div>
           <h1
             className="text-3xl font-black text-white tracking-tight"
-            style={{ fontFamily: 'Montserrat, sans-serif' }}
+           
           >
             Following
           </h1>
-          <p className="text-sm text-zinc-400 mt-0.5">
+          <p className="text-sm text-on-surface-muted mt-0.5">
             {loading ? '—' : `${followedArtists.length} artists`}
           </p>
         </div>
@@ -56,9 +56,9 @@ export default function FollowingPage() {
         </div>
       ) : followedArtists.length === 0 ? (
         <div className="py-16 text-center">
-          <Users className="w-16 h-16 mx-auto text-zinc-700 mb-4" />
-          <h2 className="text-xl font-bold text-zinc-300 mb-2">Not following any artists yet</h2>
-          <p className="text-sm text-zinc-500">Follow artists to see them here.</p>
+          <Users className="w-16 h-16 mx-auto text-border-light mb-4" />
+          <h2 className="text-xl font-bold text-on-surface-muted mb-2">Not following any artists yet</h2>
+          <p className="text-sm text-on-surface-muted">Follow artists to see them here.</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">

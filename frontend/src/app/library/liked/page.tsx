@@ -31,33 +31,29 @@ export default function LikedSongsPage() {
   if (!isAuthenticated && !isLoading) return null;
 
   return (
-    <div className="min-h-full pb-24" style={{ background: '#131316' }}>
+    <div className="min-h-full pb-24" style={{ background: '#FAF6EF' }}>
       {/* Hero Banner */}
       <div
         className="px-8 pt-12 pb-8 relative overflow-hidden"
         style={{
-          background: 'linear-gradient(180deg, rgba(160,120,255,0.25) 0%, rgba(19,19,22,0) 100%)',
+          background: 'linear-gradient(180deg, rgba(232,114,12,0.12) 0%, rgba(250,246,239,0) 100%)',
         }}
       >
         <div className="flex items-end gap-6">
           <div
-            className="w-48 h-48 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-2xl"
+            className="w-48 h-48 rounded-2xl flex items-center justify-center flex-shrink-0"
             style={{
-              background: 'linear-gradient(135deg, #a078ff 0%, #d0bcff 50%, #4cd7f6 100%)',
-              boxShadow: '0 16px 48px rgba(160,120,255,0.4)',
+              background: 'linear-gradient(135deg, #E8720C 0%, #146B3A 100%)',
             }}
           >
-            <Heart className="w-20 h-20 text-white fill-current drop-shadow-xl" />
+            <Heart className="w-20 h-20 text-white fill-current" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-widest text-purple-300 mb-1">Playlist</p>
-            <h1
-              className="text-5xl font-black text-white tracking-tight mb-3"
-              style={{ fontFamily: 'Montserrat, sans-serif' }}
-            >
+            <p className="text-sm font-medium text-vibrant-saffron mb-1">Playlist</p>
+            <h1 className="text-5xl font-bold text-on-surface tracking-tight mb-3">
               Liked Songs
             </h1>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-on-surface-muted">
               {loading ? '—' : `${likedSongs.length} tracks`}
             </p>
           </div>
@@ -65,14 +61,10 @@ export default function LikedSongsPage() {
 
         {likedSongs.length > 0 && !loading && (
           <button
-            className="mt-6 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-110"
-            style={{
-              background: 'linear-gradient(135deg, #d0bcff, #4cd7f6)',
-              boxShadow: '0 0 30px rgba(208,188,255,0.5)',
-            }}
+            className="mt-6 w-14 h-14 rounded-full flex items-center justify-center bg-vibrant-saffron transition-all hover:scale-105 hover:bg-deep-saffron"
             onClick={() => playQueue(likedSongs, 0, 'search', undefined)}
           >
-            <Play className="w-6 h-6 fill-current text-purple-950 ml-0.5" />
+            <Play className="w-6 h-6 fill-current text-white ml-0.5" />
           </button>
         )}
       </div>
@@ -87,9 +79,9 @@ export default function LikedSongsPage() {
           </div>
         ) : likedSongs.length === 0 ? (
           <div className="py-16 text-center">
-            <Heart className="w-16 h-16 mx-auto text-zinc-700 mb-4" />
-            <h2 className="text-xl font-bold text-zinc-300 mb-2">Songs you like will appear here</h2>
-            <p className="text-sm text-zinc-500">Save songs by tapping the heart icon.</p>
+            <Heart className="w-16 h-16 mx-auto text-border-light mb-4" />
+            <h2 className="text-xl font-semibold text-on-surface mb-2">Songs you like will appear here</h2>
+            <p className="text-sm text-on-surface-muted">Save songs by tapping the heart icon.</p>
           </div>
         ) : (
           <div className="space-y-1">

@@ -12,14 +12,12 @@ interface ArtworkImageProps {
 }
 
 const GRADIENTS = [
-  'linear-gradient(135deg, #7928ca 0%, #ff0080 100%)',
-  'linear-gradient(135deg, #4cd7f6 0%, #d0bcff 100%)',
-  'linear-gradient(135deg, #ff0080 0%, #7928ca 50%, #4cd7f6 100%)',
-  'linear-gradient(135deg, #1b2838 0%, #2a475e 50%, #66c0f4 100%)',
-  'linear-gradient(135deg, #3c0091 0%, #aa0266 50%, #003640 100%)',
-  'linear-gradient(135deg, #d0bcff 0%, #ffb0cd 100%)',
-  'linear-gradient(135deg, #f12711 0%, #f5af19 100%)',
-  'linear-gradient(135deg, #654ea3 0%, #eaafc8 100%)',
+  'linear-gradient(135deg, #E8720C 0%, #B85A08 100%)',
+  'linear-gradient(135deg, #146B3A 0%, #0C1626 100%)',
+  'linear-gradient(135deg, #14213D 0%, #E8720C 100%)',
+  'linear-gradient(135deg, #B85A08 0%, #146B3A 100%)',
+  'linear-gradient(135deg, #0C1626 0%, #14213D 60%, #E8720C 100%)',
+  'linear-gradient(135deg, #146B3A 0%, #E8720C 100%)',
 ];
 
 function getGradient(str: string = '') {
@@ -73,10 +71,7 @@ export function ArtworkImage({
 
         {size === 'hero' ? (
           <div className="flex flex-col items-center gap-3 z-10">
-            <Icon className="w-16 h-16 text-white/70" />
-            <span className="text-4xl font-extrabold text-white/90 drop-shadow-md">
-              {alt}
-            </span>
+            <Icon className="w-14 h-14 text-white/50" />
           </div>
         ) : size === 'lg' ? (
           <div className="flex flex-col items-center gap-2 z-10">

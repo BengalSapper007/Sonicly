@@ -1,6 +1,5 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
-import { use } from 'react';
+import { useEffect, useState, useCallback, use } from 'react';
 import { Play, Shuffle, Bookmark, BookmarkCheck, Loader2 } from 'lucide-react';
 import { albumsApi, artworkUrl } from '@/lib/api';
 import { usePlayerStore } from '@/stores/player.store';
@@ -22,50 +21,42 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
   useEffect(() => {
     albumsApi
       .get(albumId)
-      .then((r) => {
-        setAlbum(r.data);
-        setSaved(r.data.isSaved ?? false);
-      })
+      .then((r) => { setAlbum(r.data); setSaved(r.data.isSaved ?? false); })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [albumId]);
 
   const handleSave = useCallback(async () => {
     if (!isAuthenticated || saveLoading) return;
-    setSaved((prev) => !prev);          // optimistic
+    setSaved((p) => !p);
     setSaveLoading(true);
     try {
-      if (saved) {
-        await albumsApi.unsave(albumId);
-      } else {
-        await albumsApi.save(albumId);
-      }
+      saved ? await albumsApi.unsave(albumId) : await albumsApi.save(albumId);
     } catch {
-      setSaved((prev) => !prev);        // revert on error
+      setSaved((p) => !p);
     } finally {
       setSaveLoading(false);
     }
   }, [isAuthenticated, saved, saveLoading, albumId]);
 
   if (loading) return <AlbumSkeleton />;
-  if (!album) return <NotFound />;
+  if (!album) return (
+    <div className="flex items-center justify-center h-64 text-on-surface-muted font-semibold">
+      Album not found.
+    </div>
+  );
 
   const songs = album.songs || [];
   const totalDuration = songs.reduce((acc: number, s: any) => acc + (s.duration || 0), 0);
 
-  const handlePlayAll = () => playQueue(songs, 0, 'album', album.id);
-  const handleShuffle = () => {
-    const idx = Math.floor(Math.random() * songs.length);
-    playQueue(songs, idx, 'album', album.id);
-  };
-
   return (
-    <div className="min-h-full pb-16">
-      {/* ── Hero ───────────────────────────────────────────────────────────── */}
-      <div className="relative">
-        <div className="px-8 pt-10 pb-6 flex flex-col md:flex-row md:items-end gap-6">
-          {/* Cover */}
-          <div className="w-48 h-48 rounded-2xl overflow-hidden flex-shrink-0 shadow-2xl bg-zinc-950">
+    <div className="min-h-full pb-24 bg-background">
+
+      {/* ── Album Hero Header ──────────────────────────────────────────────── */}
+      <section className="border-b border-border-light px-4 md:px-8 pt-8 pb-6 bg-surface-raised">
+        <div className="flex flex-col sm:flex-row items-start sm:items-end gap-5 max-w-5xl mx-auto">
+          {/* Cover Art */}
+          <div className="w-36 h-36 md:w-48 md:h-48 flex-shrink-0 overflow-hidden rounded-lg">
             <ArtworkImage
               src={artworkUrl(album.imageKey)}
               alt={album.title}
@@ -78,63 +69,54 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
 
           {/* Info */}
           <div className="flex-1 min-w-0 pb-1">
-            <span className="text-xs font-bold uppercase tracking-widest text-purple-300">
-              {album.type || 'Album'}
+            <span className="inline-block text-sm font-medium text-vibrant-saffron mb-2">
+              {album.albumType || 'Album'}
             </span>
-            <h1
-              className="font-black text-3xl md:text-5xl text-white my-2 tracking-tight line-clamp-2"
-              style={{ fontFamily: 'Montserrat, sans-serif' }}
-            >
+            <h1 className="font-bold text-2xl sm:text-4xl md:text-5xl text-on-surface tracking-tight mb-2 line-clamp-2">
               {album.title}
             </h1>
-            <div className="flex flex-wrap items-center gap-2 text-sm text-zinc-400 font-medium">
-              <span className="text-zinc-100 font-semibold">{album.artist?.name}</span>
-              {album.releaseYear && (
-                <>
-                  <span>•</span>
-                  <span>{album.releaseYear}</span>
-                </>
-              )}
-              <span>•</span>
-              <span>{songs.length} songs</span>
-              <span>•</span>
-              <span className="font-mono">{formatDuration(totalDuration)}</span>
+            <div className="flex flex-wrap items-center gap-1.5 text-sm text-on-surface-muted">
+              <span className="font-semibold text-on-surface">{album.artist?.name}</span>
+              {album.releaseYear && <span>{`, ${album.releaseYear}`}</span>}
+              <span>{`, ${songs.length} songs`}</span>
+              <span>{`, ${formatDuration(totalDuration)}`}</span>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* ── Actions ────────────────────────────────────────────────────────── */}
-      <div className="px-8 py-4 flex items-center gap-3">
+      {/* ── Action Bar ──────────────────────────────────────────────────────── */}
+      <div className="px-4 md:px-8 py-4 flex items-center gap-3 border-b border-border-light bg-surface">
         <button
-          onClick={handlePlayAll}
+          onClick={() => playQueue(songs, 0, 'album', album.id)}
           disabled={!songs.length}
-          className="btn-primary flex items-center gap-2 px-6 py-2.5 font-bold shadow-lg disabled:opacity-50"
+          className="btn-primary disabled:opacity-50"
         >
-          <Play className="w-4 h-4 fill-current ml-0.5" />
-          <span>Play</span>
+          <Play className="w-4 h-4 fill-current" />
+          Play
         </button>
         <button
-          onClick={handleShuffle}
+          onClick={() => {
+            const idx = Math.floor(Math.random() * songs.length);
+            playQueue(songs, idx, 'album', album.id);
+          }}
           disabled={!songs.length}
-          className="btn-glass flex items-center gap-2 px-5 py-2.5 font-semibold disabled:opacity-50"
+          className="btn-secondary disabled:opacity-50"
         >
-          <Shuffle className="w-4 h-4 text-zinc-300" />
-          <span>Shuffle</span>
+          <Shuffle className="w-4 h-4" />
+          Shuffle
         </button>
 
-        {/* Save / Unsave button */}
         {isAuthenticated && (
           <button
             onClick={handleSave}
             disabled={saveLoading}
-            className={`p-2.5 rounded-full border transition-all flex items-center justify-center ${
+            className={`p-2.5 rounded border-2 transition-all flex items-center justify-center ${
               saved
-                ? 'border-purple-400/60 text-purple-300 bg-purple-500/10 hover:bg-purple-500/20'
-                : 'border-white/10 text-zinc-400 hover:text-purple-300 hover:border-purple-400/40 hover:bg-white/5'
+                ? 'border-prussian-blue bg-prussian-blue text-white'
+                : 'border-prussian-blue text-prussian-blue hover:bg-prussian-blue hover:text-white'
             }`}
             aria-label={saved ? 'Remove from library' : 'Save to library'}
-            title={saved ? 'Remove from library' : 'Save to library'}
           >
             {saveLoading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -147,15 +129,16 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
         )}
       </div>
 
-      {/* ── Track List ─────────────────────────────────────────────────────── */}
-      <div className="px-6 mt-4">
-        <div className="flex items-center px-4 py-2 mb-2 border-b border-white/5 text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-          <div className="w-6 text-center">#</div>
-          <div className="flex-1 ml-3.5">Title</div>
-          <div className="w-20 text-right pr-10">Duration</div>
+      {/* ── Track List ──────────────────────────────────────────────────────── */}
+      <div className="px-2 md:px-6 mt-2">
+        {/* Table header */}
+        <div className="hidden sm:flex items-center px-3 py-2 mb-1 border-b border-border-light text-xs font-medium text-on-surface-muted">
+          <div className="w-8 text-center">#</div>
+          <div className="flex-1 ml-2">Title</div>
+          <div className="w-20 text-right pr-8">Duration</div>
         </div>
 
-        <div className="space-y-1">
+        <div className="divide-y divide-prussian-blue/5">
           {songs.map((song: any, i: number) => (
             <SongRow
               key={song.id}
@@ -175,28 +158,22 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
 
 function AlbumSkeleton() {
   return (
-    <div className="px-8 pt-10 pb-8 animate-fade-in">
-      <div className="flex items-end gap-6 mb-8">
-        <Skeleton className="w-48 h-48 rounded-2xl shimmer" />
-        <div className="flex-1 space-y-3">
-          <Skeleton className="w-20 h-4 shimmer rounded" />
-          <Skeleton className="w-72 h-10 shimmer rounded-lg" />
-          <Skeleton className="w-48 h-4 shimmer rounded" />
+    <div className="pb-24 bg-background animate-fade-in">
+      <div className="bg-vibrant-saffron/30 border-b-2 border-prussian-blue/20 px-4 md:px-8 pt-8 pb-6">
+        <div className="flex flex-col sm:flex-row items-end gap-5">
+          <Skeleton className="w-36 h-36 md:w-48 md:h-48 shimmer" />
+          <div className="flex-1 space-y-3">
+            <Skeleton className="w-16 h-4 rounded shimmer" />
+            <Skeleton className="w-72 h-10 rounded shimmer" />
+            <Skeleton className="w-48 h-4 rounded shimmer" />
+          </div>
         </div>
       </div>
-      <div className="space-y-2">
+      <div className="px-4 md:px-8 mt-4 divide-y divide-prussian-blue/5">
         {Array.from({ length: 8 }).map((_, i) => (
-          <Skeleton key={i} className="h-12 rounded-xl shimmer" />
+          <Skeleton key={i} className="h-14 rounded shimmer my-1" />
         ))}
       </div>
-    </div>
-  );
-}
-
-function NotFound() {
-  return (
-    <div className="flex items-center justify-center h-64 text-zinc-400">
-      <p>Album not found.</p>
     </div>
   );
 }

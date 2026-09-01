@@ -30,7 +30,6 @@ export function SongRow({
   const isCurrent = currentSong?.id === song.id;
   const isCurrentlyPlaying = isCurrent && isPlaying;
 
-  // Determine initial liked state from the song data (backend returns `likes: [...]` when userId is passed)
   const initialLiked = Array.isArray((song as any).likes) && (song as any).likes.length > 0;
   const { liked, isLoading: likeLoading, toggle: toggleLike } = useLike(song.id, initialLiked);
 
@@ -45,38 +44,38 @@ export function SongRow({
   return (
     <div
       className={cn(
-        'group flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl transition-all cursor-pointer select-none',
-        'hover:bg-white/5',
-        isCurrent && 'bg-white/10'
+        'group flex items-center gap-3.5 px-3 py-2.5 rounded transition-all cursor-pointer select-none border-b border-prussian-blue/10',
+        'hover:bg-prussian-blue/6',
+        isCurrent && 'bg-vibrant-saffron/10 border-l-4 border-l-crisp-green'
       )}
       onClick={handlePlay}
     >
-      {/* Index / Play button */}
+      {/* Index / Equalizer / Play */}
       <div className="w-6 flex-shrink-0 flex items-center justify-center relative">
         {isCurrentlyPlaying ? (
           <div className="flex gap-0.5 items-end h-3.5">
-            <span className="w-0.5 bg-purple-300 rounded-full eq-bar-1" />
-            <span className="w-0.5 bg-purple-300 rounded-full eq-bar-2" />
-            <span className="w-0.5 bg-purple-300 rounded-full eq-bar-3" />
+            <span className="w-0.5 bg-crisp-green rounded-full eq-bar eq-bar-1" />
+            <span className="w-0.5 bg-crisp-green rounded-full eq-bar eq-bar-2" />
+            <span className="w-0.5 bg-crisp-green rounded-full eq-bar eq-bar-3" />
           </div>
         ) : (
           <>
             <span
               className={cn(
                 'text-xs tabular-nums transition-opacity group-hover:opacity-0',
-                isCurrent ? 'text-purple-300 font-bold' : 'text-zinc-400 font-mono'
+                isCurrent ? 'text-crisp-green font-bold' : 'text-on-surface-muted font-medium'
               )}
             >
               {index !== undefined ? index + 1 : ''}
             </span>
-            <Play className="w-4 h-4 absolute opacity-0 group-hover:opacity-100 transition-opacity text-white fill-current" />
+            <Play className="w-4 h-4 absolute opacity-0 group-hover:opacity-100 transition-opacity text-prussian-blue fill-current" />
           </>
         )}
       </div>
 
       {/* Album art */}
       {showAlbum && song.album && (
-        <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 shadow-sm bg-zinc-950">
+        <div className="w-10 h-10 rounded border border-prussian-blue/20 overflow-hidden flex-shrink-0 bg-[#F2EBDB]">
           <ArtworkImage
             src={artworkUrl(song.album.imageKey)}
             alt={song.album.title || song.title}
@@ -92,30 +91,30 @@ export function SongRow({
       <div className="flex-1 min-w-0">
         <p
           className={cn(
-            'text-sm font-semibold truncate transition-colors',
-            isCurrent ? 'text-purple-300' : 'text-zinc-100 group-hover:text-white'
+            'text-sm font-bold truncate transition-colors',
+            isCurrent ? 'text-crisp-green' : 'text-prussian-blue group-hover:text-midnight-blue'
           )}
         >
           {song.title}
         </p>
-        <p className="text-xs text-zinc-400 truncate mt-0.5">
+        <p className="text-xs text-on-surface-muted truncate mt-0.5">
           {song.album?.artist?.name}
           {showAlbum && song.album && (
-            <span className="text-zinc-400"> · {song.album.title}</span>
+            <span>{song.album?.artist?.name ? ', ' : ''}{song.album.title}</span>
           )}
         </p>
       </div>
 
-      {/* Like button — only for authenticated users */}
+      {/* Like button */}
       {isAuthenticated && (
         <button
           className={cn(
             'p-1.5 transition-all flex-shrink-0',
             liked
-              ? 'opacity-100 text-rose-400 hover:text-rose-300'
-              : 'opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-rose-400'
+              ? 'opacity-100 text-vibrant-saffron hover:text-deep-saffron'
+              : 'opacity-0 group-hover:opacity-100 text-on-surface-muted hover:text-vibrant-saffron'
           )}
-          onClick={toggleLike}
+          onClick={(e) => { e.stopPropagation(); toggleLike(e as any); }}
           aria-label={liked ? 'Unlike song' : 'Like song'}
           title={liked ? 'Unlike' : 'Like'}
         >
@@ -128,13 +127,13 @@ export function SongRow({
       )}
 
       {/* Duration */}
-      <span className="text-xs text-zinc-400 tabular-nums font-mono w-10 text-right flex-shrink-0">
+      <span className="text-xs text-on-surface-muted tabular-nums w-10 text-right flex-shrink-0 font-medium">
         {formatDuration(song.duration)}
       </span>
 
       {/* More */}
       <button
-        className="p-1.5 text-zinc-400 hover:text-white opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+        className="p-1.5 text-on-surface-muted hover:text-prussian-blue opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
         onClick={(e) => e.stopPropagation()}
         aria-label="More options"
       >

@@ -18,12 +18,12 @@ export function Section({ title, href, icon, children, className }: SectionProps
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
           {icon}
-          <h2 className="font-display font-semibold text-lg text-ink">{title}</h2>
+          <h2 className="font-display font-semibold text-lg text-on-surface">{title}</h2>
         </div>
         {href && (
           <Link
             href={href}
-            className="flex items-center gap-1 text-sm text-ink-dim hover:text-sonic transition-colors group"
+            className="flex items-center gap-1 text-sm text-on-surface-muted hover:text-vibrant-saffron transition-colors group"
           >
             See all
             <ChevronRightIcon size={14} className="group-hover:translate-x-0.5 transition-transform" />
