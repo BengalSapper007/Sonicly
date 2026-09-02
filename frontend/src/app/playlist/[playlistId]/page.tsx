@@ -135,7 +135,7 @@ export default function PlaylistPage({ params }: { params: Promise<{ playlistId:
 function PlaylistSkeleton() {
   return (
     <div className="pb-24 animate-fade-in">
-      <div className="px-4 md:px-8 pt-8 pb-6 border-b-2 border-prussian-blue/20" style={{ background: '#E8720C' }}>
+      <div className="px-4 md:px-8 pt-8 pb-6 border-b-2 border-prussian-blue/20" style={{ background: '#E2720A' }}>
         <div className="flex flex-col sm:flex-row items-end gap-5">
           <Skeleton className="w-36 h-36 md:w-52 md:h-52 border-2 border-prussian-blue/20 shimmer" />
           <div className="flex-1 space-y-3">

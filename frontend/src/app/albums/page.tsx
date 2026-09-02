@@ -19,9 +19,9 @@ export default function AlbumsPage() {
   }, []);
 
   return (
-    <div className="p-8 pb-24 min-h-full" style={{ background: '#FAF6EF' }}>
+    <div className="p-8 pb-24 min-h-full" style={{ background: '#F6F1E4' }}>
       <div className="flex items-center gap-3 mb-8">
-        <Compass className="w-8 h-8 text-cyan-400" />
+        <Compass className="w-8 h-8 text-saffron" />
         <h1 className="text-3xl font-bold tracking-tight text-on-surface">
           Browse Albums
         </h1>

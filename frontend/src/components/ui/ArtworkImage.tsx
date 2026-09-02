@@ -12,12 +12,12 @@ interface ArtworkImageProps {
 }
 
 const GRADIENTS = [
-  'linear-gradient(135deg, #E8720C 0%, #B85A08 100%)',
-  'linear-gradient(135deg, #146B3A 0%, #0C1626 100%)',
-  'linear-gradient(135deg, #14213D 0%, #E8720C 100%)',
-  'linear-gradient(135deg, #B85A08 0%, #146B3A 100%)',
-  'linear-gradient(135deg, #0C1626 0%, #14213D 60%, #E8720C 100%)',
-  'linear-gradient(135deg, #146B3A 0%, #E8720C 100%)',
+  'linear-gradient(135deg, #E2720A 0%, #B85B08 100%)',
+  'linear-gradient(135deg, #0F6B45 0%, #12192F 100%)',
+  'linear-gradient(135deg, #1B2447 0%, #E2720A 100%)',
+  'linear-gradient(135deg, #B85B08 0%, #0F6B45 100%)',
+  'linear-gradient(135deg, #12192F 0%, #1B2447 60%, #E2720A 100%)',
+  'linear-gradient(135deg, #0F6B45 0%, #E2720A 100%)',
 ];
 
 function getGradient(str: string = '') {

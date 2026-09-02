@@ -1,23 +1,18 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { albumsApi, playlistsApi, artistsApi, artworkUrl } from '@/lib/api';
-import { useAuthStore } from '@/stores/auth.store';
 import { usePlayerStore } from '@/stores/player.store';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ArtworkImage } from '@/components/ui/ArtworkImage';
-import { Play, Search, Bell, Settings, ChevronRight } from 'lucide-react';
+import { Play, ChevronRight } from 'lucide-react';
 
 export default function HomePage() {
-  const router = useRouter();
-  const { user } = useAuthStore();
   const { playQueue } = usePlayerStore();
   const [albums, setAlbums] = useState<any[]>([]);
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [artists, setArtists] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     Promise.all([
@@ -37,78 +32,35 @@ export default function HomePage() {
   const featured = playlists[0] ?? albums[0];
   const featuredCover = featured ? artworkUrl(featured.imageKey) : null;
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
-
   return (
-    <div className="min-h-full pb-24 bg-[#FAF6EF] text-on-surface">
+    <div className="min-h-full pb-24 bg-[#F6F1E4] text-ink">
 
-      {/* ── TopNavBar ────────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-30 flex items-center justify-between px-8 h-16 bg-prussian-blue border-b-2 border-midnight-blue">
-        {/* Search bar */}
-        <form onSubmit={handleSearchSubmit} className="relative group max-w-md w-full">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-on-primary-muted/60 pointer-events-none group-focus-within:text-vibrant-saffron transition-colors" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search artists, songs, albums…"
-            className="w-full rounded-full py-2 pl-10 pr-4 text-sm text-white placeholder:text-on-primary-muted/50 outline-none bg-prussian-blue/60 border-2 border-on-primary-muted/20 focus:border-vibrant-saffron transition-all font-medium"
-          />
-        </form>
-
-        {/* Right icons */}
-        <div className="flex items-center gap-2 ml-4">
-          <button className="p-2 rounded text-on-primary-muted hover:text-vibrant-saffron transition-colors" title="Notifications">
-            <Bell className="w-5 h-5" />
-          </button>
-          <button className="p-2 rounded text-on-primary-muted hover:text-vibrant-saffron transition-colors" title="Settings">
-            <Settings className="w-5 h-5" />
-          </button>
-          {user ? (
-            <div className="w-9 h-9 rounded border-2 border-vibrant-saffron bg-vibrant-saffron flex items-center justify-center text-xs font-black text-prussian-blue ml-1 flex-shrink-0">
-              {user.displayName?.[0]?.toUpperCase() || 'U'}
-            </div>
-          ) : (
-            <Link href="/login" className="btn-primary ml-2 py-1.5 px-4 text-xs">
-              Log in
-            </Link>
-          )}
-        </div>
-      </header>
-
-      {/* ── Featured Hero Banner ──────────────────────────────────────────────── */}
-      <section className="mx-8 mt-6 h-[300px] rounded-xl overflow-hidden group relative flex">
-        {/* Cover art */}
-        <div className="absolute inset-0">
+      {/* ── Featured — liner-notes sleeve, not a flat banner ──────────────────── */}
+      <section className="px-6 md:px-10 pt-8 pb-4 flex flex-col sm:flex-row gap-6 md:gap-10 items-start">
+        <div className="w-full sm:w-44 md:w-52 flex-shrink-0 mx-auto sm:mx-0 rounded-lg overflow-hidden" style={{ aspectRatio: '3 / 4', maxWidth: '208px' }}>
           <ArtworkImage
             src={featuredCover}
             alt={featured?.name ?? featured?.title ?? 'Discover Music'}
             type={featured?.name ? 'playlist' : 'album'}
             id={featured?.id ?? 'featured'}
             size="hero"
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            className="w-full h-full object-cover"
           />
         </div>
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-prussian-blue/35" />
-        <div className="absolute inset-0 bg-gradient-to-t from-prussian-blue/90 via-prussian-blue/50 to-transparent" />
 
-        {/* Content */}
-        <div className="absolute bottom-0 left-0 p-7 z-10 w-full max-w-xl">
-          <span className="inline-block mb-2 text-sm font-medium text-vibrant-saffron">
+        <div className="pt-1 max-w-xl">
+          <span className="inline-block mb-2 text-sm font-medium text-saffron">
             Featured release
           </span>
           <h1
-            className="mb-4 font-black tracking-tight text-white line-clamp-2"
-            style={{ fontSize: 'clamp(22px, 3.5vw, 40px)', lineHeight: 1.15 }}
+            className="font-display font-semibold tracking-tight text-ink mb-3 line-clamp-2"
+            style={{ fontSize: 'clamp(28px, 4vw, 48px)', lineHeight: 1.1 }}
           >
             {featured?.name ?? featured?.title ?? 'Discover Music'}
           </h1>
+          {featured?.artist?.name && (
+            <p className="text-ink-muted mb-5">{featured.artist.name}</p>
+          )}
           <button
             className="btn-primary flex items-center gap-2 py-2.5"
             onClick={() => {
@@ -123,7 +75,7 @@ export default function HomePage() {
             }}
           >
             <Play className="w-4 h-4 fill-current" />
-            <span>Listen Now</span>
+            <span>Listen now</span>
           </button>
         </div>
       </section>
@@ -154,7 +106,7 @@ export default function HomePage() {
       </ShelfSection>
 
       {/* ── Curated Playlists ────────────────────────────────────────────────── */}
-      <ShelfSection title="Curated Playlists" href="/playlists" accentColor="crisp-green">
+      <ShelfSection title="Curated Playlists" href="/playlists" accentColor="emerald">
         {loading ? (
           <div className="flex gap-4 pb-2">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -199,7 +151,7 @@ export default function HomePage() {
       </ShelfSection>
 
       {/* ── Artists ───────────────────────────────────────────────────────────── */}
-      <ShelfSection title="Artists" href="/artists" accentColor="crisp-green">
+      <ShelfSection title="Artists" href="/artists" accentColor="emerald">
         {loading ? (
           <div className="flex gap-6 pb-2">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -227,7 +179,7 @@ export default function HomePage() {
 function ShelfSection({
   title,
   href,
-  accentColor = 'vibrant-saffron',
+  accentColor = 'saffron',
   children,
 }: {
   title: string;
@@ -235,17 +187,17 @@ function ShelfSection({
   accentColor?: string;
   children: React.ReactNode;
 }) {
-  const borderClass = accentColor === 'crisp-green' ? 'border-crisp-green' : 'border-vibrant-saffron';
+  const borderClass = accentColor === 'emerald' ? 'border-emerald' : 'border-saffron';
   return (
-    <section className="px-8 py-6">
+    <section className="px-6 md:px-10 py-6">
       <div className="flex items-center justify-between mb-4">
-        <div className={`border-l-4 ${borderClass} pl-3`}>
-          <h2 className="text-xl font-bold text-prussian-blue">{title}</h2>
+        <div className={`border-l-2 ${borderClass} pl-3`}>
+          <h2 className="font-display font-semibold text-xl text-ink">{title}</h2>
         </div>
         {href && (
           <Link
             href={href}
-            className="text-xs font-bold text-prussian-blue hover:text-vibrant-saffron flex items-center gap-0.5 transition-colors"
+            className="text-xs font-semibold text-ink-muted hover:text-saffron flex items-center gap-0.5 transition-colors"
           >
             <span>See all</span>
             <ChevronRight className="w-3.5 h-3.5" />

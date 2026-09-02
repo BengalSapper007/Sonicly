@@ -75,7 +75,7 @@ export function SongRow({
 
       {/* Album art */}
       {showAlbum && song.album && (
-        <div className="w-10 h-10 rounded border border-prussian-blue/20 overflow-hidden flex-shrink-0 bg-[#F2EBDB]">
+        <div className="w-10 h-10 rounded border border-prussian-blue/20 overflow-hidden flex-shrink-0 bg-[#EDE4CC]">
           <ArtworkImage
             src={artworkUrl(song.album.imageKey)}
             alt={song.album.title || song.title}

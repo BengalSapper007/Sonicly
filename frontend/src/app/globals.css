@@ -1,222 +1,148 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   SONICLY — Saffron, Green & Indigo Undertone
-   A warm, spiced palette anchored by a deep indigo undertone.
-   globals.css — single source of truth for tokens, base styles, utilities
+   SONICLY — fresh system: Saffron / Emerald / Indigo, on Ivory
+   Liner-notes vernacular: quiet ivory canvas, one indigo anchor (the player),
+   serif display for titles, sans for everything functional.
 ───────────────────────────────────────────────────────────────────────────── */
 
-/* ── 1. Tailwind v4 @theme tokens ──────────────────────────────────────────── */
 @theme {
-  /* Typography */
-  --font-sans:    'Sora', system-ui, sans-serif;
-  --font-display: 'Sora', system-ui, sans-serif;
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-sans:    'Instrument Sans', system-ui, sans-serif;
 
-  /* ── Brand palette ───────────────────────────────────────────────────────── */
-  --color-prussian-blue:    #14213D;  /* indigo undertone — structure, text-on-light accents */
-  --color-midnight-blue:    #0C1626;  /* deep indigo — sidebar / player bg */
-  --color-vibrant-saffron:  #E8720C;  /* primary action */
-  --color-deep-saffron:     #B85A08;  /* saffron hover/active */
-  --color-crisp-green:      #146B3A;  /* secondary action, success, liked */
-  --color-light-saffron:    #FBE4C8;  /* saffron tint, badges */
+  --color-ivory:        #F6F1E4;
+  --color-paper:        #FCFAF3;
+  --color-sand:         #E1D6BE;
+  --color-ink:          #211E1A;
+  --color-ink-muted:    #6B6252;
 
-  /* Surfaces */
-  --color-background:       #FAF6EF; /* warm paper, not stark white */
-  --color-surface:          #FFFDF8;
-  --color-surface-raised:   #F2EBDB;
+  --color-indigo:       #1B2447;
+  --color-indigo-deep:  #12192F;
+  --color-on-indigo:    #FFFFFF;
+  --color-on-indigo-muted: #A6ACC4;
 
-  /* Text */
-  --color-on-surface:           #1C1B18;
-  --color-on-surface-muted:     #6B6558;
-  --color-on-primary:           #FFFFFF;
-  --color-on-primary-muted:     #9AA6C2;
+  --color-saffron:      #E2720A;
+  --color-saffron-deep: #B85B08;
+  --color-saffron-tint: #FBE3C6;
 
-  /* Borders */
-  --color-border:           #14213D;
-  --color-border-light:     #E7DFCB;
+  --color-emerald:      #0F6B45;
+  --color-emerald-deep: #0B5236;
+  --color-emerald-tint: #DCEBE2;
 
-  /* Animations */
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes shimmer {
-    0%   { background-position: -200% 0; }
-    100% { background-position:  200% 0; }
-  }
-  @keyframes eq1 { 0%,100% { height: 4px;  } 50% { height: 16px; } }
-  @keyframes eq2 { 0%,100% { height: 10px; } 50% { height: 4px;  } }
-  @keyframes eq3 { 0%,100% { height: 6px;  } 50% { height: 14px; } }
-  @keyframes equalizer { 0%,100% { transform: scaleY(0.4); } 50% { transform: scaleY(1); } }
+  /* Aliases so pages not yet fully rewritten inherit the fresh palette automatically.
+     Must live here in @theme (CSS), not tailwind.config.ts — this v4 setup doesn't
+     pick up theme.extend.colors from the JS config for these utility generations. */
+  --color-prussian-blue:    #1B2447;
+  --color-midnight-blue:    #12192F;
+  --color-vibrant-saffron:  #E2720A;
+  --color-deep-saffron:     #B85B08;
+  --color-light-saffron:    #FBE3C6;
+  --color-crisp-green:      #0F6B45;
+  --color-background:       #F6F1E4;
+  --color-surface:          #FCFAF3;
+  --color-surface-raised:   #EDE4CC;
+  --color-on-surface:       #211E1A;
+  --color-on-surface-muted: #6B6252;
+  --color-on-primary:       #FFFFFF;
+  --color-on-primary-muted: #A6ACC4;
+  --color-border-light:     #E1D6BE;
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+  @keyframes eq1 { 0%,100% { height: 4px; } 50% { height: 16px; } }
+  @keyframes eq2 { 0%,100% { height: 10px; } 50% { height: 4px; } }
+  @keyframes eq3 { 0%,100% { height: 6px; } 50% { height: 14px; } }
   @keyframes ringSpin { to { transform: rotate(360deg); } }
 }
 
-/* ── 2. Root CSS variables ─────────────────────────────────────────────────── */
 :root {
-  --player-height: 88px;
-  --sidebar-width: 260px;
-}
-
-/* ── 3. Base reset ─────────────────────────────────────────────────────────── */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+  --player-height: 84px;
+  --sidebar-width: 232px;
+  --header-height: 68px;
 }
 
 html, body { height: 100%; }
 
 body {
-  background-color: #FAF6EF;
-  color: #1C1B18;
-  font-family: 'Sora', system-ui, sans-serif;
+  background-color: #F6F1E4;
+  color: #211E1A;
+  font-family: 'Instrument Sans', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
 }
 
-/* ── 4. Scrollbar ──────────────────────────────────────────────────────────── */
-::-webkit-scrollbar         { width: 5px; height: 5px; }
-::-webkit-scrollbar-track   { background: transparent; }
-::-webkit-scrollbar-thumb   { background: rgba(20,33,61,0.2); border-radius: 100px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(20,33,61,0.4); }
-::selection { background: rgba(232,114,12,0.18); color: #14213D; }
-:focus-visible {
-  outline: 2px solid #E8720C;
-  outline-offset: 2px;
-  border-radius: 2px;
-}
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(27,36,71,0.18); border-radius: 100px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(27,36,71,0.32); }
+::selection { background: rgba(226,114,10,0.2); color: #1B2447; }
+:focus-visible { outline: 2px solid #E2720A; outline-offset: 2px; border-radius: 2px; }
 
-/* ── 5. Shimmer skeleton ───────────────────────────────────────────────────── */
 .shimmer {
-  background: linear-gradient(90deg, #EFE8D9 0%, #E2D9C4 50%, #EFE8D9 100%);
+  background: linear-gradient(90deg, #EAE2CC 0%, #DED2B4 50%, #EAE2CC 100%);
   background-size: 200% 100%;
   animation: shimmer 1.4s ease-in-out infinite;
 }
 
-/* ── 6. Elevation — calm, tonal, no offset hard-shadows ──────────────────── */
+/* Quiet card — hairline only, no shadow-kit sameness */
 .surface-card {
-  background: #FFFDF8;
-  border: 1px solid #E7DFCB;
-  border-radius: 10px;
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+  background: #FCFAF3;
+  border: 1px solid #E1D6BE;
+  border-radius: 8px;
+  transition: border-color 0.15s ease;
 }
-.surface-card:hover {
-  border-color: rgba(232,114,12,0.45);
-  background: #FFFFFF;
-}
+.surface-card:hover { border-color: rgba(226,114,10,0.5); }
 
-/* ── 7. Equalizer bars (now-playing indicator) ────────────────────────────── */
-.eq-bar   {
-  display: inline-block;
-  width: 3px;
-  background: #146B3A;
-  border-radius: 1px;
-}
+.eq-bar { display: inline-block; width: 3px; background: #0F6B45; border-radius: 1px; }
 .eq-bar-1 { animation: eq1 1.0s ease-in-out infinite; }
 .eq-bar-2 { animation: eq2 1.1s ease-in-out infinite; }
 .eq-bar-3 { animation: eq3 0.9s ease-in-out infinite; }
 
-/* ── 8. Animations ─────────────────────────────────────────────────────────── */
-.animate-fade-in  { animation: fadeIn 0.25s ease-out; }
+.animate-fade-in { animation: fadeIn 0.25s ease-out; }
 
-/* ── 9. Signature element — the progress ring ─────────────────────────────
-   A spoked-ring nod (abstracted, not literal) used in exactly one place:
-   wraps the play/pause button and fills as the track progresses.
-   Built with conic-gradient; --progress is set inline (0–360deg). ────────── */
+/* Signature: progress ring around the play button — the one moving element */
 .progress-ring {
   --progress: 0deg;
   position: relative;
   border-radius: 50%;
   padding: 3px;
-  background: conic-gradient(
-    from 0deg,
-    #E8720C 0deg,
-    #146B3A var(--progress),
-    rgba(20,33,61,0.15) var(--progress)
-  );
+  background: conic-gradient(from 0deg, #E2720A 0deg, #0F6B45 var(--progress), rgba(255,255,255,0.18) var(--progress));
   transition: background 0.2s linear;
 }
 .progress-ring--loading {
-  background: conic-gradient(from 0deg, #E8720C 0deg, #146B3A 120deg, rgba(20,33,61,0.15) 121deg);
+  background: conic-gradient(from 0deg, #E2720A 0deg, #0F6B45 120deg, rgba(255,255,255,0.18) 121deg);
   animation: ringSpin 1.1s linear infinite;
 }
 
-/* ── 10. Range slider ──────────────────────────────────────────────────────── */
-input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  background: transparent;
-  cursor: pointer;
-}
+input[type="range"] { -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer; }
 input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  height: 14px;
-  width: 14px;
-  border-radius: 50%;
-  background: #14213D;
-  cursor: pointer;
-  margin-top: -5px;
-  opacity: 0;
-  transition: opacity 0.15s, transform 0.1s;
+  -webkit-appearance: none; height: 14px; width: 14px; border-radius: 50%;
+  background: #fff; cursor: pointer; margin-top: -5px; opacity: 0; transition: opacity 0.15s, transform 0.1s;
 }
-input[type="range"]:hover::-webkit-slider-thumb {
-  opacity: 1;
-  transform: scale(1.15);
-}
-input[type="range"]::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 100px;
-  background: rgba(20,33,61,0.15);
-}
+input[type="range"]:hover::-webkit-slider-thumb { opacity: 1; transform: scale(1.15); }
+input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: 100px; background: rgba(255,255,255,0.18); }
 
-/* ── 11. Utilities ─────────────────────────────────────────────────────────── */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
-/* ── 12. Button system ─────────────────────────────────────────────────────── */
 .btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.5rem;
-  border-radius: 8px;
-  background: #E8720C;
-  color: #FFFFFF;
-  font-family: 'Sora', sans-serif;
-  font-size: 0.875rem;
-  font-weight: 600;
-  border: none;
-  transition: background-color 0.15s ease, transform 0.1s ease;
-  cursor: pointer;
-  text-decoration: none;
-  white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.625rem 1.5rem;
+  border-radius: 6px; background: #E2720A; color: #fff; font-family: 'Instrument Sans', sans-serif;
+  font-size: 0.875rem; font-weight: 600; border: none; cursor: pointer; text-decoration: none;
+  white-space: nowrap; transition: background-color 0.15s ease, transform 0.1s ease;
 }
-.btn-primary:hover  { background: #B85A08; }
+.btn-primary:hover { background: #B85B08; }
 .btn-primary:active { transform: scale(0.98); }
 
 .btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.5rem;
-  border-radius: 8px;
-  background: transparent;
-  color: #14213D;
-  font-family: 'Sora', sans-serif;
-  font-size: 0.875rem;
-  font-weight: 600;
-  border: 1px solid rgba(20,33,61,0.3);
-  transition: all 0.15s ease;
-  cursor: pointer;
-  text-decoration: none;
-  white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.625rem 1.5rem;
+  border-radius: 6px; background: transparent; color: #211E1A; font-family: 'Instrument Sans', sans-serif;
+  font-size: 0.875rem; font-weight: 600; border: 1px solid rgba(33,30,26,0.25); cursor: pointer;
+  text-decoration: none; white-space: nowrap; transition: all 0.15s ease;
 }
-.btn-secondary:hover  { background: rgba(20,33,61,0.06); border-color: #14213D; }
-.btn-secondary:active { opacity: 0.85; }
+.btn-secondary:hover { background: rgba(33,30,26,0.05); border-color: #211E1A; }
 
-/* ── 13. Track row ─────────────────────────────────────────────────────────── */
 .track-row { transition: background 0.12s ease; }
-.track-row:hover { background: rgba(20,33,61,0.05); }
+.track-row:hover { background: rgba(33,30,26,0.04); }

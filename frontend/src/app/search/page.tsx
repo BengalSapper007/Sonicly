@@ -6,19 +6,20 @@ import { SongRow } from '@/components/catalog/SongRow';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useDebounce } from '@/hooks/useDebounce';
 import Link from 'next/link';
-import { Search, X, Music, Headphones, Radio, Sparkles, Zap, Mic2, Disc, ListMusic } from 'lucide-react';
+import { Search, X, Music, Headphones, Radio, Sparkles, Zap, Mic2, Disc, ListMusic, Clock, Trash2 } from 'lucide-react';
 import { AlbumCard } from '@/components/catalog/AlbumCard';
 import { ArtistCard } from '@/components/catalog/ArtistCard';
+import { addSearch, getSearchHistory, clearSearchHistory, removeSearch } from '@/lib/search-history';
 
 const GENRES = [
-  { label: 'Pop',        bg: '#E8720C', text: '#14213D', icon: Sparkles },
-  { label: 'Hip Hop',    bg: '#14213D', text: '#ffffff', icon: Mic2 },
-  { label: 'Electronic', bg: '#146B3A', text: '#ffffff', icon: Radio },
-  { label: 'Rock',       bg: '#B85A08', text: '#ffffff', icon: Zap },
-  { label: 'Lo-Fi',      bg: '#0C1626', text: '#E8720C', icon: Headphones },
-  { label: 'Podcasts',   bg: '#14213D', text: '#E8720C', icon: Music },
-  { label: 'Jazz',       bg: '#146B3A', text: '#fff3e0', icon: Disc },
-  { label: 'Classical',  bg: '#E8720C', text: '#14213D', icon: ListMusic },
+  { label: 'Pop',        bg: '#E2720A', text: '#1B2447', icon: Sparkles },
+  { label: 'Hip Hop',    bg: '#1B2447', text: '#ffffff', icon: Mic2 },
+  { label: 'Electronic', bg: '#0F6B45', text: '#ffffff', icon: Radio },
+  { label: 'Rock',       bg: '#B85B08', text: '#ffffff', icon: Zap },
+  { label: 'Lo-Fi',      bg: '#12192F', text: '#E2720A', icon: Headphones },
+  { label: 'Podcasts',   bg: '#1B2447', text: '#E2720A', icon: Music },
+  { label: 'Jazz',       bg: '#0F6B45', text: '#fff3e0', icon: Disc },
+  { label: 'Classical',  bg: '#E2720A', text: '#1B2447', icon: ListMusic },
 ];
 
 function SearchContent() {
@@ -28,12 +29,26 @@ function SearchContent() {
   const debouncedQuery = useDebounce(query, 350);
   const [results, setResults] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+
+  // Load recent searches from localStorage on mount
+  useEffect(() => {
+    setRecentSearches(getSearchHistory());
+  }, []);
 
   useEffect(() => {
     if (!debouncedQuery.trim()) { setResults(null); return; }
     setLoading(true);
     searchApi.search(debouncedQuery)
-      .then((r) => setResults(r.data))
+      .then((r) => {
+        setResults(r.data);
+        // Persist to search history if results were found
+        const data = r.data;
+        if (data?.songs?.length || data?.albums?.length || data?.artists?.length) {
+          addSearch(debouncedQuery);
+          setRecentSearches(getSearchHistory());
+        }
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [debouncedQuery]);
@@ -41,6 +56,19 @@ function SearchContent() {
   const hasResults = results && (
     results.songs?.length || results.albums?.length || results.artists?.length
   );
+
+  const handleRecentClick = (q: string) => setQuery(q);
+
+  const handleRemoveRecent = (q: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    removeSearch(q);
+    setRecentSearches(getSearchHistory());
+  };
+
+  const handleClearAll = () => {
+    clearSearchHistory();
+    setRecentSearches([]);
+  };
 
   return (
     <div className="min-h-full pb-24 bg-background">
@@ -143,30 +171,72 @@ function SearchContent() {
 
         {/* ── Browse All (empty state) ──────────────────────────────────────────── */}
         {!query && (
-          <div>
-            <div className="border-l-4 border-vibrant-saffron pl-3 mb-4">
-              <h2 className="font-semibold text-lg text-on-surface">Browse All</h2>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {GENRES.map(({ label, bg, text, icon: Icon }) => (
-                <button
-                  key={label}
-                  onClick={() => setQuery(label)}
-                  className="relative h-20 md:h-24 rounded-lg overflow-hidden transition-all hover:-translate-y-0.5 text-left"
-                  style={{ background: bg }}
-                >
-                  <span
-                    className="absolute bottom-3 left-4 font-semibold text-sm md:text-base"
-                    style={{ color: text }}
+          <div className="space-y-8">
+            {/* Recent Searches */}
+            {recentSearches.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-vibrant-saffron" />
+                    <h2 className="font-semibold text-base text-on-surface">Recent Searches</h2>
+                  </div>
+                  <button
+                    onClick={handleClearAll}
+                    className="flex items-center gap-1 text-xs text-on-surface-muted hover:text-red-500 transition-colors"
                   >
-                    {label}
-                  </span>
-                  <Icon
-                    className="absolute top-3 right-3 w-8 h-8 opacity-30"
-                    style={{ color: text }}
-                  />
-                </button>
-              ))}
+                    <Trash2 className="w-3 h-3" />
+                    Clear all
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {recentSearches.map((q) => (
+                    <button
+                      key={q}
+                      onClick={() => handleRecentClick(q)}
+                      className="group flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface border border-border-light text-sm font-medium text-on-surface hover:border-vibrant-saffron hover:text-vibrant-saffron transition-all"
+                    >
+                      <Search className="w-3 h-3 opacity-50 group-hover:opacity-100" />
+                      {q}
+                      <span
+                        role="button"
+                        aria-label={`Remove ${q} from history`}
+                        onClick={(e) => handleRemoveRecent(q, e)}
+                        className="ml-0.5 opacity-40 hover:opacity-100 hover:text-red-500 transition-opacity"
+                      >
+                        <X className="w-3 h-3" />
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Browse All */}
+            <div>
+              <div className="border-l-4 border-vibrant-saffron pl-3 mb-4">
+                <h2 className="font-semibold text-lg text-on-surface">Browse All</h2>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {GENRES.map(({ label, bg, text, icon: Icon }) => (
+                  <button
+                    key={label}
+                    onClick={() => setQuery(label)}
+                    className="relative h-20 md:h-24 rounded-lg overflow-hidden transition-all hover:-translate-y-0.5 text-left"
+                    style={{ background: bg }}
+                  >
+                    <span
+                      className="absolute bottom-3 left-4 font-semibold text-sm md:text-base"
+                      style={{ color: text }}
+                    >
+                      {label}
+                    </span>
+                    <Icon
+                      className="absolute top-3 right-3 w-8 h-8 opacity-30"
+                      style={{ color: text }}
+                    />
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}

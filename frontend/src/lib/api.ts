@@ -1,13 +1,60 @@
 import axios from 'axios';
 
-const rawUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-const cleanUrl = rawUrl.replace(/\/+$/, '');
-const API_URL = cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
+/**
+ * Always use a relative /api base URL so requests go through the Next.js
+ * dev-server proxy (next.config.ts rewrites). This makes the auth cookie
+ * same-origin (set & sent from localhost:3000) — no cross-origin cookie issues.
+ *
+ * In server-side contexts (SSR / Server Components) we use the absolute URL
+ * because the Next.js proxy isn't available server-side.
+ */
+const isBrowser = typeof window !== 'undefined';
+const API_URL = isBrowser
+  ? '/api'
+  : (() => {
+      const raw = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+      const clean = raw.replace(/\/+$/, '');
+      return clean.endsWith('/api') ? clean : `${clean}/api`;
+    })();
 
 const api = axios.create({
   baseURL: API_URL,
   withCredentials: true,          // Send/receive HTTP-only cookies
   headers: { 'Content-Type': 'application/json' },
+});
+
+/**
+ * Request interceptor — attach the stored JWT as an Authorization: Bearer header.
+ *
+ * We read directly from localStorage (instead of importing useAuthStore) to
+ * avoid a circular dependency: api.ts ← auth.store.ts ← api.ts.
+ *
+ * The token is stored under the Zustand persist key 'sonicly-auth' in the
+ * shape { state: { token: string | null } }. On every request we grab the
+ * latest value so token refreshes are picked up automatically.
+ *
+ * This is the definitive fix for the cross-origin cookie issue in development:
+ * even if the browser refuses to send the httpOnly cookie for cross-origin
+ * requests, the Bearer token in the Authorization header always works.
+ */
+function getStoredToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('sonicly-auth');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.state?.token ?? null;
+  } catch {
+    return null;
+  }
+}
+
+api.interceptors.request.use((config) => {
+  const token = getStoredToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 api.interceptors.response.use(

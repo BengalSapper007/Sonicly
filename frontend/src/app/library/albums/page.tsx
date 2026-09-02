@@ -29,9 +29,9 @@ export default function SavedAlbumsPage() {
   if (!isAuthenticated && !isLoading) return null;
 
   return (
-    <div className="min-h-full pb-24 p-8" style={{ background: '#FAF6EF' }}>
+    <div className="min-h-full pb-24 p-8" style={{ background: '#F6F1E4' }}>
       <div className="flex items-center gap-3 mb-8">
-        <Disc className="w-8 h-8 text-cyan-400" />
+        <Disc className="w-8 h-8 text-saffron" />
         <div>
           <h1
             className="text-3xl font-black text-white tracking-tight"

@@ -31,7 +31,7 @@ export default function LikedSongsPage() {
   if (!isAuthenticated && !isLoading) return null;
 
   return (
-    <div className="min-h-full pb-24" style={{ background: '#FAF6EF' }}>
+    <div className="min-h-full pb-24" style={{ background: '#F6F1E4' }}>
       {/* Hero Banner */}
       <div
         className="px-8 pt-12 pb-8 relative overflow-hidden"
@@ -43,7 +43,7 @@ export default function LikedSongsPage() {
           <div
             className="w-48 h-48 rounded-2xl flex items-center justify-center flex-shrink-0"
             style={{
-              background: 'linear-gradient(135deg, #E8720C 0%, #146B3A 100%)',
+              background: 'linear-gradient(135deg, #E2720A 0%, #0F6B45 100%)',
             }}
           >
             <Heart className="w-20 h-20 text-white fill-current" />

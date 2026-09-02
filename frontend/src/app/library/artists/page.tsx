@@ -29,7 +29,7 @@ export default function FollowingPage() {
   if (!isAuthenticated && !isLoading) return null;
 
   return (
-    <div className="min-h-full pb-24 p-8" style={{ background: '#FAF6EF' }}>
+    <div className="min-h-full pb-24 p-8" style={{ background: '#F6F1E4' }}>
       <div className="flex items-center gap-3 mb-8">
         <Users className="w-8 h-8 text-vibrant-saffron" />
         <div>

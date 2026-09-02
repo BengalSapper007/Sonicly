@@ -69,7 +69,7 @@ export default function LibraryPage() {
         <div
           className="rounded-xl overflow-hidden mb-6 relative flex items-end"
           style={{
-            background: 'linear-gradient(135deg, #146B3A 0%, #14213D 100%)',
+            background: 'linear-gradient(135deg, #0F6B45 0%, #1B2447 100%)',
             minHeight: '160px',
           }}
         >

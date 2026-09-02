@@ -28,12 +28,11 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-full flex items-center justify-center px-4 py-16">
-      <div className="absolute inset-0 bg-gradient-glow opacity-30 pointer-events-none" />
       <div className="absolute top-1/3 left-1/3 w-80 h-80 bg-neon-cyan/5 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-2xl mx-auto mb-4 relative" style={{ boxShadow: '0 0 30px rgba(232, 114, 12, 0.35)' }}>
+          <div className="w-16 h-16 rounded-2xl overflow-hidden mx-auto mb-4 relative" style={{ boxShadow: '0 0 30px rgba(232, 114, 12, 0.35)' }}>
             <img src="/logo-icon.png" alt="Sonicly" className="w-full h-full object-cover scale-110" />
           </div>
           <h1 className="font-display font-bold text-2xl text-on-surface">Create your account</h1>
@@ -68,7 +67,7 @@ export default function RegisterPage() {
                   minLength={8}
                   placeholder="Min. 8 characters"
                   className="w-full bg-surface border border-border-light rounded-lg px-4 py-2.5 pr-10 text-on-surface text-sm
-                    placeholder-ink-ghost focus:outline-none focus:border-sonic focus:ring-1 focus:ring-sonic/30 transition-all"
+                    placeholder:text-on-surface-muted/50 focus:outline-none focus:border-vibrant-saffron focus:ring-1 focus:ring-vibrant-saffron/30 transition-all"
                 />
                 <button
                   type="button"
@@ -83,8 +82,8 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 rounded-xl bg-sonic hover:bg-sonic-light text-white font-semibold text-sm
-                transition-all shadow-sonic hover:shadow-glow-sm disabled:opacity-60
+              className="w-full py-3 rounded-xl bg-vibrant-saffron hover:bg-deep-saffron text-white font-semibold text-sm
+                transition-all hover:scale-[1.01] disabled:opacity-60
                 flex items-center justify-center gap-2"
             >
               {isLoading && <LoaderIcon size={16} className="animate-spin" />}
@@ -121,7 +120,7 @@ function FormField({
         required={required}
         placeholder={placeholder}
         className="w-full bg-surface border border-border-light rounded-lg px-4 py-2.5 text-on-surface text-sm
-          placeholder-ink-ghost focus:outline-none focus:border-sonic focus:ring-1 focus:ring-sonic/30 transition-all"
+          placeholder:text-on-surface-muted/50 focus:outline-none focus:border-vibrant-saffron focus:ring-1 focus:ring-vibrant-saffron/30 transition-all"
       />
     </div>
   );

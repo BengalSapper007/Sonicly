@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function NotFound() {
   return (
-    <div className="relative min-h-full flex flex-col items-center justify-center overflow-hidden select-none" style={{ background: '#FAF6EF' }}>
+    <div className="relative min-h-full flex flex-col items-center justify-center overflow-hidden select-none" style={{ background: '#F6F1E4' }}>
 
       {/* ── Ambient glow ── */}
       <div
@@ -17,7 +17,7 @@ export default function NotFound() {
       />
       <div
         className="pointer-events-none absolute w-96 h-96 rounded-full blur-3xl opacity-20"
-        style={{ background: 'radial-gradient(circle, #146B3A 0%, transparent 70%)', top: '20%', left: '60%' }}
+        style={{ background: 'radial-gradient(circle, #0F6B45 0%, transparent 70%)', top: '20%', left: '60%' }}
       />
 
       {/* ── Main content ── */}
@@ -47,7 +47,7 @@ export default function NotFound() {
               key={i}
               className="w-1 rounded-full"
               style={{
-                background: 'linear-gradient(to top, #E8720C, #146B3A)',
+                background: 'linear-gradient(to top, #E2720A, #0F6B45)',
                 animation: `equalizer 1.1s ease-in-out ${delay * 0.4}s infinite`,
                 height: `${12 + i % 3 * 6}px`,
               }}

@@ -65,7 +65,7 @@ export default function ArtistPage({ params }: { params: Promise<{ artistId: str
           className="absolute inset-0"
           style={{
             background:
-              'linear-gradient(to top, #0C1626 0%, rgba(12,22,38,0.55) 50%, rgba(12,22,38,0.1) 100%)',
+              'linear-gradient(to top, #12192F 0%, rgba(12,22,38,0.55) 50%, rgba(12,22,38,0.1) 100%)',
           }}
         />
 

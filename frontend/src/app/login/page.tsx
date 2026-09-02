@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { EyeIcon, EyeOffIcon, LoaderIcon } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
+import { popRedirect } from '@/lib/session';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -18,22 +19,21 @@ export default function LoginPage() {
     setError('');
     try {
       await login(email, password);
-      router.push('/');
+      // Navigate to the page the user was trying to reach, or home
+      router.push(popRedirect());
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Invalid email or password');
     }
   };
 
+
   return (
     <div className="min-h-full flex items-center justify-center px-4 py-16">
-      {/* Decorative background */}
-      <div className="absolute inset-0 bg-gradient-glow opacity-40 pointer-events-none" />
-      <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-neon-purple/5 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-2xl mx-auto mb-4 relative" style={{ boxShadow: '0 0 30px rgba(232, 114, 12, 0.35)' }}>
+          <div className="w-16 h-16 rounded-2xl overflow-hidden mx-auto mb-4 relative" style={{ boxShadow: '0 0 30px rgba(232, 114, 12, 0.35)' }}>
             <img src="/logo-icon.png" alt="Sonicly" className="w-full h-full object-cover scale-110" />
           </div>
           <h1 className="font-display font-bold text-2xl text-on-surface">Welcome back</h1>
@@ -58,7 +58,7 @@ export default function LoginPage() {
                 required
                 placeholder="you@example.com"
                 className="w-full bg-surface border border-border-light rounded-lg px-4 py-2.5 text-on-surface text-sm
-                  placeholder-ink-ghost focus:outline-none focus:border-sonic focus:ring-1 focus:ring-sonic/30 transition-all"
+                  placeholder:text-on-surface-muted/50 focus:outline-none focus:border-vibrant-saffron focus:ring-1 focus:ring-vibrant-saffron/30 transition-all"
               />
             </div>
 
@@ -72,7 +72,7 @@ export default function LoginPage() {
                   required
                   placeholder="••••••••"
                   className="w-full bg-surface border border-border-light rounded-lg px-4 py-2.5 pr-10 text-on-surface text-sm
-                    placeholder-ink-ghost focus:outline-none focus:border-sonic focus:ring-1 focus:ring-sonic/30 transition-all"
+                    placeholder:text-on-surface-muted/50 focus:outline-none focus:border-vibrant-saffron focus:ring-1 focus:ring-vibrant-saffron/30 transition-all"
                 />
                 <button
                   type="button"
@@ -87,8 +87,8 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 rounded-xl bg-sonic hover:bg-sonic-light text-white font-semibold text-sm
-                transition-all shadow-sonic hover:shadow-glow-sm disabled:opacity-60 disabled:cursor-not-allowed
+              className="w-full py-3 rounded-xl bg-vibrant-saffron hover:bg-deep-saffron text-white font-semibold text-sm
+                transition-all hover:scale-[1.01] disabled:opacity-60 disabled:cursor-not-allowed
                 flex items-center justify-center gap-2"
             >
               {isLoading ? <LoaderIcon size={16} className="animate-spin" /> : null}

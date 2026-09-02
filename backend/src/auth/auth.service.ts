@@ -44,6 +44,13 @@ export class AuthService {
         displayName: dto.displayName || dto.username,
         passwordHash,
       },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        displayName: true,
+        imageUrl: true,
+      },
     });
 
     return this.signToken(user);
@@ -52,6 +59,14 @@ export class AuthService {
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        displayName: true,
+        imageUrl: true,
+        passwordHash: true,
+      },
     });
 
     if (!user) {
@@ -63,7 +78,9 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    return this.signToken(user);
+    // Exclude passwordHash from the token payload
+    const { passwordHash: _ph, ...safeUser } = user;
+    return this.signToken(safeUser);
   }
 
   async getMe(userId: string) {
@@ -81,7 +98,13 @@ export class AuthService {
     return user;
   }
 
-  private signToken(user: { id: string; email: string; username: string }) {
+  private signToken(user: {
+    id: string;
+    email: string;
+    username: string;
+    displayName: string;
+    imageUrl?: string | null;
+  }) {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
@@ -89,6 +112,15 @@ export class AuthService {
     };
 
     const token = this.jwtService.sign(payload);
-    return { token, user: { id: user.id, email: user.email, username: user.username } };
+    return {
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        displayName: user.displayName,
+        imageUrl: user.imageUrl ?? null,
+      },
+    };
   }
 }

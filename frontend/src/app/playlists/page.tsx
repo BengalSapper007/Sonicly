@@ -19,9 +19,9 @@ export default function PlaylistsPage() {
   }, []);
 
   return (
-    <div className="p-8 pb-24 min-h-full" style={{ background: '#FAF6EF' }}>
+    <div className="p-8 pb-24 min-h-full" style={{ background: '#F6F1E4' }}>
       <div className="flex items-center gap-3 mb-8">
-        <Sparkles className="w-8 h-8" style={{ color: '#E8720C' }} />
+        <Sparkles className="w-8 h-8" style={{ color: '#E2720A' }} />
         <h1 className="text-3xl font-bold tracking-tight text-on-surface">
           Discover Playlists
         </h1>
