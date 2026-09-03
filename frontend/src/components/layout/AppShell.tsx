@@ -6,20 +6,35 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { Player } from '@/components/player/Player';
 import { AudioEngine } from '@/components/player/AudioEngine';
+import { ToastContainer } from '@/components/ui/Toast';
 import { useAuthStore } from '@/stores/auth.store';
+import { useLibraryStore } from '@/stores/library.store';
+import { useSidebarStore } from '@/stores/sidebar.store';
 import { Home, Search, Library } from 'lucide-react';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const fetchMe = useAuthStore((s) => s.fetchMe);
+  const { fetchMe, isAuthenticated } = useAuthStore();
+  const initLibrary = useLibraryStore((s) => s.initLibrary);
+  const sidebarWidth = useSidebarStore((s) => s.width);
+  const isDragging = useSidebarStore((s) => s.isDragging);
   const pathname = usePathname();
 
-  useEffect(() => { fetchMe(); }, [fetchMe]);
+  useEffect(() => {
+    fetchMe();
+  }, [fetchMe]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      initLibrary();
+    }
+  }, [isAuthenticated, initLibrary]);
 
   const isAuthRoute = pathname === '/login' || pathname === '/register';
 
   if (isAuthRoute) {
     return (
       <div className="h-full overflow-y-auto" style={{ background: '#F6F1E4' }}>
+        <ToastContainer />
         {children}
       </div>
     );
@@ -27,12 +42,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="h-full flex flex-col overflow-hidden" style={{ background: '#F6F1E4' }}>
+      <ToastContainer />
       <AudioEngine />
 
       {/* Main layout (Sidebar + Content column) */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Sidebar — desktop only */}
-        <div className="hidden md:flex flex-shrink-0 h-full" style={{ width: 'var(--sidebar-width)' }}>
+        <div
+          className={`hidden md:flex flex-shrink-0 h-full ${!isDragging ? 'transition-[width] duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]' : ''}`}
+          style={{ width: `${sidebarWidth}px` }}
+        >
           <Sidebar />
         </div>
 

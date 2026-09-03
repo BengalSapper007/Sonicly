@@ -1,25 +1,32 @@
-'use client';
-import { useEffect, useState } from 'react';
+import type { Metadata } from 'next';
 import { artistsApi } from '@/lib/api';
-import { Skeleton } from '@/components/ui/Skeleton';
 import { ArtistCard } from '@/components/catalog/ArtistCard';
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { Users } from 'lucide-react';
 
-export default function ArtistsPage() {
-  const [artists, setArtists] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+export const metadata: Metadata = {
+  title: 'Explore Artists',
+  description: 'Discover artists, discographies, and popular tracks on Sonicly.',
+  alternates: {
+    canonical: '/artists',
+  },
+};
 
-  useEffect(() => {
-    artistsApi.list()
-      .then((res) => {
-        setArtists(res.data ?? []);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
+export default async function ArtistsPage() {
+  let artists: any[] = [];
+  try {
+    const res = await artistsApi.list();
+    artists = res.data ?? [];
+  } catch (err) {
+    console.error('Failed to fetch artists on server:', err);
+  }
 
   return (
     <div className="p-8 pb-24 min-h-full" style={{ background: '#F6F1E4' }}>
+      <div className="mb-6">
+        <Breadcrumbs items={[{ label: 'Home', href: '/' }, { label: 'Artists' }]} />
+      </div>
+
       <div className="flex items-center gap-3 mb-8">
         <Users className="w-8 h-8 text-vibrant-saffron" />
         <h1 className="text-3xl font-bold tracking-tight text-on-surface">
@@ -27,16 +34,7 @@ export default function ArtistsPage() {
         </h1>
       </div>
 
-      {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-8 text-center">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="flex flex-col items-center">
-              <Skeleton className="w-32 h-32 rounded-full shimmer mb-3" />
-              <Skeleton className="w-24 h-4 rounded shimmer" />
-            </div>
-          ))}
-        </div>
-      ) : artists.length > 0 ? (
+      {artists.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8">
           {artists.map((artist) => (
             <div key={artist.id} className="flex justify-center w-full">

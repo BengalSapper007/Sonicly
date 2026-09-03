@@ -57,7 +57,10 @@ export class AdminCatalogController {
     @Param('id') id: string,
     @UploadedFile(
       new ParseFilePipe({
-        validators: [new MaxFileSizeValidator({ maxSize: IMAGE_MAX_BYTES })],
+        validators: [
+          new MaxFileSizeValidator({ maxSize: IMAGE_MAX_BYTES }),
+          new FileTypeValidator({ fileType: /(image\/jpeg|image\/png|image\/webp|image\/avif)$/i }),
+        ],
       })
     ) file: Express.Multer.File,
   ) {
@@ -77,7 +80,10 @@ export class AdminCatalogController {
     @Param('id') id: string,
     @UploadedFile(
       new ParseFilePipe({
-        validators: [new MaxFileSizeValidator({ maxSize: IMAGE_MAX_BYTES })],
+        validators: [
+          new MaxFileSizeValidator({ maxSize: IMAGE_MAX_BYTES }),
+          new FileTypeValidator({ fileType: /(image\/jpeg|image\/png|image\/webp|image\/avif)$/i }),
+        ],
       })
     ) file: Express.Multer.File,
   ) {
@@ -101,7 +107,10 @@ export class AdminCatalogController {
   uploadSong(
     @UploadedFile(
       new ParseFilePipe({
-        validators: [new MaxFileSizeValidator({ maxSize: AUDIO_MAX_BYTES })],
+        validators: [
+          new MaxFileSizeValidator({ maxSize: AUDIO_MAX_BYTES }),
+          new FileTypeValidator({ fileType: /(audio\/mpeg|audio\/mp3|audio\/wav|audio\/x-wav|audio\/flac|audio\/aac|audio\/ogg|audio\/mp4|audio\/m4a)$/i }),
+        ],
       })
     ) file: Express.Multer.File,
     @Body('title') title: string,

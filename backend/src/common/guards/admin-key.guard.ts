@@ -1,6 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Reflector } from '@nestjs/core';
+import { timingSafeEqual } from 'crypto';
 
 /**
  * Guards admin-only endpoints with a static API key header.
@@ -18,7 +18,14 @@ export class AdminKeyGuard implements CanActivate {
     if (!expected) {
       throw new UnauthorizedException('Admin API key not configured on server');
     }
-    if (!key || key !== expected) {
+    if (!key || typeof key !== 'string') {
+      throw new UnauthorizedException('Invalid admin API key');
+    }
+
+    const keyBuf = Buffer.from(key);
+    const expectedBuf = Buffer.from(expected);
+
+    if (keyBuf.length !== expectedBuf.length || !timingSafeEqual(keyBuf, expectedBuf)) {
       throw new UnauthorizedException('Invalid admin API key');
     }
     return true;

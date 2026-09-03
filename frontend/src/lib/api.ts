@@ -144,8 +144,39 @@ export const historyApi = {
 };
 
 // Search
+export type SearchHistoryType = 'QUERY' | 'SONG' | 'ARTIST' | 'ALBUM' | 'PLAYLIST';
+
+export interface RecentSearchEntry {
+  id: string;
+  type: SearchHistoryType;
+  query?: string | null;
+  songId?: string | null;
+  artistId?: string | null;
+  albumId?: string | null;
+  playlistId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  song?: any;
+  artist?: any;
+  album?: any;
+  playlist?: any;
+}
+
+export interface RecordRecentSearchPayload {
+  type: SearchHistoryType;
+  query?: string;
+  songId?: string;
+  artistId?: string;
+  albumId?: string;
+  playlistId?: string;
+}
+
 export const searchApi = {
   search: (q: string, type = 'all') => api.get('/search', { params: { q, type } }),
+  getRecent: () => api.get<RecentSearchEntry[]>('/search/recent'),
+  recordRecent: (data: RecordRecentSearchPayload) => api.post<RecentSearchEntry>('/search/recent', data),
+  removeRecent: (id: string) => api.delete(`/search/recent/${id}`),
+  clearRecent: () => api.delete('/search/recent'),
 };
 
 // Genres

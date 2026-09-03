@@ -1,7 +1,8 @@
 'use client';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { usePlayerStore } from '@/stores/player.store';
+import { useLibraryStore } from '@/stores/library.store';
 import { formatDuration } from '@/lib/utils';
 import { artworkUrl } from '@/lib/api';
 import { ArtworkImage } from '@/components/ui/ArtworkImage';
@@ -39,6 +40,20 @@ export function Player() {
     toggleRepeat,
   } = usePlayerStore();
 
+  const isSongLiked = useLibraryStore((s) => s.isSongLiked);
+  const toggleLikeSong = useLibraryStore((s) => s.toggleLikeSong);
+  const registerSong = useLibraryStore((s) => s.registerSong);
+
+  useEffect(() => {
+    if (currentSong?.id) {
+      const serverLiked = Array.isArray(currentSong.likes) && currentSong.likes.length > 0;
+      registerSong(currentSong.id, serverLiked);
+    }
+  }, [currentSong?.id, registerSong]);
+
+  const isLiked = currentSong ? isSongLiked(currentSong.id) : false;
+  const albumArt = currentSong ? artworkUrl(currentSong.album?.imageKey) : '';
+
   const handleSeek = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => seek(Number(e.target.value) / 100),
     [seek]
@@ -52,9 +67,6 @@ export function Player() {
   if (!currentSong) {
     return <EmptyPlayer />;
   }
-
-  const isLiked = (currentSong.likes?.length ?? 0) > 0;
-  const albumArt = artworkUrl(currentSong.album?.imageKey);
 
   return (
     <div
@@ -98,11 +110,13 @@ export function Player() {
 
           {/* Like */}
           <button
-            className="p-1.5 rounded transition-all flex-shrink-0 hover:scale-110"
+            onClick={() => currentSong && toggleLikeSong(currentSong)}
+            className="p-1.5 rounded transition-all flex-shrink-0 hover:scale-110 active:scale-95 cursor-pointer"
             style={{ color: isLiked ? '#E2720A' : 'rgba(154,166,194,0.6)' }}
-            aria-label={isLiked ? 'Unlike' : 'Like'}
+            aria-label={isLiked ? 'Unlike track' : 'Like track'}
+            title={isLiked ? 'Unlike' : 'Like'}
           >
-            <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
+            <Heart className={`w-4 h-4 ${isLiked ? 'fill-current text-[#E2720A]' : ''}`} />
           </button>
 
           {/* Prev / Play / Next */}
@@ -193,11 +207,13 @@ export function Player() {
 
           {/* Like */}
           <button
-            className="p-2 rounded transition-all flex-shrink-0 hover:scale-110"
+            onClick={() => currentSong && toggleLikeSong(currentSong)}
+            className="p-2 rounded transition-all flex-shrink-0 hover:scale-110 active:scale-95 cursor-pointer"
             style={{ color: isLiked ? '#E2720A' : 'rgba(154,166,194,0.6)' }}
-            aria-label={isLiked ? 'Unlike' : 'Like'}
+            aria-label={isLiked ? 'Unlike track' : 'Like track'}
+            title={isLiked ? 'Unlike' : 'Like'}
           >
-            <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
+            <Heart className={`w-4 h-4 ${isLiked ? 'fill-current text-[#E2720A]' : ''}`} />
           </button>
         </div>
 

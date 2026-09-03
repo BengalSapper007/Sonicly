@@ -1,9 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { libraryApi, artworkUrl } from '@/lib/api';
+import { libraryApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 import { usePlayerStore } from '@/stores/player.store';
+import { useLibraryStore } from '@/stores/library.store';
 import { SongRow } from '@/components/catalog/SongRow';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Heart, Play } from 'lucide-react';
@@ -14,6 +15,8 @@ export default function LikedSongsPage() {
   const { playQueue } = usePlayerStore();
   const [likedSongs, setLikedSongs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const registerSong = useLibraryStore((s) => s.registerSong);
+  const likedSongIds = useLibraryStore((s) => s.likedSongIds);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -22,13 +25,19 @@ export default function LikedSongsPage() {
     }
     if (isAuthenticated) {
       libraryApi.likedSongs()
-        .then((res) => setLikedSongs(res.data ?? []))
+        .then((res) => {
+          const list = res.data ?? [];
+          setLikedSongs(list);
+          list.forEach((s: any) => registerSong(s.id, true));
+        })
         .catch(console.error)
         .finally(() => setLoading(false));
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, router, registerSong]);
 
   if (!isAuthenticated && !isLoading) return null;
+
+  const displaySongs = likedSongs.filter((s) => likedSongIds.has(s.id));
 
   return (
     <div className="min-h-full pb-24" style={{ background: '#F6F1E4' }}>
@@ -54,15 +63,15 @@ export default function LikedSongsPage() {
               Liked Songs
             </h1>
             <p className="text-sm text-on-surface-muted">
-              {loading ? '—' : `${likedSongs.length} tracks`}
+              {loading ? '—' : `${displaySongs.length} tracks`}
             </p>
           </div>
         </div>
 
-        {likedSongs.length > 0 && !loading && (
+        {displaySongs.length > 0 && !loading && (
           <button
-            className="mt-6 w-14 h-14 rounded-full flex items-center justify-center bg-vibrant-saffron transition-all hover:scale-105 hover:bg-deep-saffron"
-            onClick={() => playQueue(likedSongs, 0, 'search', undefined)}
+            className="mt-6 w-14 h-14 rounded-full flex items-center justify-center bg-vibrant-saffron transition-all hover:scale-105 hover:bg-deep-saffron cursor-pointer"
+            onClick={() => playQueue(displaySongs, 0, 'search', undefined)}
           >
             <Play className="w-6 h-6 fill-current text-white ml-0.5" />
           </button>
@@ -77,7 +86,7 @@ export default function LikedSongsPage() {
               <Skeleton key={i} className="h-14 rounded-xl shimmer" />
             ))}
           </div>
-        ) : likedSongs.length === 0 ? (
+        ) : displaySongs.length === 0 ? (
           <div className="py-16 text-center">
             <Heart className="w-16 h-16 mx-auto text-border-light mb-4" />
             <h2 className="text-xl font-semibold text-on-surface mb-2">Songs you like will appear here</h2>
@@ -85,8 +94,8 @@ export default function LikedSongsPage() {
           </div>
         ) : (
           <div className="space-y-1">
-            {likedSongs.map((song: any, i: number) => (
-              <SongRow key={song.id} song={song} index={i} queue={likedSongs} contextType="search" />
+            {displaySongs.map((song: any, i: number) => (
+              <SongRow key={song.id} song={song} index={i} queue={displaySongs} contextType="search" />
             ))}
           </div>
         )}

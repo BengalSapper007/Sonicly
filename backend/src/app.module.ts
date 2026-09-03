@@ -15,6 +15,8 @@ import { LibraryModule } from './library/library.module';
 import { HistoryModule } from './history/history.module';
 import { SearchModule } from './search/search.module';
 import { AdminCatalogModule } from './admin-catalog/admin-catalog.module';
+import { AppCacheModule } from './common/cache/app-cache.module';
+import { JobsModule } from './jobs/jobs.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
@@ -26,6 +28,8 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
     PrismaModule,
     MediaModule,        // Global — MediaService available everywhere
+    AppCacheModule,     // Global — Resilient Caching (Redis + in-memory fallback)
+    JobsModule,         // Global — Background Jobs (BullMQ + in-process fallback)
     AuthModule,
     UsersModule,
     ArtistsModule,

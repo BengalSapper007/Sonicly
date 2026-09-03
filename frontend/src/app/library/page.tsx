@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { libraryApi, artworkUrl } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
+import { useLibraryStore } from '@/stores/library.store';
 import { SongRow } from '@/components/catalog/SongRow';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ArtworkImage } from '@/components/ui/ArtworkImage';
@@ -20,6 +21,13 @@ export default function LibraryPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<FilterTab>('Albums');
 
+  const likedSongIds = useLibraryStore((s) => s.likedSongIds);
+  const savedAlbumIds = useLibraryStore((s) => s.savedAlbumIds);
+  const followedArtistIds = useLibraryStore((s) => s.followedArtistIds);
+  const registerSong = useLibraryStore((s) => s.registerSong);
+  const registerAlbum = useLibraryStore((s) => s.registerAlbum);
+  const registerArtist = useLibraryStore((s) => s.registerArtist);
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) { router.push('/login'); return; }
     if (isAuthenticated) {
@@ -29,16 +37,26 @@ export default function LibraryPage() {
         libraryApi.followedArtists(),
       ])
         .then(([songs, albums, artists]) => {
-          setLikedSongs(songs.data || []);
-          setSavedAlbums(albums.data || []);
-          setFollowedArtists(artists.data || []);
+          const sList = songs.data || [];
+          const aList = albums.data || [];
+          const arList = artists.data || [];
+          setLikedSongs(sList);
+          setSavedAlbums(aList);
+          setFollowedArtists(arList);
+          sList.forEach((s: any) => registerSong(s.id, true));
+          aList.forEach((a: any) => registerAlbum(a.id, true));
+          arList.forEach((ar: any) => registerArtist(ar.id, true));
         })
         .catch(console.error)
         .finally(() => setLoading(false));
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, router, registerSong, registerAlbum, registerArtist]);
 
   if (!isAuthenticated && !isLoading) return null;
+
+  const activeLikedSongs = likedSongs.filter((s) => likedSongIds.has(s.id));
+  const activeSavedAlbums = savedAlbums.filter((a) => savedAlbumIds.has(a.id));
+  const activeFollowedArtists = followedArtists.filter((a) => followedArtistIds.has(a.id));
   const TABS: FilterTab[] = ['Albums', 'Artists', 'Playlists'];
 
   return (
@@ -76,14 +94,14 @@ export default function LibraryPage() {
           <div className="p-5 w-full flex justify-between items-end">
             <div>
               <Heart className="w-8 h-8 text-vibrant-saffron fill-current mb-2" />
-              {likedSongs.length > 0 && (
+              {activeLikedSongs.length > 0 && (
                 <p className="text-xs text-white/70 mb-1 line-clamp-1">
-                  {likedSongs.slice(0, 3).map((s: any) => s.title).join(', ')}
-                  {likedSongs.length > 3 && '…'}
+                  {activeLikedSongs.slice(0, 3).map((s: any) => s.title).join(', ')}
+                  {activeLikedSongs.length > 3 && '…'}
                 </p>
               )}
               <h2 className="text-2xl font-bold text-white">Liked Songs</h2>
-              <p className="text-xs font-medium text-white/70 mt-1">{likedSongs.length} tracks</p>
+              <p className="text-xs font-medium text-white/70 mt-1">{activeLikedSongs.length} tracks</p>
             </div>
             <Link
               href="/library/liked"
@@ -106,11 +124,11 @@ export default function LibraryPage() {
                   <Skeleton key={i} className="aspect-square rounded shimmer" />
                 ))}
               </div>
-            ) : savedAlbums.length === 0 ? (
+            ) : activeSavedAlbums.length === 0 ? (
               <EmptyState message="No saved albums yet. Browse albums to save them." />
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {savedAlbums.map((album: any) => (
+                {activeSavedAlbums.map((album: any) => (
                   <LibraryCard
                     key={album.id}
                     title={album.title}
@@ -140,11 +158,11 @@ export default function LibraryPage() {
                   </div>
                 ))}
               </div>
-            ) : followedArtists.length === 0 ? (
+            ) : activeFollowedArtists.length === 0 ? (
               <EmptyState message="You're not following any artists yet." />
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5">
-                {followedArtists.map((artist: any) => (
+                {activeFollowedArtists.map((artist: any) => (
                   <Link
                     key={artist.id}
                     href={`/artist/${artist.id}`}
@@ -190,19 +208,19 @@ export default function LibraryPage() {
                 <Skeleton key={i} className="h-14 shimmer my-1" />
               ))}
             </div>
-          ) : likedSongs.length === 0 ? (
+          ) : activeLikedSongs.length === 0 ? (
             <EmptyState message="No liked songs yet. Like a song to see it here." />
           ) : (
             <div className="divide-y divide-prussian-blue/5">
-              {likedSongs.slice(0, 10).map((song: any, i: number) => (
-                <SongRow key={song.id} song={song} index={i} queue={likedSongs} />
+              {activeLikedSongs.slice(0, 10).map((song: any, i: number) => (
+                <SongRow key={song.id} song={song} index={i} queue={activeLikedSongs} />
               ))}
-              {likedSongs.length > 10 && (
+              {activeLikedSongs.length > 10 && (
                 <Link
                   href="/library/liked"
                   className="block text-center py-3 text-sm font-bold text-prussian-blue hover:text-vibrant-saffron transition-colors"
                 >
-                  See all {likedSongs.length} liked songs →
+                  See all {activeLikedSongs.length} liked songs →
                 </Link>
               )}
             </div>

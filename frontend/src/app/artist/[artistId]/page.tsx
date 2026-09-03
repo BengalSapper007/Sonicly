@@ -1,190 +1,84 @@
-'use client';
-import { useEffect, useState } from 'react';
-import { use } from 'react';
-import { Play, UserPlus, UserCheck, Check } from 'lucide-react';
+import type { Metadata } from 'next';
 import { artistsApi, artworkUrl } from '@/lib/api';
-import { usePlayerStore } from '@/stores/player.store';
-import { useAuthStore } from '@/stores/auth.store';
-import { AlbumCard } from '@/components/catalog/AlbumCard';
-import { SongRow } from '@/components/catalog/SongRow';
-import { Skeleton } from '@/components/ui/Skeleton';
-import { ArtworkImage } from '@/components/ui/ArtworkImage';
-import { formatNumber } from '@/lib/utils';
+import { JsonLd } from '@/components/seo/JsonLd';
+import { ArtistView } from './ArtistView';
 
-export default function ArtistPage({ params }: { params: Promise<{ artistId: string }> }) {
-  const { artistId } = use(params);
-  const [artist, setArtist] = useState<any>(null);
-  const [following, setFollowing] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const { playQueue } = usePlayerStore();
-  const { isAuthenticated } = useAuthStore();
-
-  useEffect(() => {
-    artistsApi
-      .get(artistId)
-      .then((r) => {
-        setArtist(r.data);
-        setFollowing(r.data.isFollowing || false);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [artistId]);
-
-  if (loading) return <ArtistSkeleton />;
-  if (!artist) return <div className="p-8 text-on-surface-muted">Artist not found.</div>;
-
-  const topSongs = artist.popularSongs?.slice(0, 5) || [];
-
-  const albums = artist.albums || [];
-
-  const handleFollow = async () => {
-    if (!isAuthenticated) return;
-    if (following) {
-      await artistsApi.unfollow(artistId);
-    } else {
-      await artistsApi.follow(artistId);
-    }
-    setFollowing(!following);
-  };
-
-  return (
-    <div className="min-h-full pb-16">
-      {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <div className="relative h-72 overflow-hidden">
-        <div className="absolute inset-0">
-          <ArtworkImage
-            src={artworkUrl(artist.imageKey)}
-            alt={artist.name}
-            type="artist"
-            id={artist.id}
-            size="hero"
-            className="w-full h-full object-cover object-center"
-          />
-        </div>
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              'linear-gradient(to top, #12192F 0%, rgba(12,22,38,0.55) 50%, rgba(12,22,38,0.1) 100%)',
-          }}
-        />
-
-        {/* Verified Badge */}
-        {artist.isVerified && (
-          <div className="absolute top-6 left-8 flex items-center gap-1.5 bg-vibrant-saffron/20 backdrop-blur-md border border-vibrant-saffron/30 rounded-full px-3 py-1 text-white text-xs font-semibold">
-            <Check className="w-3.5 h-3.5 text-vibrant-saffron" />
-            <span>Verified Artist</span>
-          </div>
-        )}
-
-        {/* Name */}
-        <div className="absolute bottom-0 left-0 right-0 px-8 pb-6">
-          <h1
-            className="font-bold text-4xl md:text-6xl text-white tracking-tight"
-          >
-            {artist.name}
-          </h1>
-          {artist.monthlyListeners !== undefined && (
-            <p className="text-sm text-on-primary-muted mt-1">
-              {formatNumber(artist.monthlyListeners)} monthly listeners
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* ── Actions ──────────────────────────────────────────────────────── */}
-      <div className="px-8 py-5 flex items-center gap-4">
-        {topSongs.length > 0 && (
-          <button
-            onClick={() => playQueue(topSongs, 0, 'artist', artistId)}
-            className="btn-primary flex items-center gap-2 px-6 py-2.5"
-          >
-            <Play className="w-4 h-4 fill-current ml-0.5" />
-            <span>Play</span>
-          </button>
-        )}
-        {isAuthenticated && (
-          <button
-            onClick={handleFollow}
-            className={`btn-secondary flex items-center gap-2 px-5 py-2.5 text-sm ${
-              following ? 'border-crisp-green/50 text-crisp-green bg-crisp-green/10' : ''
-            }`}
-          >
-            {following ? <UserCheck className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
-            <span>{following ? 'Following' : 'Follow'}</span>
-          </button>
-        )}
-      </div>
-
-      {/* ── Top Songs ────────────────────────────────────────────────────── */}
-      {topSongs.length > 0 && (
-        <section className="px-8 mb-8">
-          <h2
-            className="text-xl font-semibold text-on-surface mb-4 tracking-tight"
-          >
-            Popular Tracks
-          </h2>
-          <div className="space-y-1">
-            {topSongs.map((song: any, i: number) => (
-              <SongRow
-                key={song.id}
-                song={song}
-                index={i}
-                queue={topSongs}
-                contextType="artist"
-                contextId={artistId}
-                showAlbum={true}
-              />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── Albums ───────────────────────────────────────────────────────── */}
-      {albums.length > 0 && (
-        <section className="px-8 mb-8">
-          <h2
-            className="text-xl font-bold text-on-surface mb-4 tracking-tight"
-           
-          >
-            Discography
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
-            {albums.map((album: any) => (
-              <AlbumCard key={album.id} album={album} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── Bio ──────────────────────────────────────────────────────────── */}
-      {artist.bio && (
-        <section className="px-8">
-          <h2
-            className="text-xl font-bold text-on-surface mb-3 tracking-tight"
-           
-          >
-            About
-          </h2>
-          <p className="text-on-surface-muted text-sm leading-relaxed max-w-2xl bg-surface-raised p-5 rounded-2xl border border-border-light">
-            {artist.bio}
-          </p>
-        </section>
-      )}
-    </div>
-  );
+interface PageProps {
+  params: Promise<{ artistId: string }>;
 }
 
-function ArtistSkeleton() {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { artistId } = await params;
+  try {
+    const res = await artistsApi.get(artistId);
+    const artist = res.data;
+    if (!artist) {
+      return { title: 'Artist Not Found' };
+    }
+
+    const title = `${artist.name} — Discography, Tracks & Bio`;
+    const albumCount = artist.albums?.length || 0;
+    const description = `Listen to ${artist.name} on Sonicly. Discover popular songs, explore ${albumCount} albums, and stream high-fidelity audio.`;
+    const image = artworkUrl(artist.imageKey);
+
+    return {
+      title,
+      description,
+      alternates: {
+        canonical: `/artist/${artist.id}`,
+      },
+      openGraph: {
+        title,
+        description,
+        type: 'profile',
+        images: image ? [image] : [],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title,
+        description,
+        images: image ? [image] : [],
+      },
+    };
+  } catch {
+    return { title: 'Artist' };
+  }
+}
+
+export default async function ArtistPage({ params }: PageProps) {
+  const { artistId } = await params;
+  let artist: any = null;
+
+  try {
+    const res = await artistsApi.get(artistId);
+    artist = res.data ?? null;
+  } catch (err) {
+    console.error(`Failed to pre-fetch artist ${artistId} on server:`, err);
+  }
+
+  const artistSchema = artist
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'MusicGroup',
+        name: artist.name,
+        description: artist.bio || undefined,
+        image: artworkUrl(artist.imageKey),
+        album: (artist.albums || []).map((album: any) => ({
+          '@type': 'MusicAlbum',
+          name: album.title,
+          url: `/album/${album.id}`,
+        })),
+        track: (artist.popularSongs || []).map((song: any) => ({
+          '@type': 'MusicRecording',
+          name: song.title,
+        })),
+      }
+    : null;
+
   return (
-    <div className="animate-fade-in">
-      <Skeleton className="h-72 rounded-none shimmer" />
-      <div className="px-8 py-5 space-y-4">
-        <Skeleton className="h-10 w-48 shimmer rounded-full" />
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-12 rounded-xl shimmer" />
-        ))}
-      </div>
-    </div>
+    <>
+      {artistSchema && <JsonLd data={artistSchema} />}
+      <ArtistView artistId={artistId} initialArtist={artist} />
+    </>
   );
 }

@@ -106,6 +106,7 @@ interface PlayerState {
   setCurrentTime: (time: number) => void;
   setDuration: (duration: number) => void;
   setIsPlaying: (playing: boolean) => void;
+  setSongLiked: (songId: string, liked: boolean) => void;
 }
 
 export const usePlayerStore = create<PlayerState>()(
@@ -241,6 +242,39 @@ export const usePlayerStore = create<PlayerState>()(
       setCurrentTime: (currentTime) => set({ currentTime }),
       setDuration: (duration) => set({ duration }),
       setIsPlaying: (isPlaying) => set({ isPlaying }),
+
+      setSongLiked: (songId: string, liked: boolean) => {
+        const { currentSong, queue } = get();
+        const updatedCurrentSong =
+          currentSong && currentSong.id === songId
+            ? {
+                ...currentSong,
+                likes: liked ? [{ userId: 'me' }] : [],
+                _count: {
+                  ...currentSong._count,
+                  likes: Math.max(
+                    0,
+                    (currentSong._count?.likes ?? 0) + (liked ? 1 : -1)
+                  ),
+                },
+              }
+            : currentSong;
+
+        const updatedQueue = queue.map((s) =>
+          s.id === songId
+            ? {
+                ...s,
+                likes: liked ? [{ userId: 'me' }] : [],
+                _count: {
+                  ...s._count,
+                  likes: Math.max(0, (s._count?.likes ?? 0) + (liked ? 1 : -1)),
+                },
+              }
+            : s
+        );
+
+        set({ currentSong: updatedCurrentSong, queue: updatedQueue });
+      },
     }),
     {
       name: 'sonicly-player',

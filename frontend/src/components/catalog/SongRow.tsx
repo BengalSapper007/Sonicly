@@ -1,11 +1,12 @@
 'use client';
+import { useEffect } from 'react';
 import { Play, Heart, MoreHorizontal, Loader2 } from 'lucide-react';
 import { usePlayerStore, type Song } from '@/stores/player.store';
 import { useAuthStore } from '@/stores/auth.store';
+import { useLibraryStore } from '@/stores/library.store';
 import { cn, formatDuration } from '@/lib/utils';
 import { artworkUrl } from '@/lib/api';
 import { ArtworkImage } from '@/components/ui/ArtworkImage';
-import { useLike } from '@/hooks/useLike';
 
 interface SongRowProps {
   song: Song;
@@ -27,11 +28,23 @@ export function SongRow({
   const { currentSong, isPlaying, playSong, togglePlay } = usePlayerStore();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
+  const isSongLiked = useLibraryStore((s) => s.isSongLiked);
+  const toggleLikeSong = useLibraryStore((s) => s.toggleLikeSong);
+  const registerSong = useLibraryStore((s) => s.registerSong);
+  const loadingLikes = useLibraryStore((s) => s.loadingLikes);
+
+  useEffect(() => {
+    if (song?.id) {
+      const serverLiked = Array.isArray((song as any).likes) && (song as any).likes.length > 0;
+      registerSong(song.id, serverLiked);
+    }
+  }, [song?.id, (song as any)?.likes, registerSong]);
+
+  const liked = isSongLiked(song.id);
+  const likeLoading = !!loadingLikes[song.id];
+
   const isCurrent = currentSong?.id === song.id;
   const isCurrentlyPlaying = isCurrent && isPlaying;
-
-  const initialLiked = Array.isArray((song as any).likes) && (song as any).likes.length > 0;
-  const { liked, isLoading: likeLoading, toggle: toggleLike } = useLike(song.id, initialLiked);
 
   const handlePlay = () => {
     if (isCurrent) {
@@ -106,25 +119,26 @@ export function SongRow({
       </div>
 
       {/* Like button */}
-      {isAuthenticated && (
-        <button
-          className={cn(
-            'p-1.5 transition-all flex-shrink-0',
-            liked
-              ? 'opacity-100 text-vibrant-saffron hover:text-deep-saffron'
-              : 'opacity-0 group-hover:opacity-100 text-on-surface-muted hover:text-vibrant-saffron'
-          )}
-          onClick={(e) => { e.stopPropagation(); toggleLike(e as any); }}
-          aria-label={liked ? 'Unlike song' : 'Like song'}
-          title={liked ? 'Unlike' : 'Like'}
-        >
-          {likeLoading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Heart className={cn('w-4 h-4', liked && 'fill-current')} />
-          )}
-        </button>
-      )}
+      <button
+        className={cn(
+          'p-1.5 transition-all flex-shrink-0 cursor-pointer',
+          liked
+            ? 'opacity-100 text-vibrant-saffron hover:text-deep-saffron'
+            : 'opacity-0 group-hover:opacity-100 text-on-surface-muted hover:text-vibrant-saffron'
+        )}
+        onClick={(e) => {
+          e.stopPropagation();
+          toggleLikeSong(song);
+        }}
+        aria-label={liked ? 'Unlike song' : 'Like song'}
+        title={liked ? 'Unlike' : 'Like'}
+      >
+        {likeLoading ? (
+          <Loader2 className="w-4 h-4 animate-spin text-vibrant-saffron" />
+        ) : (
+          <Heart className={cn('w-4 h-4', liked && 'fill-current text-vibrant-saffron')} />
+        )}
+      </button>
 
       {/* Duration */}
       <span className="text-xs text-on-surface-muted tabular-nums w-10 text-right flex-shrink-0 font-medium">
