@@ -1,8 +1,10 @@
 'use client';
+import { useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth.store';
+import { useSidebarStore, SIDEBAR_DEFAULT_WIDTH } from '@/stores/sidebar.store';
 import {
   Home,
   Search,
@@ -11,11 +13,8 @@ import {
   Disc,
   Users,
   ListMusic,
-  Plus,
-  TrendingUp,
   BarChart3,
-  Settings,
-  LogOut,
+  LogIn,
   LucideIcon,
 } from 'lucide-react';
 
@@ -39,53 +38,107 @@ const LIBRARY_ITEMS: NavItemConfig[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { isAuthenticated, user, logout } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
+  const {
+    width,
+    isCollapsed,
+    isDragging,
+    setDragWidth,
+    finishDrag,
+    setIsDragging,
+    collapse,
+    expand,
+    lastExpandedWidth,
+  } = useSidebarStore();
+  const dragHandleRef = useRef<HTMLDivElement>(null);
+
+  // Drag resizing logic
+  const handlePointerDown = (e: React.PointerEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+
+    const startX = e.clientX;
+    const startWidth = width;
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      setDragWidth(startWidth + deltaX);
+    };
+
+    const onPointerUp = () => {
+      finishDrag();
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      document.body.style.removeProperty('cursor');
+      document.body.style.removeProperty('user-select');
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  };
+
+  const handleDoubleClick = () => {
+    if (isCollapsed) {
+      expand(lastExpandedWidth || SIDEBAR_DEFAULT_WIDTH);
+    } else {
+      collapse();
+    }
+  };
 
   return (
     <aside
-      className="flex-shrink-0 h-full flex flex-col overflow-hidden select-none"
-      style={{
-        width: 'var(--sidebar-width)',
-        background: 'rgba(25, 25, 29, 0.75)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        borderRight: '1px solid rgba(255, 255, 255, 0.08)',
-        boxShadow: '4px 0 30px rgba(0, 0, 0, 0.4)',
-      }}
+      className={cn(
+        'relative flex-shrink-0 h-full flex flex-col overflow-hidden select-none border-r border-sand',
+        !isDragging && 'transition-[width] duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]'
+      )}
+      style={{ width: `${width}px`, background: '#F6F1E4' }}
     >
-      {/* ── Brand ──────────────────────────────────────────────────────────── */}
-      <Link href="/" className="px-5 py-5 flex items-center gap-3.5 group">
-        {/* Official Logo mark */}
-        <div
-          className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 transition-transform group-hover:scale-105 shadow-lg relative"
-          style={{
-            boxShadow: '0 0 20px rgba(208, 188, 255, 0.35)',
-          }}
+      {/* ── Brand ─────────────────────────────────────────────────────────── */}
+      <div
+        className={cn(
+          'flex items-center group transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]',
+          isCollapsed ? 'justify-center px-2' : 'px-5'
+        )}
+        style={{ height: 'var(--header-height)' }}
+      >
+        <Link
+          href="/"
+          className="flex items-center"
+          title="Sonicly"
         >
-          <img
-            src="/logo-icon.png"
-            alt="Sonicly"
-            className="w-full h-full object-cover scale-110"
-          />
-        </div>
-        <div>
+          <div
+            className={cn(
+              'rounded-full bg-saffron flex items-center justify-center text-white font-bold flex-shrink-0 transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-105 shadow-sm',
+              isCollapsed ? 'w-9 h-9 text-base' : 'w-8 h-8 text-sm'
+            )}
+          >
+            S
+          </div>
           <span
-            className="text-gradient-brand font-black text-xl block tracking-tight leading-none"
-            style={{ fontFamily: 'Montserrat, sans-serif' }}
+            className={cn(
+              'font-display font-semibold text-lg text-ink block tracking-tight leading-none whitespace-nowrap overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]',
+              isCollapsed ? 'max-w-0 opacity-0 -translate-x-2' : 'max-w-[140px] opacity-100 translate-x-0 ml-3'
+            )}
           >
             Sonicly
           </span>
-          <p className="text-[11px] text-zinc-400 font-medium tracking-wide mt-1">
-            Premium Music
-          </p>
-        </div>
-      </Link>
+        </Link>
+      </div>
 
-      {/* ── Main Nav ───────────────────────────────────────────────────────── */}
-      <nav className="px-3 space-y-1">
+      <div
+        className={cn(
+          'border-t border-sand transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]',
+          isCollapsed ? 'mx-3' : 'mx-5'
+        )}
+      />
+
+      {/* ── Main Nav ──────────────────────────────────────────────────────── */}
+      <nav className={cn('pt-4 space-y-1 transition-all duration-300', isCollapsed ? 'px-2' : 'px-3')}>
         {NAV_ITEMS.map(({ href, icon, label }) => {
-          const isActive =
-            href === '/' ? pathname === '/' : pathname.startsWith(href);
+          const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href);
           return (
             <NavItem
               key={href}
@@ -93,32 +146,38 @@ export function Sidebar() {
               icon={icon}
               label={label}
               active={isActive}
+              isCollapsed={isCollapsed}
             />
           );
         })}
       </nav>
 
-      {/* ── Divider ────────────────────────────────────────────────────────── */}
       <div
-        className="mx-5 my-4"
-        style={{ borderTop: '1px solid rgba(255, 255, 255, 0.07)' }}
+        className={cn(
+          'border-t border-sand transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]',
+          isCollapsed ? 'mx-3 my-3' : 'mx-5 my-4'
+        )}
       />
 
-      {/* ── Library Section ────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-3 no-scrollbar space-y-4">
+      {/* ── Library Section ───────────────────────────────────────────────── */}
+      <div
+        className={cn(
+          'flex-1 overflow-y-auto no-scrollbar space-y-4 transition-all duration-300',
+          isCollapsed ? 'px-2' : 'px-3'
+        )}
+      >
         {isAuthenticated ? (
           <>
             <div>
-              <div className="px-3 mb-2 flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">
-                  Your Library
+              <div
+                className={cn(
+                  'overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]',
+                  isCollapsed ? 'max-h-0 opacity-0 mb-0 -translate-x-2 pointer-events-none' : 'max-h-8 opacity-100 px-3 mb-2 translate-x-0'
+                )}
+              >
+                <span className="text-xs font-medium text-ink-muted uppercase tracking-wider">
+                  Your library
                 </span>
-                <button
-                  className="p-1 rounded-md text-zinc-400 hover:text-white hover:bg-white/10 transition-all"
-                  title="Create playlist"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
               </div>
               <div className="space-y-1">
                 {LIBRARY_ITEMS.map(({ href, icon, label }) => (
@@ -129,109 +188,92 @@ export function Sidebar() {
                     label={label}
                     active={pathname === href}
                     small
+                    isCollapsed={isCollapsed}
                   />
                 ))}
               </div>
             </div>
 
             <div>
-              <div className="px-3 mb-2 flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">
-                  Playlists
-                </span>
-              </div>
-              <Link
-                href="/playlists"
+              <div
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all',
-                  pathname.startsWith('/playlist')
-                    ? 'text-purple-200 font-semibold bg-purple-500/10 border-l-[3px] border-purple-400'
-                    : 'text-zinc-300 hover:text-white hover:bg-white/5'
+                  'overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]',
+                  isCollapsed ? 'max-h-0 opacity-0 mb-0 -translate-x-2 pointer-events-none' : 'max-h-8 opacity-100 px-3 mb-2 translate-x-0'
                 )}
               >
-                <ListMusic className="w-4 h-4 text-purple-300" />
-                <span>Discover Playlists</span>
-              </Link>
+                <span className="text-xs font-medium text-ink-muted uppercase tracking-wider">
+                  Discover
+                </span>
+              </div>
+              <div className="space-y-1">
+                <NavItem
+                  href="/playlists"
+                  icon={ListMusic}
+                  label="Discover playlists"
+                  active={pathname.startsWith('/playlist')}
+                  small
+                  isCollapsed={isCollapsed}
+                />
+                <NavItem
+                  href="/search"
+                  icon={BarChart3}
+                  label="Top 50 charts"
+                  active={pathname === '/search'}
+                  small
+                  isCollapsed={isCollapsed}
+                />
+              </div>
             </div>
           </>
         ) : (
-          <div className="p-4 rounded-2xl bg-zinc-900/60 border border-white/5 shadow-inner">
-            <h4 className="text-sm font-semibold text-zinc-100 mb-1">
-              Log in to see your library
-            </h4>
-            <p className="text-xs text-zinc-400 leading-relaxed mb-4">
-              Save songs, create playlists, and follow your favorite artists.
-            </p>
-            <div className="flex flex-col gap-2">
-              <Link
-                href="/login"
-                className="btn-primary justify-center text-center text-xs py-2"
-              >
-                Log in
-              </Link>
-              <Link
-                href="/register"
-                className="btn-glass justify-center text-center text-xs py-2"
-              >
-                Sign up
-              </Link>
+          isCollapsed ? (
+            <Link
+              href="/login"
+              className="flex items-center justify-center w-11 h-11 mx-auto rounded-xl text-ink-muted hover:text-ink hover:bg-sand/50 transition-all duration-300"
+              title="Log in to see your library"
+            >
+              <LogIn className="w-6 h-6 stroke-[2.1] text-saffron" />
+            </Link>
+          ) : (
+            <div className="p-4 rounded-lg border border-sand bg-paper transition-all duration-300">
+              <h4 className="text-sm font-semibold text-ink mb-1">Log in to see your library</h4>
+              <p className="text-xs text-ink-muted leading-relaxed mb-4">
+                Save songs, create playlists, and follow your favorite artists.
+              </p>
+              <div className="flex flex-col gap-2">
+                <Link href="/login" className="btn-primary justify-center text-center text-xs py-2">
+                  Log in
+                </Link>
+                <Link
+                  href="/register"
+                  className="text-center text-xs font-semibold text-ink-muted hover:text-ink border border-sand py-2 rounded-md transition-colors"
+                >
+                  Sign up
+                </Link>
+              </div>
             </div>
-          </div>
+          )
         )}
-
-        {/* ── Trending Shelf ───────────────────────────────────────────────── */}
-        <div>
-          <div className="px-3 mb-2 flex items-center gap-1.5">
-            <TrendingUp className="w-3.5 h-3.5 text-purple-300" />
-            <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">
-              Trending
-            </span>
-          </div>
-          <Link
-            href="/search"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-zinc-300 hover:text-white hover:bg-white/5 transition-all"
-          >
-            <BarChart3 className="w-4 h-4 text-cyan-400" />
-            <span>Top 50 Charts</span>
-          </Link>
-        </div>
       </div>
 
-      {/* ── User Footer ────────────────────────────────────────────────────── */}
-      {isAuthenticated && user && (
+      {/* ── Draggable Edge Handle ─────────────────────────────────────────── */}
+      <div
+        ref={dragHandleRef}
+        onPointerDown={handlePointerDown}
+        onDoubleClick={handleDoubleClick}
+        className={cn(
+          'absolute top-0 right-0 bottom-0 w-2 cursor-col-resize z-40 group select-none transition-colors',
+          isDragging ? 'bg-saffron/40' : 'hover:bg-saffron/30'
+        )}
+        title="Drag to resize (Double-click to toggle)"
+      >
         <div
-          className="p-3 bg-zinc-950/40"
-          style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}
-        >
-          <div className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-xl hover:bg-white/5 transition-all">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-purple-950 flex-shrink-0"
-                style={{
-                  background: 'linear-gradient(135deg, #d0bcff 0%, #ffb0cd 100%)',
-                }}
-              >
-                {user.displayName?.[0]?.toUpperCase() || 'U'}
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-zinc-100 truncate">
-                  {user.displayName}
-                </p>
-                <p className="text-[10px] font-bold text-purple-300 uppercase tracking-wider">
-                  Premium
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={logout}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all"
-              title="Log out"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
+          className={cn(
+            'absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-10 rounded-full transition-all duration-200',
+            isDragging ? 'bg-saffron opacity-100' : 'bg-ink-muted/30 group-hover:bg-saffron group-hover:opacity-100 opacity-0'
+          )}
+        />
+      </div>
     </aside>
   );
 }
@@ -242,32 +284,62 @@ function NavItem({
   label,
   active,
   small = false,
+  isCollapsed = false,
 }: {
   href: string;
   icon: LucideIcon;
   label: string;
   active: boolean;
   small?: boolean;
+  isCollapsed?: boolean;
 }) {
   return (
     <Link
       href={href}
+      title={isCollapsed ? label : undefined}
       className={cn(
-        'flex items-center gap-3 rounded-xl transition-all group relative font-medium',
-        small ? 'px-3 py-2 text-xs' : 'px-3.5 py-2.5 text-sm',
+        'relative transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] group font-medium flex items-center overflow-hidden',
+        isCollapsed
+          ? 'justify-center w-11 h-11 mx-auto rounded-xl px-0'
+          : small
+          ? 'w-full gap-3 px-3 py-2 text-xs rounded-md'
+          : 'w-full gap-3 px-3 py-2.5 text-sm rounded-md',
         active
-          ? 'text-purple-100 font-semibold bg-white/10 shadow-sm border-l-[3px] border-purple-400'
-          : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/5'
+          ? 'text-ink bg-sand/70 shadow-xs'
+          : 'text-ink-muted hover:text-ink hover:bg-sand/40'
       )}
     >
+      {active && (
+        <span
+          className={cn(
+            'absolute rounded-full bg-saffron transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]',
+            isCollapsed
+              ? 'left-0.5 top-1/2 -translate-y-1/2 w-1 h-5'
+              : 'left-0 top-1/2 -translate-y-1/2 w-0.5 h-4'
+          )}
+        />
+      )}
       <Icon
         className={cn(
-          'transition-transform group-hover:scale-110 flex-shrink-0',
-          small ? 'w-4 h-4' : 'w-5 h-5',
-          active ? 'text-purple-300' : 'text-zinc-400 group-hover:text-zinc-200'
+          'transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-110 flex-shrink-0',
+          isCollapsed
+            ? 'w-6 h-6 stroke-[2.1]'
+            : small
+            ? 'w-4 h-4'
+            : 'w-5 h-5',
+          active ? 'text-saffron' : 'text-ink-muted group-hover:text-saffron'
         )}
       />
-      <span className="truncate">{label}</span>
+      <span
+        className={cn(
+          'truncate transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] whitespace-nowrap',
+          isCollapsed
+            ? 'max-w-0 opacity-0 -translate-x-2 pointer-events-none'
+            : 'max-w-[220px] opacity-100 translate-x-0'
+        )}
+      >
+        {label}
+      </span>
     </Link>
   );
 }

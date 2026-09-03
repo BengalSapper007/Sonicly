@@ -13,20 +13,36 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     super();
   }
 
-  canActivate(context: ExecutionContext) {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
 
     if (isPublic) {
+      try {
+        await super.canActivate(context);
+      } catch {
+        // Optional auth: ignore errors for public routes
+      }
       return true;
     }
 
-    return super.canActivate(context);
+    return (await super.canActivate(context)) as boolean;
   }
 
-  handleRequest(err: any, user: any, info: any) {
+  handleRequest(err: any, user: any, info: any, context?: ExecutionContext) {
+    const isPublic = context
+      ? this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+          context.getHandler(),
+          context.getClass(),
+        ])
+      : false;
+
+    if (isPublic) {
+      return user || null;
+    }
+
     if (err || !user) {
       throw err || new UnauthorizedException('Authentication required');
     }

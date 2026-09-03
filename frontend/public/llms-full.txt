@@ -1,0 +1,37 @@
+# Sonicly — Full Context & Machine Documentation
+
+Sonicly is a modern audio streaming platform and music listening application built for people who care about sound.
+
+## Catalog Structure
+1. **Albums (`/album/[albumId]`)**:
+   - Represents a musical release containing one or more audio tracks.
+   - Contains album title, release year, album type (Album, Single, EP), artwork image, artist reference, and ordered track list.
+   - Microdata: Schema.org `MusicAlbum` and `MusicRecording`.
+
+2. **Artists (`/artist/[artistId]`)**:
+   - Represents the creator/performer.
+   - Contains artist name, profile artwork, biography, verified badge, monthly listener counts, top 5 popular tracks, and full discography.
+   - Microdata: Schema.org `MusicGroup`.
+
+3. **Playlists (`/playlist/[playlistId]`)**:
+   - Curated and user-generated collections of tracks.
+   - Curated playlists are publicly discoverable at `/playlists`.
+   - Microdata: Schema.org `MusicPlaylist`.
+
+4. **Search (`/search`)**:
+   - Instant search supporting queries across artists, albums, songs, and playlists.
+   - Supports filter tabs: All, Songs, Artists, Albums, Playlists.
+
+## Streaming & Audio Architecture
+- Audio streaming uses byte-range requests from Cloudflare R2 object storage via secure presigned streaming endpoints.
+- Audio formats supported: High-bitrate MP3, AAC, and lossless master FLAC.
+- Player engine: Persistent non-blocking HTML5 audio player supporting seamless gapless track advancement, shuffle, and queue management.
+
+## Authentication & Library
+- Stateless JWT authentication delivered via HTTP-only same-origin cookies and Authorization Bearer fallback.
+- User library persists liked songs, saved albums, followed artists, and custom user playlists.
+
+## Sitemaps & Feeds
+- Dynamic Sitemap: https://sonicly.fm/sitemap.xml
+- Robots Specification: https://sonicly.fm/robots.txt
+- Core Entry Point: https://sonicly.fm/

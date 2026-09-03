@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef } from 'react';
 import { usePlayerStore, setAudioElement } from '@/stores/player.store';
+import { getStreamUrl } from '@/lib/stream-cache';
 
 /**
  * AudioEngine
@@ -11,6 +12,10 @@ import { usePlayerStore, setAudioElement } from '@/stores/player.store';
  *
  * The audio element reference is stored in a module-level variable
  * (not Zustand state) to avoid SSR/serialization issues.
+ *
+ * On mount it also restores the persisted song (from localStorage via the
+ * player store) by priming the audio src WITHOUT autoplaying, so the user
+ * sees their previous song in the player bar after a page reload.
  */
 export function AudioEngine() {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -21,6 +26,7 @@ export function AudioEngine() {
     setIsPlaying,
     next,
     volume,
+    currentSong,
   } = usePlayerStore();
 
   useEffect(() => {
@@ -32,6 +38,24 @@ export function AudioEngine() {
 
     // Sync initial volume
     el.volume = volume;
+
+    // ── Restore persisted song without autoplaying ────────────────────────
+    // The player store rehydrates from localStorage on startup.  If a song
+    // was playing when the user last closed the tab, prime the audio element
+    // so the player bar shows the correct song/thumbnail immediately.
+    if (currentSong) {
+      getStreamUrl(currentSong.id)
+        .then((url) => {
+          if (el.src !== url) {
+            el.src = url;
+            el.preload = 'metadata';
+            // Explicitly do NOT call el.play() here
+          }
+        })
+        .catch(() => {
+          // Non-fatal — user can still press play to trigger a fresh fetch
+        });
+    }
 
     const onTimeUpdate = () => {
       const dur = el.duration || 0;
@@ -53,7 +77,7 @@ export function AudioEngine() {
       }
     };
     const onError = () => {
-      // Audio failed to load (missing file) — log and auto-advance
+      // Audio failed to load (missing file or expired URL) — log and auto-advance
       console.warn('[AudioEngine] Error loading audio, advancing to next track');
       setTimeout(() => next(), 1500);
     };

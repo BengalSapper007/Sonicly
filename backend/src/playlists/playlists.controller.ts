@@ -40,7 +40,7 @@ export class PlaylistsController {
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdatePlaylistDto, @CurrentUser() user: any) {
-    return this.playlistsService.update(id, dto, user.id);
+    return this.playlistsService.update(id, dto, user.sub);
   }
 
   @Delete(':id')
@@ -50,7 +50,7 @@ export class PlaylistsController {
 
   @Post(':id/songs')
   addSong(@Param('id') id: string, @Body() dto: AddSongDto, @CurrentUser() user: any) {
-    return this.playlistsService.addSong(id, dto, user.id);
+    return this.playlistsService.addSong(id, dto, user.sub);
   }
 
   @Delete(':id/songs/:songId')
@@ -60,6 +60,6 @@ export class PlaylistsController {
 
   @Patch(':id/songs/reorder')
   reorderSongs(@Param('id') id: string, @Body() dto: ReorderSongsDto, @CurrentUser() user: any) {
-    return this.playlistsService.reorderSongs(id, dto, user.id);
+    return this.playlistsService.reorderSongs(id, dto, user.sub);
   }
 }

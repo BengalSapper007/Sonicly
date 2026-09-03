@@ -23,11 +23,11 @@ export class AlbumsController {
 
   @Post(':id/save')
   save(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.albumsService.save(id, user.id);
+    return this.albumsService.save(id, user.sub);
   }
 
   @Delete(':id/save')
   unsave(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.albumsService.unsave(id, user.id);
+    return this.albumsService.unsave(id, user.sub);
   }
 }

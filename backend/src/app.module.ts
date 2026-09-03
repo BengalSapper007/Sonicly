@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_FILTER } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module';
 import { MediaModule } from './media/media.module';
 import { AuthModule } from './auth/auth.module';
@@ -14,14 +15,21 @@ import { LibraryModule } from './library/library.module';
 import { HistoryModule } from './history/history.module';
 import { SearchModule } from './search/search.module';
 import { AdminCatalogModule } from './admin-catalog/admin-catalog.module';
+import { AppCacheModule } from './common/cache/app-cache.module';
+import { JobsModule } from './jobs/jobs.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    // IP rate limiting — default: 60 req / 60 s per IP
+    // Auth & search controllers override this with stricter @Throttle() decorators
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
     PrismaModule,
     MediaModule,        // Global — MediaService available everywhere
+    AppCacheModule,     // Global — Resilient Caching (Redis + in-memory fallback)
+    JobsModule,         // Global — Background Jobs (BullMQ + in-process fallback)
     AuthModule,
     UsersModule,
     ArtistsModule,
@@ -35,6 +43,8 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
     AdminCatalogModule,
   ],
   providers: [
+    // IP rate limiting guard (runs before JWT so brute-force is blocked early)
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     // Apply JWT guard globally — use @Public() to opt out
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     // Apply global exception filter

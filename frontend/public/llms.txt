@@ -1,0 +1,26 @@
+# Sonicly
+
+> High-fidelity music streaming and catalog exploration built for sound enthusiasts.
+
+## Overview
+Sonicly is an independent, premium music streaming platform focused on high-quality sound, artist discographies, curated playlists, and distraction-free audio exploration.
+
+## Public Navigation & Catalog
+- [Home](https://sonicly.fm/): Featured releases, jump-back-in queues, new releases, and artist spotlights.
+- [Albums Directory](https://sonicly.fm/albums): Complete catalog of full-length albums, EPs, and singles across genres.
+- [Artists Directory](https://sonicly.fm/artists): Independent and verified artist profiles, bios, popular tracks, and discographies.
+- [Playlists Directory](https://sonicly.fm/playlists): Handpicked thematic playlists, mood mixes, and curated collections.
+- [Search](https://sonicly.fm/search): Global instant search across songs, artists, albums, and playlists.
+
+## Core Features
+- **High-Fidelity Audio**: Low-latency master audio streaming with Cloudflare R2 object storage.
+- **Liner-Notes Experience**: Warm editorial aesthetic inspired by vintage liner notes and vinyl typography.
+- **Personal Library**: Liked tracks, saved albums, followed artists, and customizable playlist queueing.
+- **Full SEO & Semantic Metadata**: OpenGraph media cards, JSON-LD MusicAlbum and MusicGroup schemas, and self-referencing canonical links.
+
+## Technical Details
+- Architecture: Next.js 16 (App Router) + NestJS + PostgreSQL (Prisma ORM) + BullMQ + Redis + Cloudflare R2
+- Standard: Schema.org `MusicAlbum`, `MusicRecording`, `MusicGroup`, `MusicPlaylist`
+- Sitemaps: https://sonicly.fm/sitemap.xml
+- Robots: https://sonicly.fm/robots.txt
+- Comprehensive Details: https://sonicly.fm/llms-full.txt

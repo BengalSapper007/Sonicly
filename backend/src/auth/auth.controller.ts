@@ -7,6 +7,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto } from './dto/auth.dto';
 import { Public } from '../common/decorators/public.decorator';
@@ -28,34 +29,40 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 3 } }) // 3 registrations / min per IP
   @Post('register')
   async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: any) {
     const { token, user } = await this.authService.register(dto);
+    // Set HTTP-only cookie (primary, most secure for browsers that support it)
     res.cookie(COOKIE_NAME, token, COOKIE_OPTIONS);
-    return { success: true, user };
+    // Also return the token in the body so the frontend can use it as a Bearer
+    // header — this is the reliable fallback for cross-origin dev environments.
+    return { success: true, user, token };
   }
 
   @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 5 } }) // 5 login attempts / min per IP
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: any) {
     const { token, user } = await this.authService.login(dto);
+    // Set HTTP-only cookie (primary, most secure for browsers that support it)
     res.cookie(COOKIE_NAME, token, COOKIE_OPTIONS);
-    return { success: true, user };
+    // Also return the token in the body so the frontend can use it as a Bearer
+    // header — this is the reliable fallback for cross-origin dev environments.
+    return { success: true, user, token };
   }
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   logout(@Res({ passthrough: true }) res: any) {
-    res.clearCookie(COOKIE_NAME, {
-      path: '/',
-      httpOnly: true,
-      sameSite: isProd ? 'none' : 'lax',
-      secure: isProd,
-    });
+    // Mirror the same options used to set the cookie so browsers clear it correctly
+    const { maxAge: _maxAge, ...clearOptions } = COOKIE_OPTIONS;
+    res.clearCookie(COOKIE_NAME, clearOptions);
     return { success: true, message: 'Logged out' };
   }
 
+  @SkipThrottle() // called on every page load — no need to throttle
   @Get('me')
   async getMe(@CurrentUser() user: any) {
     const userData = await this.authService.getMe(user.sub);

@@ -37,6 +37,7 @@ model Artist {
 
   albums    Album[]
   followers Follow[]
+  searchHistory SearchHistory[]
 
   @@map("artists")
 }
@@ -59,6 +60,7 @@ model Album {
 
   songs       Song[]
   savedBy     SavedAlbum[]
+  searchHistory SearchHistory[]
 
   @@map("albums")
 }
@@ -91,6 +93,7 @@ model Song {
   likes           Like[]
   playlistEntries PlaylistSong[]
   history         ListeningHistory[]
+  searchHistory   SearchHistory[]
 
   @@map("songs")
 }
@@ -114,6 +117,7 @@ model User {
   playlists   Playlist[]
   savedAlbums SavedAlbum[]
   history     ListeningHistory[]
+  searchHistory SearchHistory[]
 
   @@map("users")
 }
@@ -135,6 +139,7 @@ model Playlist {
   user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   songs PlaylistSong[]
+  searchHistory SearchHistory[]
 
   @@map("playlists")
 }
@@ -212,3 +217,42 @@ model ListeningHistory {
 
   @@map("listening_history")
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Search History
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum SearchType {
+  QUERY
+  SONG
+  ARTIST
+  ALBUM
+  PLAYLIST
+}
+
+model SearchHistory {
+  id        String     @id
+  type      SearchType @default(QUERY)
+  query     String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  songId    String?
+  song      Song?      @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  artistId  String?
+  artist    Artist?    @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  albumId   String?
+  album     Album?     @relation(fields: [albumId], references: [id], onDelete: Cascade)
+
+  playlistId String?
+  playlist  Playlist?  @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt(sort: Desc)])
+  @@map("search_history")
+}
+

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { libraryApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
+import { useLibraryStore } from '@/stores/library.store';
 import { ArtistCard } from '@/components/catalog/ArtistCard';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Users } from 'lucide-react';
@@ -12,6 +13,8 @@ export default function FollowingPage() {
   const router = useRouter();
   const [followedArtists, setFollowedArtists] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const registerArtist = useLibraryStore((s) => s.registerArtist);
+  const followedArtistIds = useLibraryStore((s) => s.followedArtistIds);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -20,27 +23,30 @@ export default function FollowingPage() {
     }
     if (isAuthenticated) {
       libraryApi.followedArtists()
-        .then((res) => setFollowedArtists(res.data ?? []))
+        .then((res) => {
+          const list = res.data ?? [];
+          setFollowedArtists(list);
+          list.forEach((a: any) => registerArtist(a.id, true));
+        })
         .catch(console.error)
         .finally(() => setLoading(false));
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, router, registerArtist]);
 
   if (!isAuthenticated && !isLoading) return null;
 
+  const displayArtists = followedArtists.filter((a) => followedArtistIds.has(a.id));
+
   return (
-    <div className="min-h-full pb-24 p-8" style={{ background: '#131316' }}>
+    <div className="min-h-full pb-24 p-8" style={{ background: '#F6F1E4' }}>
       <div className="flex items-center gap-3 mb-8">
-        <Users className="w-8 h-8 text-purple-400" />
+        <Users className="w-8 h-8 text-vibrant-saffron" />
         <div>
-          <h1
-            className="text-3xl font-black text-white tracking-tight"
-            style={{ fontFamily: 'Montserrat, sans-serif' }}
-          >
+          <h1 className="text-3xl font-black text-ink tracking-tight">
             Following
           </h1>
-          <p className="text-sm text-zinc-400 mt-0.5">
-            {loading ? '—' : `${followedArtists.length} artists`}
+          <p className="text-sm text-on-surface-muted mt-0.5">
+            {loading ? '—' : `${displayArtists.length} artists`}
           </p>
         </div>
       </div>
@@ -54,15 +60,15 @@ export default function FollowingPage() {
             </div>
           ))}
         </div>
-      ) : followedArtists.length === 0 ? (
+      ) : displayArtists.length === 0 ? (
         <div className="py-16 text-center">
-          <Users className="w-16 h-16 mx-auto text-zinc-700 mb-4" />
-          <h2 className="text-xl font-bold text-zinc-300 mb-2">Not following any artists yet</h2>
-          <p className="text-sm text-zinc-500">Follow artists to see them here.</p>
+          <Users className="w-16 h-16 mx-auto text-border-light mb-4" />
+          <h2 className="text-xl font-bold text-on-surface-muted mb-2">Not following any artists yet</h2>
+          <p className="text-sm text-on-surface-muted">Follow artists to see them here.</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-          {followedArtists.map((artist: any) => (
+          {displayArtists.map((artist: any) => (
             <ArtistCard key={artist.id} artist={artist} />
           ))}
         </div>
