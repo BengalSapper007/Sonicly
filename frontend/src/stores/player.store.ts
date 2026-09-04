@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { getStreamUrl, evictStreamUrl } from '@/lib/stream-cache';
+import { toast } from '@/stores/toast.store';
 
 export interface Song {
   id: string;
@@ -70,29 +71,45 @@ async function recordHistory(songId: string): Promise<void> {
 }
 
 interface PlayerState {
-  // Queue
-  queue: Song[];
-  currentIndex: number;
+  // Queues
+  queue: Song[];              // Context playback queue (album, playlist, artist, search)
+  currentIndex: number;       // Current index in context queue
   currentSong: Song | null;
+  userQueue: Song[];          // Priority queue explicitly added by user ("Play Next" / "Add to Queue")
+  history: Song[];            // Recently played tracks for backward navigation
+  isQueueOpen: boolean;       // Whether the queue side-panel is open
 
   // Playback state (NOT persisted — reset on page load)
   isPlaying: boolean;
-  progress: number;    // 0..1
-  duration: number;    // seconds
-  currentTime: number; // seconds
+  progress: number;           // 0..1
+  duration: number;           // seconds
+  currentTime: number;        // seconds
 
   // Persisted preferences
-  volume: number;      // 0..1
+  volume: number;             // 0..1
   shuffle: boolean;
   repeat: RepeatMode;
 
   // Source context
   contextType: ContextType;
   contextId: string | null;
+  contextTitle: string | null;
 
   // Actions
-  playSong: (song: Song, queue?: Song[], contextType?: ContextType, contextId?: string | null) => void;
-  playQueue: (songs: Song[], startIndex: number, contextType?: ContextType, contextId?: string | null) => void;
+  playSong: (
+    song: Song,
+    queue?: Song[],
+    contextType?: ContextType,
+    contextId?: string | null,
+    contextTitle?: string | null
+  ) => void;
+  playQueue: (
+    songs: Song[],
+    startIndex: number,
+    contextType?: ContextType,
+    contextId?: string | null,
+    contextTitle?: string | null
+  ) => void;
   togglePlay: () => void;
   pause: () => void;
   resume: () => void;
@@ -107,6 +124,22 @@ interface PlayerState {
   setDuration: (duration: number) => void;
   setIsPlaying: (playing: boolean) => void;
   setSongLiked: (songId: string, liked: boolean) => void;
+
+  // Queue actions
+  playNext: (songs: Song | Song[]) => void;
+  addToQueue: (songs: Song | Song[]) => void;
+  removeFromUserQueue: (index: number) => void;
+  removeFromContextQueue: (index: number) => void;
+  clearUserQueue: () => void;
+  clearContextQueue: () => void;
+  clearAllUpcoming: () => void;
+  reorderUserQueue: (fromIndex: number, toIndex: number) => void;
+  reorderContextQueue: (fromIndex: number, toIndex: number) => void;
+  playFromUserQueue: (index: number) => void;
+  playFromContextQueue: (index: number) => void;
+  toggleQueue: () => void;
+  setQueueOpen: (open: boolean) => void;
+  setContextTitle: (title: string | null) => void;
 }
 
 export const usePlayerStore = create<PlayerState>()(
@@ -115,6 +148,10 @@ export const usePlayerStore = create<PlayerState>()(
       queue: [],
       currentIndex: 0,
       currentSong: null,
+      userQueue: [],
+      history: [],
+      isQueueOpen: false,
+
       isPlaying: false,
       progress: 0,
       volume: 0.8,
@@ -124,10 +161,17 @@ export const usePlayerStore = create<PlayerState>()(
       repeat: 'none',
       contextType: null,
       contextId: null,
+      contextTitle: null,
 
-      playSong: (song, queue, contextType = null, contextId = null) => {
+      playSong: (song, queue, contextType = null, contextId = null, contextTitle = null) => {
+        const { currentSong, history } = get();
         const newQueue = queue ?? [song];
         const index = newQueue.findIndex((s) => s.id === song.id);
+        const updatedHistory =
+          currentSong && currentSong.id !== song.id
+            ? [...history.slice(-49), currentSong]
+            : history;
+
         set({
           queue: newQueue,
           currentIndex: index >= 0 ? index : 0,
@@ -135,15 +179,22 @@ export const usePlayerStore = create<PlayerState>()(
           isPlaying: true,
           contextType,
           contextId,
+          contextTitle,
+          history: updatedHistory,
         });
-        // Fetch presigned URL via cache, then play — R2 credentials stay server-side
         loadAndPlay(song);
         recordHistory(song.id);
       },
 
-      playQueue: (songs, startIndex, contextType = null, contextId = null) => {
+      playQueue: (songs, startIndex, contextType = null, contextId = null, contextTitle = null) => {
         if (!songs.length) return;
+        const { currentSong, history } = get();
         const song = songs[startIndex] ?? songs[0];
+        const updatedHistory =
+          currentSong && currentSong.id !== song.id
+            ? [...history.slice(-49), currentSong]
+            : history;
+
         set({
           queue: songs,
           currentIndex: startIndex,
@@ -151,6 +202,8 @@ export const usePlayerStore = create<PlayerState>()(
           isPlaying: true,
           contextType,
           contextId,
+          contextTitle,
+          history: updatedHistory,
         });
         loadAndPlay(song);
         recordHistory(song.id);
@@ -178,7 +231,27 @@ export const usePlayerStore = create<PlayerState>()(
       },
 
       next: () => {
-        const { queue, currentIndex, shuffle, repeat } = get();
+        const { queue, currentIndex, userQueue, history, shuffle, repeat, currentSong } = get();
+
+        // 1. If user queue has songs, play the first one next!
+        if (userQueue.length > 0) {
+          const nextSong = userQueue[0];
+          const updatedUserQueue = userQueue.slice(1);
+          const updatedHistory =
+            currentSong ? [...history.slice(-49), currentSong] : history;
+
+          set({
+            userQueue: updatedUserQueue,
+            currentSong: nextSong,
+            isPlaying: true,
+            history: updatedHistory,
+          });
+          loadAndPlay(nextSong);
+          recordHistory(nextSong.id);
+          return;
+        }
+
+        // 2. Otherwise advance in context queue
         if (!queue.length) return;
 
         let nextIndex: number;
@@ -195,20 +268,44 @@ export const usePlayerStore = create<PlayerState>()(
           return;
         }
 
-        const song = queue[nextIndex];
-        set({ currentIndex: nextIndex, currentSong: song, isPlaying: true });
-        loadAndPlay(song);
-        recordHistory(song.id);
+        const nextSong = queue[nextIndex];
+        const updatedHistory =
+          currentSong ? [...history.slice(-49), currentSong] : history;
+
+        set({
+          currentIndex: nextIndex,
+          currentSong: nextSong,
+          isPlaying: true,
+          history: updatedHistory,
+        });
+        loadAndPlay(nextSong);
+        recordHistory(nextSong.id);
       },
 
       prev: () => {
-        const { queue, currentIndex, currentTime } = get();
+        const { queue, currentIndex, currentTime, history } = get();
         const audio = getAudioElement();
         // If past 3 seconds, restart current song
         if (currentTime > 3 && audio) {
           audio.currentTime = 0;
           return;
         }
+
+        // If we have history tracks (e.g. from user queue or previous songs)
+        if (history.length > 0) {
+          const prevSong = history[history.length - 1];
+          const updatedHistory = history.slice(0, -1);
+          const indexInQueue = queue.findIndex((s) => s.id === prevSong.id);
+          set({
+            history: updatedHistory,
+            currentSong: prevSong,
+            currentIndex: indexInQueue >= 0 ? indexInQueue : currentIndex,
+            isPlaying: true,
+          });
+          loadAndPlay(prevSong);
+          return;
+        }
+
         if (!queue.length) return;
         const prevIndex = currentIndex > 0 ? currentIndex - 1 : queue.length - 1;
         const song = queue[prevIndex];
@@ -244,7 +341,7 @@ export const usePlayerStore = create<PlayerState>()(
       setIsPlaying: (isPlaying) => set({ isPlaying }),
 
       setSongLiked: (songId: string, liked: boolean) => {
-        const { currentSong, queue } = get();
+        const { currentSong, queue, userQueue } = get();
         const updatedCurrentSong =
           currentSong && currentSong.id === songId
             ? {
@@ -273,18 +370,212 @@ export const usePlayerStore = create<PlayerState>()(
             : s
         );
 
-        set({ currentSong: updatedCurrentSong, queue: updatedQueue });
+        const updatedUserQueue = userQueue.map((s) =>
+          s.id === songId
+            ? {
+                ...s,
+                likes: liked ? [{ userId: 'me' }] : [],
+                _count: {
+                  ...s._count,
+                  likes: Math.max(0, (s._count?.likes ?? 0) + (liked ? 1 : -1)),
+                },
+              }
+            : s
+        );
+
+        set({
+          currentSong: updatedCurrentSong,
+          queue: updatedQueue,
+          userQueue: updatedUserQueue,
+        });
       },
+
+      // ── Track Queue Operations ─────────────────────────────────────────────
+      playNext: (songs) => {
+        const songArr = Array.isArray(songs) ? songs : [songs];
+        if (!songArr.length) return;
+
+        const { currentSong, userQueue } = get();
+
+        // If nothing is playing, play immediately
+        if (!currentSong) {
+          get().playSong(songArr[0], songArr);
+          toast.success(
+            songArr.length === 1
+              ? `Playing "${songArr[0].title}"`
+              : `Playing ${songArr.length} tracks`
+          );
+          return;
+        }
+
+        // Filter out duplicate consecutive or add to front of userQueue
+        set({
+          userQueue: [...songArr, ...userQueue],
+        });
+
+        toast.success(
+          songArr.length === 1
+            ? `Playing next: "${songArr[0].title}"`
+            : `${songArr.length} tracks will play next`
+        );
+      },
+
+      addToQueue: (songs) => {
+        const songArr = Array.isArray(songs) ? songs : [songs];
+        if (!songArr.length) return;
+
+        const { currentSong, userQueue } = get();
+
+        // If nothing is playing, play immediately
+        if (!currentSong) {
+          get().playSong(songArr[0], songArr);
+          toast.success(
+            songArr.length === 1
+              ? `Playing "${songArr[0].title}"`
+              : `Playing ${songArr.length} tracks`
+          );
+          return;
+        }
+
+        set({
+          userQueue: [...userQueue, ...songArr],
+        });
+
+        toast.success(
+          songArr.length === 1
+            ? `Added to queue: "${songArr[0].title}"`
+            : `Added ${songArr.length} tracks to queue`
+        );
+      },
+
+      removeFromUserQueue: (index) => {
+        const { userQueue } = get();
+        if (index < 0 || index >= userQueue.length) return;
+        const updated = [...userQueue];
+        const [removed] = updated.splice(index, 1);
+        set({ userQueue: updated });
+        if (removed) {
+          toast.info(`Removed "${removed.title}" from queue`);
+        }
+      },
+
+      removeFromContextQueue: (index) => {
+        const { queue, currentIndex } = get();
+        if (index < 0 || index >= queue.length) return;
+        const updated = [...queue];
+        const [removed] = updated.splice(index, 1);
+        const newIndex =
+          index < currentIndex ? Math.max(0, currentIndex - 1) : currentIndex;
+        set({ queue: updated, currentIndex: newIndex });
+        if (removed) {
+          toast.info(`Removed "${removed.title}" from upcoming`);
+        }
+      },
+
+      clearUserQueue: () => {
+        set({ userQueue: [] });
+        toast.info('Cleared user queue');
+      },
+
+      clearContextQueue: () => {
+        const { queue, currentIndex } = get();
+        set({ queue: queue.slice(0, currentIndex + 1) });
+        toast.info('Cleared upcoming tracks');
+      },
+
+      clearAllUpcoming: () => {
+        const { queue, currentIndex } = get();
+        set({
+          userQueue: [],
+          queue: queue.slice(0, currentIndex + 1),
+        });
+        toast.info('Queue cleared');
+      },
+
+      reorderUserQueue: (fromIndex, toIndex) => {
+        const { userQueue } = get();
+        if (
+          fromIndex < 0 ||
+          fromIndex >= userQueue.length ||
+          toIndex < 0 ||
+          toIndex >= userQueue.length ||
+          fromIndex === toIndex
+        ) {
+          return;
+        }
+        const updated = [...userQueue];
+        const [item] = updated.splice(fromIndex, 1);
+        updated.splice(toIndex, 0, item);
+        set({ userQueue: updated });
+      },
+
+      reorderContextQueue: (fromIndex, toIndex) => {
+        const { queue } = get();
+        if (
+          fromIndex < 0 ||
+          fromIndex >= queue.length ||
+          toIndex < 0 ||
+          toIndex >= queue.length ||
+          fromIndex === toIndex
+        ) {
+          return;
+        }
+        const updated = [...queue];
+        const [item] = updated.splice(fromIndex, 1);
+        updated.splice(toIndex, 0, item);
+        set({ queue: updated });
+      },
+
+      playFromUserQueue: (index) => {
+        const { userQueue, currentSong, history } = get();
+        if (index < 0 || index >= userQueue.length) return;
+        const song = userQueue[index];
+        // Consume up to this index
+        const remainingUserQueue = userQueue.slice(index + 1);
+        const updatedHistory =
+          currentSong ? [...history.slice(-49), currentSong] : history;
+
+        set({
+          userQueue: remainingUserQueue,
+          currentSong: song,
+          isPlaying: true,
+          history: updatedHistory,
+        });
+        loadAndPlay(song);
+        recordHistory(song.id);
+      },
+
+      playFromContextQueue: (index) => {
+        const { queue, currentSong, history } = get();
+        if (index < 0 || index >= queue.length) return;
+        const song = queue[index];
+        const updatedHistory =
+          currentSong ? [...history.slice(-49), currentSong] : history;
+
+        set({
+          currentIndex: index,
+          currentSong: song,
+          isPlaying: true,
+          history: updatedHistory,
+        });
+        loadAndPlay(song);
+        recordHistory(song.id);
+      },
+
+      toggleQueue: () => set((s) => ({ isQueueOpen: !s.isQueueOpen })),
+      setQueueOpen: (open) => set({ isQueueOpen: open }),
+      setContextTitle: (title) => set({ contextTitle: title }),
     }),
     {
       name: 'sonicly-player',
       /**
-       * Only persist user preferences and queue state.
+       * Persist user preferences, context queue, and user-queued items.
        * Ephemeral playback state (isPlaying, progress, currentTime, duration)
        * is intentionally excluded — the audio element resets on page reload.
        */
       partialize: (state) => ({
         queue: state.queue,
+        userQueue: state.userQueue,
         currentIndex: state.currentIndex,
         currentSong: state.currentSong,
         volume: state.volume,
@@ -292,8 +583,8 @@ export const usePlayerStore = create<PlayerState>()(
         repeat: state.repeat,
         contextType: state.contextType,
         contextId: state.contextId,
+        contextTitle: state.contextTitle,
       }),
     }
   )
 );
-

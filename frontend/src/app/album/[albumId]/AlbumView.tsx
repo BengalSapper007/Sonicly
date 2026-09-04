@@ -110,7 +110,7 @@ export function AlbumView({ albumId, initialAlbum }: AlbumViewProps) {
       {/* ── Action Bar ──────────────────────────────────────────────────────── */}
       <div className="px-4 md:px-8 py-4 flex items-center gap-3 border-b border-border-light bg-surface">
         <button
-          onClick={() => playQueue(songs, 0, 'album', album.id)}
+          onClick={() => playQueue(songs, 0, 'album', album.id, album.title)}
           disabled={!songs.length}
           className="btn-primary disabled:opacity-50"
         >
@@ -120,7 +120,7 @@ export function AlbumView({ albumId, initialAlbum }: AlbumViewProps) {
         <button
           onClick={() => {
             const idx = Math.floor(Math.random() * songs.length);
-            playQueue(songs, idx, 'album', album.id);
+            playQueue(songs, idx, 'album', album.id, album.title);
           }}
           disabled={!songs.length}
           className="btn-secondary disabled:opacity-50"
@@ -168,6 +168,7 @@ export function AlbumView({ albumId, initialAlbum }: AlbumViewProps) {
               queue={songs}
               contextType="album"
               contextId={album.id}
+              contextTitle={album.title}
               showAlbum={false}
             />
           ))}

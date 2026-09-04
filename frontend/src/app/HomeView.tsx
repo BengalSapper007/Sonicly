@@ -64,7 +64,8 @@ export function HomeView({
                   featured.songs.map((s: any) => s.song || s),
                   0,
                   'playlist',
-                  featured.id
+                  featured.id,
+                  featured.title
                 );
               }
             }}
@@ -84,7 +85,8 @@ export function HomeView({
                 key={album.id}
                 album={album}
                 onPlay={() => {
-                  if (album.songs?.length) playQueue(album.songs, 0, 'album', album.id);
+                  if (album.songs?.length)
+                    playQueue(album.songs, 0, 'album', album.id, album.title);
                 }}
               />
             ))}
@@ -116,7 +118,8 @@ export function HomeView({
                 key={album.id}
                 album={album}
                 onPlay={() => {
-                  if (album.songs?.length) playQueue(album.songs, 0, 'album', album.id);
+                  if (album.songs?.length)
+                    playQueue(album.songs, 0, 'album', album.id, album.title);
                 }}
                 grid
               />

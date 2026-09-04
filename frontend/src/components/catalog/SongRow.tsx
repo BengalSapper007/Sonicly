@@ -1,12 +1,13 @@
 'use client';
 import { useEffect } from 'react';
-import { Play, Heart, MoreHorizontal, Loader2 } from 'lucide-react';
+import { Play, Heart, Loader2 } from 'lucide-react';
 import { usePlayerStore, type Song } from '@/stores/player.store';
 import { useAuthStore } from '@/stores/auth.store';
 import { useLibraryStore } from '@/stores/library.store';
 import { cn, formatDuration } from '@/lib/utils';
 import { artworkUrl } from '@/lib/api';
 import { ArtworkImage } from '@/components/ui/ArtworkImage';
+import { TrackOptionsMenu } from '@/components/catalog/TrackOptionsMenu';
 
 interface SongRowProps {
   song: Song;
@@ -14,6 +15,7 @@ interface SongRowProps {
   queue?: Song[];
   contextType?: 'album' | 'playlist' | 'artist' | 'search' | null;
   contextId?: string;
+  contextTitle?: string;
   showAlbum?: boolean;
 }
 
@@ -23,6 +25,7 @@ export function SongRow({
   queue,
   contextType,
   contextId,
+  contextTitle,
   showAlbum = true,
 }: SongRowProps) {
   const { currentSong, isPlaying, playSong, togglePlay } = usePlayerStore();
@@ -50,7 +53,7 @@ export function SongRow({
     if (isCurrent) {
       togglePlay();
     } else {
-      playSong(song, queue, contextType, contextId);
+      playSong(song, queue, contextType, contextId, contextTitle);
     }
   };
 
@@ -145,14 +148,10 @@ export function SongRow({
         {formatDuration(song.duration)}
       </span>
 
-      {/* More */}
-      <button
-        className="p-1.5 text-on-surface-muted hover:text-prussian-blue opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
-        onClick={(e) => e.stopPropagation()}
-        aria-label="More options"
-      >
-        <MoreHorizontal className="w-4 h-4" />
-      </button>
+      {/* More / Track Options Menu */}
+      <div className="opacity-80 sm:opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+        <TrackOptionsMenu song={song} />
+      </div>
     </div>
   );
 }

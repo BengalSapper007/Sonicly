@@ -31,6 +31,9 @@ export function Player() {
     duration,
     shuffle,
     repeat,
+    userQueue,
+    isQueueOpen,
+    toggleQueue,
     togglePlay,
     next,
     prev,
@@ -147,6 +150,20 @@ export function Player() {
               aria-label="Next"
             >
               <SkipForward className="w-5 h-5 fill-current" />
+            </button>
+
+            <button
+              onClick={toggleQueue}
+              className={`relative p-1.5 rounded transition-colors cursor-pointer ${
+                isQueueOpen ? 'text-vibrant-saffron' : 'text-on-primary-muted hover:text-white'
+              }`}
+              aria-label="Queue"
+              title="Queue"
+            >
+              <ListMusic className="w-4 h-4" />
+              {userQueue.length > 0 && (
+                <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-vibrant-saffron" />
+              )}
             </button>
           </div>
         </div>
@@ -321,10 +338,21 @@ export function Player() {
         {/* Volume & extras */}
         <div className="flex items-center justify-end gap-3 w-64 flex-shrink-0">
           <button
-            className="p-1.5 text-on-primary-muted hover:text-white transition-colors"
-            title="Queue"
+            onClick={toggleQueue}
+            className={`relative p-1.5 rounded-lg transition-all cursor-pointer ${
+              isQueueOpen
+                ? 'text-vibrant-saffron bg-vibrant-saffron/15 ring-1 ring-vibrant-saffron/40'
+                : 'text-on-primary-muted hover:text-white hover:bg-white/5'
+            }`}
+            title={isQueueOpen ? 'Close queue' : 'Open queue'}
+            aria-label="Queue"
           >
             <ListMusic className="w-4 h-4" />
+            {userQueue.length > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-1 rounded-full bg-vibrant-saffron text-white text-[9px] font-bold flex items-center justify-center leading-none shadow-sm">
+                {userQueue.length > 9 ? '9+' : userQueue.length}
+              </span>
+            )}
           </button>
 
           <div className="flex items-center gap-2 w-28">

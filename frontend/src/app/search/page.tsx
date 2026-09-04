@@ -233,6 +233,7 @@ function SearchContent() {
                         index={i}
                         queue={results.songs}
                         contextType="search"
+                        contextTitle={`Search: "${query}"`}
                         showAlbum
                       />
                     </div>

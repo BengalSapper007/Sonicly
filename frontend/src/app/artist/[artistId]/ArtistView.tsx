@@ -114,7 +114,15 @@ export function ArtistView({ artistId, initialArtist }: ArtistViewProps) {
       <div className="px-8 py-5 flex items-center gap-4">
         {topSongs.length > 0 && (
           <button
-            onClick={() => playQueue(topSongs, 0, 'artist', artistId)}
+            onClick={() =>
+              playQueue(
+                topSongs,
+                0,
+                'artist',
+                artistId,
+                `${artist.name} - Popular Tracks`
+              )
+            }
             className="btn-primary flex items-center gap-2 px-6 py-2.5"
           >
             <Play className="w-4 h-4 fill-current ml-0.5" />
@@ -151,6 +159,7 @@ export function ArtistView({ artistId, initialArtist }: ArtistViewProps) {
                 queue={topSongs}
                 contextType="artist"
                 contextId={artistId}
+                contextTitle={`${artist.name} - Popular Tracks`}
                 showAlbum={true}
               />
             ))}

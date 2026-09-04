@@ -46,12 +46,12 @@ export function PlaylistView({ playlistId, initialPlaylist }: PlaylistViewProps)
 
   const handlePlay = () => {
     if (isThisPlaying) togglePlay();
-    else playQueue(songs, 0, 'playlist', playlistId);
+    else playQueue(songs, 0, 'playlist', playlistId, playlist?.title);
   };
 
   const handleShuffle = () => {
     const idx = Math.floor(Math.random() * songs.length);
-    playQueue(songs, idx, 'playlist', playlistId);
+    playQueue(songs, idx, 'playlist', playlistId, playlist?.title);
   };
 
   return (
@@ -144,6 +144,7 @@ export function PlaylistView({ playlistId, initialPlaylist }: PlaylistViewProps)
               queue={songs}
               contextType="playlist"
               contextId={playlistId}
+              contextTitle={playlist?.title}
               showAlbum
             />
           ))}
