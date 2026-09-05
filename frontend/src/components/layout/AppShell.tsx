@@ -6,6 +6,7 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { Player } from '@/components/player/Player';
 import { QueuePanel } from '@/components/player/QueuePanel';
+import { DedicatedPlayerScreen } from '@/components/player/DedicatedPlayerScreen';
 import { AudioEngine } from '@/components/player/AudioEngine';
 import { ToastContainer } from '@/components/ui/Toast';
 import { useAuthStore } from '@/stores/auth.store';
@@ -66,6 +67,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Queue side panel */}
         <QueuePanel />
+
+        {/* Dedicated music player screen overlay */}
+        <DedicatedPlayerScreen />
       </div>
 
       {/* ── Player bar: docked above mobile nav on mobile, at bottom on desktop ── */}

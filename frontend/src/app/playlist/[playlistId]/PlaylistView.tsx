@@ -159,7 +159,7 @@ export function PlaylistView({ playlistId, initialPlaylist }: PlaylistViewProps)
   );
 }
 
-function PlaylistSkeleton() {
+export function PlaylistSkeleton() {
   return (
     <div className="pb-24 animate-fade-in">
       <div

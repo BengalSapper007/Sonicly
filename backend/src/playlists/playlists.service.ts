@@ -4,6 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AppCacheService } from '../common/cache/app-cache.service';
 import { nanoid } from 'nanoid';
 import { CreatePlaylistDto, UpdatePlaylistDto, AddSongDto, ReorderSongsDto } from './dto/playlist.dto';
 
@@ -23,7 +24,10 @@ const SONG_INCLUDE = {
 
 @Injectable()
 export class PlaylistsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cache: AppCacheService,
+  ) {}
 
   async getUserPlaylists(userId: string) {
     return this.prisma.playlist.findMany({
@@ -36,11 +40,13 @@ export class PlaylistsService {
   }
 
   async getCuratedPlaylists() {
-    return this.prisma.playlist.findMany({
-      where: { isCurated: true },
-      orderBy: { name: 'asc' },
-      include: { _count: { select: { songs: true } } },
-    });
+    return this.cache.wrap('catalog:playlists:curated', () => {
+      return this.prisma.playlist.findMany({
+        where: { isCurated: true },
+        orderBy: { name: 'asc' },
+        include: { _count: { select: { songs: true } } },
+      });
+    }, 300);
   }
 
   async create(dto: CreatePlaylistDto, userId: string) {
@@ -55,6 +61,28 @@ export class PlaylistsService {
   }
 
   async findOne(id: string, userId?: string) {
+    if (!userId) {
+      const cached = await this.cache.wrap(`catalog:playlist:${id}`, async () => {
+        const playlist = await this.prisma.playlist.findUnique({
+          where: { id },
+          include: {
+            user: { select: { id: true, username: true, displayName: true } },
+            songs: {
+              orderBy: { position: 'asc' },
+              include: {
+                ...SONG_INCLUDE,
+              },
+            },
+            _count: { select: { songs: true } },
+          },
+        });
+        return playlist;
+      }, 300);
+
+      if (!cached) throw new NotFoundException('Playlist not found');
+      return cached;
+    }
+
     const playlist = await this.prisma.playlist.findUnique({
       where: { id },
       include: {

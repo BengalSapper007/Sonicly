@@ -59,6 +59,36 @@ export function QueuePanel() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isQueueOpen, setQueueOpen]);
 
+  // Close when clicking outside the queue panel
+  useEffect(() => {
+    if (!isQueueOpen) return;
+
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node | null;
+      if (!target) return;
+
+      // Do nothing if click originated inside the panel
+      if (panelRef.current && panelRef.current.contains(target)) {
+        return;
+      }
+
+      // Do nothing if click is on any queue toggle button (its own onClick handles toggling)
+      if ((target as Element).closest?.('[data-queue-toggle]')) {
+        return;
+      }
+
+      setQueueOpen(false);
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isQueueOpen, setQueueOpen]);
+
   // Context remaining songs
   const upcomingContextSongs = queue.slice(currentIndex + 1);
   const totalUpcomingCount = userQueue.length + upcomingContextSongs.length;

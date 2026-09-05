@@ -1,6 +1,6 @@
 'use client';
 import { useState, useRef, useEffect, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
   Search,
@@ -44,6 +44,7 @@ function formatDuration(seconds: number): string {
 
 export function Header() {
   const router = useRouter();
+  const pathname = usePathname();
   const { isAuthenticated, user, logout } = useAuthStore();
   const { playSong, currentSong, isPlaying } = usePlayerStore();
 
@@ -86,6 +87,25 @@ export function Header() {
   useEffect(() => {
     loadRecentSearches();
   }, [isAuthenticated]);
+
+  // Sync search input query when on /search page or when event is fired
+  useEffect(() => {
+    if (pathname === '/search' && typeof window !== 'undefined') {
+      const q = new URLSearchParams(window.location.search).get('q') || '';
+      setQuery(q);
+    }
+
+    const handleSync = (e: CustomEvent<{ query: string }>) => {
+      if (e.detail && typeof e.detail.query === 'string') {
+        setQuery(e.detail.query);
+      }
+    };
+
+    window.addEventListener('sonicly-search-query-change' as any, handleSync);
+    return () => {
+      window.removeEventListener('sonicly-search-query-change' as any, handleSync);
+    };
+  }, [pathname]);
 
   // Handle outside clicks to close search popover and profile menu
   useEffect(() => {
@@ -289,6 +309,12 @@ export function Header() {
                 setQuery('');
                 setSuggestions(null);
                 inputRef.current?.focus();
+                if (pathname === '/search') {
+                  router.push('/search');
+                  if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('sonicly-search-query-change', { detail: { query: '' } }));
+                  }
+                }
               }}
               className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-ink-muted hover:text-ink transition-colors rounded-full hover:bg-sand/60"
             >

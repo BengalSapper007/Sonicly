@@ -79,6 +79,9 @@ function SearchContent() {
     const q = searchParams.get('q');
     if (q !== null && q !== query) {
       setQuery(q);
+    } else if (q === null && query !== '') {
+      setQuery('');
+      setResults(null);
     }
   }, [searchParams]);
 
@@ -126,6 +129,18 @@ function SearchContent() {
   const handleRecentClick = (q: string) => {
     setQuery(q);
     saveRecent({ type: 'QUERY', query: q });
+    router.replace(`/search?q=${encodeURIComponent(q)}`);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('sonicly-search-query-change', { detail: { query: q } }));
+    }
+  };
+
+  const handleGenreClick = (genre: string) => {
+    setQuery(genre);
+    router.replace(`/search?q=${encodeURIComponent(genre)}`);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('sonicly-search-query-change', { detail: { query: genre } }));
+    }
   };
 
   const handleRemoveRecent = async (id: string, e: React.MouseEvent) => {
@@ -180,8 +195,8 @@ function SearchContent() {
 
   return (
     <div className="min-h-full pb-24 bg-background">
-      {/* ── Search Header ────────────────────────────────────────────────────── */}
-      <div className="bg-prussian-blue border-b-2 border-midnight-blue px-4 md:px-8 pt-5 pb-5">
+      {/* ── Search Header (Mobile only - desktop uses top header search bar) ── */}
+      <div className="md:hidden bg-prussian-blue border-b-2 border-midnight-blue px-4 md:px-8 pt-5 pb-5">
         <h1 className="font-black text-2xl text-white mb-4">Search</h1>
         <div className="relative max-w-xl">
           <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-on-primary-muted pointer-events-none" />
@@ -194,7 +209,14 @@ function SearchContent() {
           />
           {query && (
             <button
-              onClick={() => { setQuery(''); setResults(null); }}
+              onClick={() => {
+                setQuery('');
+                setResults(null);
+                router.replace('/search');
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('sonicly-search-query-change', { detail: { query: '' } }));
+                }
+              }}
               className="absolute right-4 top-1/2 -translate-y-1/2 text-on-primary-muted hover:text-vibrant-saffron transition-colors"
             >
               <X className="w-4 h-4" />
@@ -202,6 +224,7 @@ function SearchContent() {
           )}
         </div>
       </div>
+      <h1 className="sr-only">Search</h1>
 
       <div className="px-4 md:px-8 py-6">
         {/* ── Loading ──────────────────────────────────────────────────────────── */}
@@ -475,7 +498,7 @@ function SearchContent() {
                 {GENRES.map(({ label, bg, text, icon: Icon }) => (
                   <button
                     key={label}
-                    onClick={() => setQuery(label)}
+                    onClick={() => handleGenreClick(label)}
                     className="relative h-20 md:h-24 rounded-xl overflow-hidden transition-all hover:-translate-y-0.5 text-left shadow-sm"
                     style={{ background: bg }}
                   >

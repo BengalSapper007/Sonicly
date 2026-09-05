@@ -2,11 +2,13 @@
 import { useEffect, useRef } from 'react';
 import { usePlayerStore, setAudioElement } from '@/stores/player.store';
 import { getStreamUrl } from '@/lib/stream-cache';
+import { useMusicControls } from '@/hooks/useMusicControls';
 
 /**
  * AudioEngine
  * -----------
  * Renders a hidden <audio> element and wires it to the player store.
+ * Also activates global music controls (keyboard shortcuts + Media Session API).
  * This is the ONLY component that touches HTMLAudioElement.
  * It is completely decoupled from any UI.
  *
@@ -19,6 +21,8 @@ import { getStreamUrl } from '@/lib/stream-cache';
  */
 export function AudioEngine() {
   const audioRef = useRef<HTMLAudioElement>(null);
+  useMusicControls();
+
   const {
     setProgress,
     setCurrentTime,
@@ -39,41 +43,45 @@ export function AudioEngine() {
     // Sync initial volume
     el.volume = volume;
 
-    // ── Restore persisted song without autoplaying ────────────────────────
-    // The player store rehydrates from localStorage on startup.  If a song
-    // was playing when the user last closed the tab, prime the audio element
-    // so the player bar shows the correct song/thumbnail immediately.
-    if (currentSong) {
-      getStreamUrl(currentSong.id)
-        .then((url) => {
-          if (el.src !== url) {
-            el.src = url;
-            el.preload = 'metadata';
-            // Explicitly do NOT call el.play() here
-          }
-        })
-        .catch(() => {
-          // Non-fatal — user can still press play to trigger a fresh fetch
-        });
-    }
-
     const onTimeUpdate = () => {
+      const savedTime = usePlayerStore.getState().currentTime;
+      // Prevent resetting saved currentTime to 0 on initial load before playback or seek
+      if (el.paused && el.currentTime === 0 && savedTime > 0) {
+        return;
+      }
       const dur = el.duration || 0;
       const cur = el.currentTime;
       setCurrentTime(cur);
       setProgress(dur > 0 ? cur / dur : 0);
     };
 
-    const onDurationChange = () => setDuration(el.duration || 0);
+    const onDurationChange = () => {
+      if (el.duration && el.duration > 0) {
+        setDuration(el.duration);
+      }
+    };
     const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);
     const onEnded = () => {
-      const { repeat: r } = usePlayerStore.getState();
+      const {
+        repeat: r,
+        userQueue,
+        next,
+        setIsPlaying,
+        setProgress,
+        setCurrentTime,
+      } = usePlayerStore.getState();
+
       if (r === 'one') {
         el.currentTime = 0;
         el.play().catch(() => {});
-      } else {
+      } else if (r === 'all' || userQueue.length > 0) {
         next();
+      } else {
+        // Repeat is 'none' (Off): stop playback when current track finishes
+        setIsPlaying(false);
+        setProgress(0);
+        setCurrentTime(0);
       }
     };
     const onError = () => {
@@ -101,6 +109,37 @@ export function AudioEngine() {
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Sync audio element src and seek position with currentSong (handles initial hydration & page refresh)
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el || !currentSong) return;
+
+    getStreamUrl(currentSong.id)
+      .then((url) => {
+        if (el.src !== url) {
+          el.src = url;
+          el.preload = 'metadata';
+          const { currentTime, duration } = usePlayerStore.getState();
+          const targetTime = duration > 0 && currentTime >= duration - 2 ? 0 : currentTime;
+          if (targetTime > 0) {
+            const applySeek = () => {
+              try {
+                el.currentTime = targetTime;
+              } catch {}
+            };
+            if (el.readyState >= 1) {
+              applySeek();
+            } else {
+              el.addEventListener('loadedmetadata', applySeek, { once: true });
+            }
+          }
+        }
+      })
+      .catch(() => {
+        // Non-fatal — user can still press play to trigger a fresh fetch
+      });
+  }, [currentSong?.id]);
 
   // Sync volume changes from store → audio element
   useEffect(() => {

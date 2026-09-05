@@ -1,44 +1,63 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AppCacheService } from '../common/cache/app-cache.service';
 
 @Injectable()
 export class ArtistsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cache: AppCacheService,
+  ) {}
 
   async findAll(genreId?: string) {
-    return this.prisma.artist.findMany({
-      orderBy: { monthlyListeners: 'desc' },
-      include: {
-        _count: { select: { albums: true, followers: true } },
-      },
-    });
+    const cacheKey = genreId ? `catalog:artists:genre:${genreId}` : 'catalog:artists:all';
+    return this.cache.wrap(cacheKey, () => {
+      return this.prisma.artist.findMany({
+        orderBy: { monthlyListeners: 'desc' },
+        include: {
+          _count: { select: { albums: true, followers: true } },
+        },
+      });
+    }, 300);
   }
 
   async findOne(id: string, userId?: string) {
-    const artist = await this.prisma.artist.findUnique({
-      where: { id },
-      include: {
-        albums: {
-          orderBy: { releaseYear: 'desc' },
-          include: { _count: { select: { songs: true } } },
+    const baseArtist = await this.cache.wrap(`catalog:artist:${id}`, async () => {
+      const artist = await this.prisma.artist.findUnique({
+        where: { id },
+        include: {
+          albums: {
+            orderBy: { releaseYear: 'desc' },
+            include: { _count: { select: { songs: true } } },
+          },
+          _count: { select: { followers: true } },
         },
-        _count: { select: { followers: true } },
-      },
-    });
+      });
 
-    if (!artist) throw new NotFoundException('Artist not found');
+      if (!artist) return null;
 
-    // Get popular songs (top 10 by play count approximation via likes)
-    const popularSongs = await this.prisma.song.findMany({
-      where: { album: { artistId: id } },
-      include: {
-        album: { select: { id: true, title: true, imageKey: true } },
-        _count: { select: { likes: true } },
-        ...(userId ? { likes: { where: { userId } } } : {}),
-      },
-      orderBy: { likes: { _count: 'desc' } },
-      take: 10,
-    });
+      // Get popular songs (top 10 by play count approximation via likes)
+      const popularSongs = await this.prisma.song.findMany({
+        where: { album: { artistId: id } },
+        include: {
+          album: {
+            select: {
+              id: true,
+              title: true,
+              imageKey: true,
+              artist: { select: { id: true, name: true } },
+            },
+          },
+          _count: { select: { likes: true } },
+        },
+        orderBy: { likes: { _count: 'desc' } },
+        take: 10,
+      });
+
+      return { ...artist, popularSongs };
+    }, 300);
+
+    if (!baseArtist) throw new NotFoundException('Artist not found');
 
     let isFollowing = false;
     if (userId) {
@@ -48,7 +67,7 @@ export class ArtistsService {
       isFollowing = !!follow;
     }
 
-    return { ...artist, popularSongs, isFollowing };
+    return { ...baseArtist, isFollowing };
   }
 
   async follow(artistId: string, userId: string) {

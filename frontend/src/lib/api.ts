@@ -77,7 +77,9 @@ export default api;
  */
 export function artworkUrl(key: string | null | undefined): string | undefined {
   if (!key) return undefined;
-  return `${API_URL}/media/artwork?key=${encodeURIComponent(key)}`;
+  if (key.startsWith('http://') || key.startsWith('https://')) return key;
+  const cleanKey = key.replace(/^\/+/, '').replace(/^images\//, '');
+  return `/api/media/artwork?key=${encodeURIComponent(cleanKey)}`;
 }
 
 // ── API functions ──────────────────────────────────────────────────────────

@@ -60,7 +60,15 @@ export function AlbumView({ albumId, initialAlbum }: AlbumViewProps) {
     );
   }
 
-  const songs = album.songs || [];
+  const songs = (album.songs || []).map((s: any) => ({
+    ...s,
+    album: s.album || {
+      id: album.id,
+      title: album.title,
+      imageKey: album.imageKey,
+      artist: album.artist,
+    },
+  }));
   const totalDuration = songs.reduce((acc: number, s: any) => acc + (s.duration || 0), 0);
 
   return (
@@ -169,7 +177,7 @@ export function AlbumView({ albumId, initialAlbum }: AlbumViewProps) {
               contextType="album"
               contextId={album.id}
               contextTitle={album.title}
-              showAlbum={false}
+              showAlbum={true}
             />
           ))}
         </div>
@@ -178,7 +186,7 @@ export function AlbumView({ albumId, initialAlbum }: AlbumViewProps) {
   );
 }
 
-function AlbumSkeleton() {
+export function AlbumSkeleton() {
   return (
     <div className="pb-24 bg-background animate-fade-in">
       <div className="bg-vibrant-saffron/30 border-b-2 border-prussian-blue/20 px-4 md:px-8 pt-8 pb-6">

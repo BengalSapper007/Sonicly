@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Music, Disc, User as UserIcon, ListMusic } from 'lucide-react';
 
 interface ArtworkImageProps {
@@ -39,7 +39,14 @@ export function ArtworkImage({
   size = 'md',
 }: ArtworkImageProps) {
   const [hasError, setHasError] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
   const showFallback = !src || hasError;
+
+  useEffect(() => {
+    if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth === 0) {
+      setHasError(true);
+    }
+  }, [src]);
 
   if (showFallback) {
     const gradient = getGradient(id || alt);
@@ -96,6 +103,7 @@ export function ArtworkImage({
 
   return (
     <img
+      ref={imgRef}
       src={src}
       alt={alt}
       className={className}

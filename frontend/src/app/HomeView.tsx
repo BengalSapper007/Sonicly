@@ -253,7 +253,7 @@ function ArtistCard({ artist }: { artist: any }) {
 
 // ── Playlist Card ─────────────────────────────────────────────────────────────
 function PlaylistCard({ playlist }: { playlist: any }) {
-  const cover = artworkUrl(playlist.imageKey);
+  const cover = artworkUrl(playlist.coverUrl || playlist.imageKey);
   return (
     <Link href={`/playlist/${playlist.id}`} className="group flex-none w-[160px] cursor-pointer block">
       <div className="relative w-full aspect-square rounded-lg overflow-hidden mb-2 border-l-2 border-l-crisp-green border-y border-r border-border-light transition-colors">

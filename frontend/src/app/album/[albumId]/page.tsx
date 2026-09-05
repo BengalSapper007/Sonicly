@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import type { Metadata } from 'next';
 import { albumsApi, artworkUrl } from '@/lib/api';
 import { JsonLd } from '@/components/seo/JsonLd';
@@ -7,11 +8,20 @@ interface PageProps {
   params: Promise<{ albumId: string }>;
 }
 
+const getAlbumCached = cache(async (albumId: string) => {
+  try {
+    const res = await albumsApi.get(albumId);
+    return res.data ?? null;
+  } catch (err) {
+    console.error(`Failed to pre-fetch album ${albumId} on server:`, err);
+    return null;
+  }
+});
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { albumId } = await params;
   try {
-    const res = await albumsApi.get(albumId);
-    const album = res.data;
+    const album = await getAlbumCached(albumId);
     if (!album) {
       return { title: 'Album Not Found' };
     }
@@ -48,14 +58,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function AlbumPage({ params }: PageProps) {
   const { albumId } = await params;
-  let album: any = null;
-
-  try {
-    const res = await albumsApi.get(albumId);
-    album = res.data ?? null;
-  } catch (err) {
-    console.error(`Failed to pre-fetch album ${albumId} on server:`, err);
-  }
+  const album = await getAlbumCached(albumId);
 
   const albumSchema = album
     ? {

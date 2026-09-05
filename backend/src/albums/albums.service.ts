@@ -1,37 +1,65 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AppCacheService } from '../common/cache/app-cache.service';
 
 @Injectable()
 export class AlbumsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cache: AppCacheService,
+  ) {}
 
   async findAll() {
-    return this.prisma.album.findMany({
-      orderBy: { releaseYear: 'desc' },
-      include: {
-        artist: { select: { id: true, name: true, imageKey: true } },
-        _count: { select: { songs: true } },
-      },
-    });
+    return this.cache.wrap('catalog:albums:all', () => {
+      return this.prisma.album.findMany({
+        orderBy: { releaseYear: 'desc' },
+        include: {
+          artist: { select: { id: true, name: true, imageKey: true } },
+          _count: { select: { songs: true } },
+        },
+      });
+    }, 300);
   }
 
   async findOne(id: string, userId?: string) {
-    const album = await this.prisma.album.findUnique({
-      where: { id },
-      include: {
-        artist: { select: { id: true, name: true, imageKey: true, isVerified: true } },
-        songs: {
-          orderBy: { trackNum: 'asc' },
-          include: {
-            genre: { select: { id: true, name: true } },
-            _count: { select: { likes: true } },
-            ...(userId ? { likes: { where: { userId } } } : {}),
+    const baseAlbum = await this.cache.wrap(`catalog:album:${id}`, async () => {
+      const album = await this.prisma.album.findUnique({
+        where: { id },
+        include: {
+          artist: { select: { id: true, name: true, imageKey: true, isVerified: true } },
+          songs: {
+            orderBy: { trackNum: 'asc' },
+            include: {
+              genre: { select: { id: true, name: true } },
+              _count: { select: { likes: true } },
+            },
           },
         },
-      },
-    });
+      });
 
-    if (!album) throw new NotFoundException('Album not found');
+      if (!album) return null;
+
+      // Calculate total duration
+      const totalDuration = album.songs.reduce((sum, s) => sum + s.duration, 0);
+
+      // Ensure album artwork and metadata are attached to every song on the album
+      const songs = album.songs.map((s) => ({
+        ...s,
+        album: {
+          id: album.id,
+          title: album.title,
+          imageKey: album.imageKey,
+          artist: {
+            id: album.artist.id,
+            name: album.artist.name,
+          },
+        },
+      }));
+
+      return { ...album, songs, totalDuration };
+    }, 300);
+
+    if (!baseAlbum) throw new NotFoundException('Album not found');
 
     let isSaved = false;
     if (userId) {
@@ -41,10 +69,7 @@ export class AlbumsService {
       isSaved = !!saved;
     }
 
-    // Calculate total duration
-    const totalDuration = album.songs.reduce((sum, s) => sum + s.duration, 0);
-
-    return { ...album, totalDuration, isSaved };
+    return { ...baseAlbum, isSaved };
   }
 
   async save(albumId: string, userId: string) {

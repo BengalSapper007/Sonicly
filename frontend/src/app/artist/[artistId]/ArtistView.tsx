@@ -196,7 +196,7 @@ export function ArtistView({ artistId, initialArtist }: ArtistViewProps) {
   );
 }
 
-function ArtistSkeleton() {
+export function ArtistSkeleton() {
   return (
     <div className="animate-fade-in">
       <Skeleton className="h-72 rounded-none shimmer" />

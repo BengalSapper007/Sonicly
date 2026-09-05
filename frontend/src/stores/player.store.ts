@@ -45,13 +45,31 @@ export function getAudioElement(): HTMLAudioElement | null {
  * revisiting the same song within a tab session.
  * On error, evict the cached URL so a fresh one is fetched next attempt.
  */
-async function loadAndPlay(song: Song): Promise<void> {
+async function loadAndPlay(song: Song, startTime?: number): Promise<void> {
   const audio = getAudioElement();
   if (!audio) return;
 
   try {
     const streamUrl = await getStreamUrl(song.id);
-    audio.src = streamUrl;
+    if (audio.src !== streamUrl) {
+      audio.src = streamUrl;
+    }
+
+    const seekTime = startTime ?? 0;
+    if (seekTime > 0) {
+      try {
+        audio.currentTime = seekTime;
+      } catch {}
+      if (audio.readyState < 1) {
+        const onLoaded = () => {
+          try {
+            audio.currentTime = seekTime;
+          } catch {}
+        };
+        audio.addEventListener('loadedmetadata', onLoaded, { once: true });
+      }
+    }
+
     await audio.play();
   } catch (err) {
     console.error(`[Player] Failed to load stream for ${song.id}:`, err);
@@ -78,6 +96,7 @@ interface PlayerState {
   userQueue: Song[];          // Priority queue explicitly added by user ("Play Next" / "Add to Queue")
   history: Song[];            // Recently played tracks for backward navigation
   isQueueOpen: boolean;       // Whether the queue side-panel is open
+  isNowPlayingOpen: boolean;  // Whether the dedicated now-playing screen is open
 
   // Playback state (NOT persisted — reset on page load)
   isPlaying: boolean;
@@ -110,9 +129,9 @@ interface PlayerState {
     contextId?: string | null,
     contextTitle?: string | null
   ) => void;
-  togglePlay: () => void;
+  togglePlay: () => void | Promise<void>;
   pause: () => void;
-  resume: () => void;
+  resume: () => void | Promise<void>;
   next: () => void;
   prev: () => void;
   seek: (progress: number) => void;
@@ -140,6 +159,9 @@ interface PlayerState {
   toggleQueue: () => void;
   setQueueOpen: (open: boolean) => void;
   setContextTitle: (title: string | null) => void;
+  openNowPlaying: () => void;
+  closeNowPlaying: () => void;
+  toggleNowPlaying: () => void;
 }
 
 export const usePlayerStore = create<PlayerState>()(
@@ -151,6 +173,7 @@ export const usePlayerStore = create<PlayerState>()(
       userQueue: [],
       history: [],
       isQueueOpen: false,
+      isNowPlayingOpen: false,
 
       isPlaying: false,
       progress: 0,
@@ -176,13 +199,16 @@ export const usePlayerStore = create<PlayerState>()(
           queue: newQueue,
           currentIndex: index >= 0 ? index : 0,
           currentSong: song,
+          currentTime: 0,
+          progress: 0,
+          duration: song.duration || 0,
           isPlaying: true,
           contextType,
           contextId,
           contextTitle,
           history: updatedHistory,
         });
-        loadAndPlay(song);
+        loadAndPlay(song, 0);
         recordHistory(song.id);
       },
 
@@ -199,25 +225,51 @@ export const usePlayerStore = create<PlayerState>()(
           queue: songs,
           currentIndex: startIndex,
           currentSong: song,
+          currentTime: 0,
+          progress: 0,
+          duration: song.duration || 0,
           isPlaying: true,
           contextType,
           contextId,
           contextTitle,
           history: updatedHistory,
         });
-        loadAndPlay(song);
+        loadAndPlay(song, 0);
         recordHistory(song.id);
       },
 
-      togglePlay: () => {
-        const { isPlaying } = get();
+      togglePlay: async () => {
+        const { isPlaying, currentSong, currentTime, duration } = get();
         const audio = getAudioElement();
         if (isPlaying) {
           audio?.pause();
+          set({ isPlaying: false });
         } else {
-          audio?.play().catch(() => {});
+          if (!currentSong) return;
+          const targetTime = duration > 0 && currentTime >= duration - 2 ? 0 : currentTime;
+          const hasValidSrc =
+            Boolean(audio?.src && audio.src !== '' && audio.src !== window.location.href);
+
+          if (!hasValidSrc) {
+            set({ isPlaying: true });
+            await loadAndPlay(currentSong, targetTime);
+          } else {
+            if (audio && targetTime > 0 && Math.abs(audio.currentTime - targetTime) > 0.5) {
+              try {
+                audio.currentTime = targetTime;
+              } catch {}
+            }
+            try {
+              await audio?.play();
+              set({ isPlaying: true });
+            } catch (err) {
+              console.warn('[Player] Direct play failed, reloading stream:', err);
+              evictStreamUrl(currentSong.id);
+              await loadAndPlay(currentSong, targetTime);
+              set({ isPlaying: true });
+            }
+          }
         }
-        set({ isPlaying: !isPlaying });
       },
 
       pause: () => {
@@ -225,9 +277,33 @@ export const usePlayerStore = create<PlayerState>()(
         set({ isPlaying: false });
       },
 
-      resume: () => {
-        getAudioElement()?.play().catch(() => {});
-        set({ isPlaying: true });
+      resume: async () => {
+        const { currentSong, currentTime, duration } = get();
+        const audio = getAudioElement();
+        if (!currentSong) return;
+        const targetTime = duration > 0 && currentTime >= duration - 2 ? 0 : currentTime;
+        const hasValidSrc =
+          Boolean(audio?.src && audio.src !== '' && audio.src !== window.location.href);
+
+        if (!hasValidSrc) {
+          set({ isPlaying: true });
+          await loadAndPlay(currentSong, targetTime);
+        } else {
+          if (audio && targetTime > 0 && Math.abs(audio.currentTime - targetTime) > 0.5) {
+            try {
+              audio.currentTime = targetTime;
+            } catch {}
+          }
+          try {
+            await audio?.play();
+            set({ isPlaying: true });
+          } catch (err) {
+            console.warn('[Player] Direct play failed, reloading stream:', err);
+            evictStreamUrl(currentSong.id);
+            await loadAndPlay(currentSong, targetTime);
+            set({ isPlaying: true });
+          }
+        }
       },
 
       next: () => {
@@ -243,10 +319,13 @@ export const usePlayerStore = create<PlayerState>()(
           set({
             userQueue: updatedUserQueue,
             currentSong: nextSong,
+            currentTime: 0,
+            progress: 0,
+            duration: nextSong.duration || 0,
             isPlaying: true,
             history: updatedHistory,
           });
-          loadAndPlay(nextSong);
+          loadAndPlay(nextSong, 0);
           recordHistory(nextSong.id);
           return;
         }
@@ -275,10 +354,13 @@ export const usePlayerStore = create<PlayerState>()(
         set({
           currentIndex: nextIndex,
           currentSong: nextSong,
+          currentTime: 0,
+          progress: 0,
+          duration: nextSong.duration || 0,
           isPlaying: true,
           history: updatedHistory,
         });
-        loadAndPlay(nextSong);
+        loadAndPlay(nextSong, 0);
         recordHistory(nextSong.id);
       },
 
@@ -288,6 +370,7 @@ export const usePlayerStore = create<PlayerState>()(
         // If past 3 seconds, restart current song
         if (currentTime > 3 && audio) {
           audio.currentTime = 0;
+          set({ currentTime: 0, progress: 0 });
           return;
         }
 
@@ -300,26 +383,39 @@ export const usePlayerStore = create<PlayerState>()(
             history: updatedHistory,
             currentSong: prevSong,
             currentIndex: indexInQueue >= 0 ? indexInQueue : currentIndex,
+            currentTime: 0,
+            progress: 0,
+            duration: prevSong.duration || 0,
             isPlaying: true,
           });
-          loadAndPlay(prevSong);
+          loadAndPlay(prevSong, 0);
           return;
         }
 
         if (!queue.length) return;
         const prevIndex = currentIndex > 0 ? currentIndex - 1 : queue.length - 1;
         const song = queue[prevIndex];
-        set({ currentIndex: prevIndex, currentSong: song, isPlaying: true });
-        loadAndPlay(song);
+        set({
+          currentIndex: prevIndex,
+          currentSong: song,
+          currentTime: 0,
+          progress: 0,
+          duration: song.duration || 0,
+          isPlaying: true,
+        });
+        loadAndPlay(song, 0);
       },
 
       seek: (progress) => {
         const { duration } = get();
         const audio = getAudioElement();
-        if (audio && duration) {
-          audio.currentTime = progress * duration;
+        const targetTime = duration > 0 ? progress * duration : 0;
+        if (audio && duration > 0) {
+          try {
+            audio.currentTime = targetTime;
+          } catch {}
         }
-        set({ progress });
+        set({ progress, currentTime: targetTime });
       },
 
       setVolume: (vol) => {
@@ -538,10 +634,13 @@ export const usePlayerStore = create<PlayerState>()(
         set({
           userQueue: remainingUserQueue,
           currentSong: song,
+          currentTime: 0,
+          progress: 0,
+          duration: song.duration || 0,
           isPlaying: true,
           history: updatedHistory,
         });
-        loadAndPlay(song);
+        loadAndPlay(song, 0);
         recordHistory(song.id);
       },
 
@@ -555,23 +654,29 @@ export const usePlayerStore = create<PlayerState>()(
         set({
           currentIndex: index,
           currentSong: song,
+          currentTime: 0,
+          progress: 0,
+          duration: song.duration || 0,
           isPlaying: true,
           history: updatedHistory,
         });
-        loadAndPlay(song);
+        loadAndPlay(song, 0);
         recordHistory(song.id);
       },
 
       toggleQueue: () => set((s) => ({ isQueueOpen: !s.isQueueOpen })),
       setQueueOpen: (open) => set({ isQueueOpen: open }),
       setContextTitle: (title) => set({ contextTitle: title }),
+      openNowPlaying: () => set({ isNowPlayingOpen: true }),
+      closeNowPlaying: () => set({ isNowPlayingOpen: false }),
+      toggleNowPlaying: () => set((s) => ({ isNowPlayingOpen: !s.isNowPlayingOpen })),
     }),
     {
       name: 'sonicly-player',
       /**
-       * Persist user preferences, context queue, and user-queued items.
-       * Ephemeral playback state (isPlaying, progress, currentTime, duration)
-       * is intentionally excluded — the audio element resets on page reload.
+       * Persist user preferences, context queue, user-queued items,
+       * and current track position (currentTime, duration, progress).
+       * isPlaying is excluded so playback does not autoplay on reload.
        */
       partialize: (state) => ({
         queue: state.queue,
@@ -584,6 +689,9 @@ export const usePlayerStore = create<PlayerState>()(
         contextType: state.contextType,
         contextId: state.contextId,
         contextTitle: state.contextTitle,
+        currentTime: state.currentTime,
+        duration: state.duration,
+        progress: state.progress,
       }),
     }
   )
