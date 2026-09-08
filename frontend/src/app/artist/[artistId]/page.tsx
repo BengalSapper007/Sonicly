@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import type { Metadata } from 'next';
 import { artistsApi, artworkUrl } from '@/lib/api';
 import { JsonLd } from '@/components/seo/JsonLd';
@@ -7,11 +8,20 @@ interface PageProps {
   params: Promise<{ artistId: string }>;
 }
 
+const getArtistCached = cache(async (artistId: string) => {
+  try {
+    const res = await artistsApi.get(artistId);
+    return res.data ?? null;
+  } catch (err) {
+    console.error(`Failed to pre-fetch artist ${artistId} on server:`, err);
+    return null;
+  }
+});
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { artistId } = await params;
   try {
-    const res = await artistsApi.get(artistId);
-    const artist = res.data;
+    const artist = await getArtistCached(artistId);
     if (!artist) {
       return { title: 'Artist Not Found' };
     }
@@ -47,14 +57,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ArtistPage({ params }: PageProps) {
   const { artistId } = await params;
-  let artist: any = null;
-
-  try {
-    const res = await artistsApi.get(artistId);
-    artist = res.data ?? null;
-  } catch (err) {
-    console.error(`Failed to pre-fetch artist ${artistId} on server:`, err);
-  }
+  const artist = await getArtistCached(artistId);
 
   const artistSchema = artist
     ? {

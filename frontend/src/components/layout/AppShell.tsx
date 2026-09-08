@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { Player } from '@/components/player/Player';
+import { QueuePanel } from '@/components/player/QueuePanel';
+import { DedicatedPlayerScreen } from '@/components/player/DedicatedPlayerScreen';
 import { AudioEngine } from '@/components/player/AudioEngine';
 import { ToastContainer } from '@/components/ui/Toast';
 import { useAuthStore } from '@/stores/auth.store';
@@ -46,7 +48,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <AudioEngine />
 
       {/* Main layout (Sidebar + Content column) */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="relative flex flex-1 min-h-0 overflow-hidden">
         {/* Sidebar — desktop only */}
         <div
           className={`hidden md:flex flex-shrink-0 h-full ${!isDragging ? 'transition-[width] duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]' : ''}`}
@@ -62,6 +64,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {children}
           </main>
         </div>
+
+        {/* Queue side panel */}
+        <QueuePanel />
+
+        {/* Dedicated music player screen overlay */}
+        <DedicatedPlayerScreen />
       </div>
 
       {/* ── Player bar: docked above mobile nav on mobile, at bottom on desktop ── */}

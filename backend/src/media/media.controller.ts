@@ -42,15 +42,17 @@ export class MediaController {
       throw new BadRequestException('key query parameter is required');
     }
 
+    const cleanKey = key.replace(/^\/+/, '').replace(/^images\//, '');
+
     // Only allow artwork keys — never expose audio through this endpoint
-    if (!key.startsWith('artists/') && !key.startsWith('albums/')) {
+    if (!cleanKey.startsWith('artists/') && !cleanKey.startsWith('albums/')) {
       throw new BadRequestException(
         'Only artists/ and albums/ keys are allowed on this endpoint',
       );
     }
 
-    const url = await this.media.getPresignedUrl(key, 3600);
-    this.logger.debug(`Artwork redirect: ${key}`);
+    const url = await this.media.getPresignedUrl(cleanKey, 3600);
+    this.logger.debug(`Artwork redirect: ${cleanKey}`);
     return { url, statusCode: 302 };
   }
 }

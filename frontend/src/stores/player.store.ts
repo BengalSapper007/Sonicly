@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { getStreamUrl, evictStreamUrl } from '@/lib/stream-cache';
+import { getStreamUrl, evictStreamUrl, isStreamCached } from '@/lib/stream-cache';
+import { toast } from '@/stores/toast.store';
 
 export interface Song {
   id: string;
@@ -38,23 +39,126 @@ export function getAudioElement(): HTMLAudioElement | null {
   return _audioEl;
 }
 
+/** Tracking token to prevent stale track loads from interrupting newer requests */
+let _currentPlayRequestId = 0;
+
+let _syncTimer: any = null;
+
+/** Throttled/debounced sync of active playback state to the user's cloud account */
+export function scheduleServerSync(immediate = false) {
+  if (typeof window === 'undefined') return;
+  if (_syncTimer) {
+    clearTimeout(_syncTimer);
+    _syncTimer = null;
+  }
+
+  const doSync = async () => {
+    try {
+      const { playerApi } = await import('@/lib/api');
+      const state = usePlayerStore.getState();
+      if (!state.currentSong) return;
+
+      await playerApi.updateState({
+        songId: state.currentSong?.id ?? null,
+        currentTime: state.currentTime,
+        duration: state.duration,
+        progress: state.progress,
+        contextType: state.contextType,
+        contextId: state.contextId,
+        contextTitle: state.contextTitle,
+        currentIndex: state.currentIndex,
+        queue: state.queue,
+        userQueue: state.userQueue,
+        volume: state.volume,
+        shuffle: state.shuffle,
+        repeat: state.repeat,
+      });
+    } catch {}
+  };
+
+  if (immediate) {
+    doSync();
+  } else {
+    _syncTimer = setTimeout(doSync, 2500);
+  }
+}
+
+// Ensure state is synced on window hide/close
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', () => {
+    import('@/lib/api').then(({ playerApi }) => {
+      const state = usePlayerStore.getState();
+      if (!state.currentSong) return;
+      playerApi.syncKeepalive({
+        songId: state.currentSong.id,
+        currentTime: state.currentTime,
+        duration: state.duration,
+        progress: state.progress,
+        contextType: state.contextType,
+        contextId: state.contextId,
+        contextTitle: state.contextTitle,
+        currentIndex: state.currentIndex,
+        queue: state.queue,
+        userQueue: state.userQueue,
+        volume: state.volume,
+        shuffle: state.shuffle,
+        repeat: state.repeat,
+      });
+    }).catch(() => {});
+  });
+}
+
 /**
  * Fetch a presigned R2 stream URL for a song (with sessionStorage TTL cache),
- * then load and play it.  The cache prevents redundant /stream API hits when
+ * then load and play it. The cache prevents redundant /stream API hits when
  * revisiting the same song within a tab session.
  * On error, evict the cached URL so a fresh one is fetched next attempt.
  */
-async function loadAndPlay(song: Song): Promise<void> {
+async function loadAndPlay(song: Song, startTime?: number): Promise<void> {
   const audio = getAudioElement();
   if (!audio) return;
 
+  const requestId = ++_currentPlayRequestId;
+
   try {
     const streamUrl = await getStreamUrl(song.id);
-    audio.src = streamUrl;
-    await audio.play();
-  } catch (err) {
+    // If a newer track switch occurred while fetching the URL, abort cleanly
+    if (requestId !== _currentPlayRequestId) {
+      return;
+    }
+
+    if (audio.src !== streamUrl) {
+      try {
+        audio.pause();
+      } catch {}
+      audio.src = streamUrl;
+    }
+
+    const seekTime = startTime ?? 0;
+    if (seekTime > 0) {
+      try {
+        audio.currentTime = seekTime;
+      } catch {}
+      if (audio.readyState < 1) {
+        const onLoaded = () => {
+          try {
+            audio.currentTime = seekTime;
+          } catch {}
+        };
+        audio.addEventListener('loadedmetadata', onLoaded, { once: true });
+      }
+    }
+
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      await playPromise;
+    }
+  } catch (err: any) {
+    // AbortError is normal when a user switches tracks while audio is loading
+    if (err?.name === 'AbortError' || requestId !== _currentPlayRequestId) {
+      return;
+    }
     console.error(`[Player] Failed to load stream for ${song.id}:`, err);
-    // Evict the cached URL so a fresh presigned URL is fetched next time
     evictStreamUrl(song.id);
   }
 }
@@ -70,32 +174,49 @@ async function recordHistory(songId: string): Promise<void> {
 }
 
 interface PlayerState {
-  // Queue
-  queue: Song[];
-  currentIndex: number;
+  // Queues
+  queue: Song[];              // Context playback queue (album, playlist, artist, search)
+  currentIndex: number;       // Current index in context queue
   currentSong: Song | null;
+  userQueue: Song[];          // Priority queue explicitly added by user ("Play Next" / "Add to Queue")
+  history: Song[];            // Recently played tracks for backward navigation
+  isQueueOpen: boolean;       // Whether the queue side-panel is open
+  isNowPlayingOpen: boolean;  // Whether the dedicated now-playing screen is open
 
   // Playback state (NOT persisted — reset on page load)
   isPlaying: boolean;
-  progress: number;    // 0..1
-  duration: number;    // seconds
-  currentTime: number; // seconds
+  progress: number;           // 0..1
+  duration: number;           // seconds
+  currentTime: number;        // seconds
 
   // Persisted preferences
-  volume: number;      // 0..1
+  volume: number;             // 0..1
   shuffle: boolean;
   repeat: RepeatMode;
 
   // Source context
   contextType: ContextType;
   contextId: string | null;
+  contextTitle: string | null;
 
   // Actions
-  playSong: (song: Song, queue?: Song[], contextType?: ContextType, contextId?: string | null) => void;
-  playQueue: (songs: Song[], startIndex: number, contextType?: ContextType, contextId?: string | null) => void;
-  togglePlay: () => void;
+  playSong: (
+    song: Song,
+    queue?: Song[],
+    contextType?: ContextType,
+    contextId?: string | null,
+    contextTitle?: string | null
+  ) => void;
+  playQueue: (
+    songs: Song[],
+    startIndex: number,
+    contextType?: ContextType,
+    contextId?: string | null,
+    contextTitle?: string | null
+  ) => void;
+  togglePlay: () => void | Promise<void>;
   pause: () => void;
-  resume: () => void;
+  resume: () => void | Promise<void>;
   next: () => void;
   prev: () => void;
   seek: (progress: number) => void;
@@ -107,6 +228,26 @@ interface PlayerState {
   setDuration: (duration: number) => void;
   setIsPlaying: (playing: boolean) => void;
   setSongLiked: (songId: string, liked: boolean) => void;
+
+  // Queue actions
+  playNext: (songs: Song | Song[]) => void;
+  addToQueue: (songs: Song | Song[]) => void;
+  removeFromUserQueue: (index: number) => void;
+  removeFromContextQueue: (index: number) => void;
+  clearUserQueue: () => void;
+  clearContextQueue: () => void;
+  clearAllUpcoming: () => void;
+  reorderUserQueue: (fromIndex: number, toIndex: number) => void;
+  reorderContextQueue: (fromIndex: number, toIndex: number) => void;
+  playFromUserQueue: (index: number) => void;
+  playFromContextQueue: (index: number) => void;
+  toggleQueue: () => void;
+  setQueueOpen: (open: boolean) => void;
+  setContextTitle: (title: string | null) => void;
+  openNowPlaying: () => void;
+  closeNowPlaying: () => void;
+  toggleNowPlaying: () => void;
+  restoreServerState: (serverState: any) => void;
 }
 
 export const usePlayerStore = create<PlayerState>()(
@@ -115,6 +256,11 @@ export const usePlayerStore = create<PlayerState>()(
       queue: [],
       currentIndex: 0,
       currentSong: null,
+      userQueue: [],
+      history: [],
+      isQueueOpen: false,
+      isNowPlayingOpen: false,
+
       isPlaying: false,
       progress: 0,
       volume: 0.8,
@@ -124,61 +270,179 @@ export const usePlayerStore = create<PlayerState>()(
       repeat: 'none',
       contextType: null,
       contextId: null,
+      contextTitle: null,
 
-      playSong: (song, queue, contextType = null, contextId = null) => {
+      playSong: (song, queue, contextType = null, contextId = null, contextTitle = null) => {
+        const { currentSong, history } = get();
         const newQueue = queue ?? [song];
         const index = newQueue.findIndex((s) => s.id === song.id);
+        const updatedHistory =
+          currentSong && currentSong.id !== song.id
+            ? [...history.slice(-49), currentSong]
+            : history;
+
         set({
           queue: newQueue,
           currentIndex: index >= 0 ? index : 0,
           currentSong: song,
+          currentTime: 0,
+          progress: 0,
+          duration: song.duration || 0,
           isPlaying: true,
           contextType,
           contextId,
+          contextTitle,
+          history: updatedHistory,
         });
-        // Fetch presigned URL via cache, then play — R2 credentials stay server-side
-        loadAndPlay(song);
+        loadAndPlay(song, 0);
         recordHistory(song.id);
+        import('@/hooks/useDeviceSocket').then(({ claimActivePlayback, broadcastLocalPlaybackState }) => {
+          claimActivePlayback();
+          broadcastLocalPlaybackState({ currentSong: song, currentTime: 0, progress: 0, isPlaying: true });
+        }).catch(() => {});
+        scheduleServerSync(true);
       },
 
-      playQueue: (songs, startIndex, contextType = null, contextId = null) => {
+      playQueue: (songs, startIndex, contextType = null, contextId = null, contextTitle = null) => {
         if (!songs.length) return;
+        const { currentSong, history } = get();
         const song = songs[startIndex] ?? songs[0];
+        const updatedHistory =
+          currentSong && currentSong.id !== song.id
+            ? [...history.slice(-49), currentSong]
+            : history;
+
         set({
           queue: songs,
           currentIndex: startIndex,
           currentSong: song,
+          currentTime: 0,
+          progress: 0,
+          duration: song.duration || 0,
           isPlaying: true,
           contextType,
           contextId,
+          contextTitle,
+          history: updatedHistory,
         });
-        loadAndPlay(song);
+        loadAndPlay(song, 0);
         recordHistory(song.id);
+        import('@/hooks/useDeviceSocket').then(({ claimActivePlayback, broadcastLocalPlaybackState }) => {
+          claimActivePlayback();
+          broadcastLocalPlaybackState({ currentSong: song, currentTime: 0, progress: 0, isPlaying: true });
+        }).catch(() => {});
+        scheduleServerSync(true);
       },
 
-      togglePlay: () => {
-        const { isPlaying } = get();
+      togglePlay: async () => {
+        const { isPlaying, currentSong, currentTime, duration } = get();
         const audio = getAudioElement();
         if (isPlaying) {
           audio?.pause();
+          set({ isPlaying: false });
+          scheduleServerSync(true);
         } else {
-          audio?.play().catch(() => {});
+          if (!currentSong) return;
+          const targetTime = duration > 0 && currentTime >= duration - 2 ? 0 : currentTime;
+          const hasValidSrc = Boolean(
+            audio?.src &&
+            audio.src !== '' &&
+            audio.src !== window.location.href &&
+            isStreamCached(currentSong.id)
+          );
+
+          if (!hasValidSrc) {
+            set({ isPlaying: true });
+            await loadAndPlay(currentSong, targetTime);
+          } else {
+            if (audio && targetTime > 0 && Math.abs(audio.currentTime - targetTime) > 0.5) {
+              try {
+                audio.currentTime = targetTime;
+              } catch {}
+            }
+            try {
+              const playPromise = audio?.play();
+              if (playPromise !== undefined) await playPromise;
+              set({ isPlaying: true });
+            } catch (err: any) {
+              if (err?.name === 'AbortError') return;
+              console.warn('[Player] Direct play failed, reloading stream:', err);
+              evictStreamUrl(currentSong.id);
+              await loadAndPlay(currentSong, targetTime);
+              set({ isPlaying: true });
+            }
+          }
+          scheduleServerSync(true);
         }
-        set({ isPlaying: !isPlaying });
       },
 
       pause: () => {
         getAudioElement()?.pause();
         set({ isPlaying: false });
+        scheduleServerSync(true);
       },
 
-      resume: () => {
-        getAudioElement()?.play().catch(() => {});
-        set({ isPlaying: true });
+      resume: async () => {
+        const { currentSong, currentTime, duration } = get();
+        const audio = getAudioElement();
+        if (!currentSong) return;
+        const targetTime = duration > 0 && currentTime >= duration - 2 ? 0 : currentTime;
+        const hasValidSrc = Boolean(
+          audio?.src &&
+          audio.src !== '' &&
+          audio.src !== window.location.href &&
+          isStreamCached(currentSong.id)
+        );
+
+        if (!hasValidSrc) {
+          set({ isPlaying: true });
+          await loadAndPlay(currentSong, targetTime);
+        } else {
+          if (audio && targetTime > 0 && Math.abs(audio.currentTime - targetTime) > 0.5) {
+            try {
+              audio.currentTime = targetTime;
+            } catch {}
+          }
+          try {
+            const playPromise = audio?.play();
+            if (playPromise !== undefined) await playPromise;
+            set({ isPlaying: true });
+          } catch (err: any) {
+            if (err?.name === 'AbortError') return;
+            console.warn('[Player] Direct play failed, reloading stream:', err);
+            evictStreamUrl(currentSong.id);
+            await loadAndPlay(currentSong, targetTime);
+            set({ isPlaying: true });
+          }
+        }
       },
 
       next: () => {
-        const { queue, currentIndex, shuffle, repeat } = get();
+        const { queue, currentIndex, userQueue, history, shuffle, repeat, currentSong } = get();
+
+        // 1. If user queue has songs, play the first one next!
+        if (userQueue.length > 0) {
+          const nextSong = userQueue[0];
+          const updatedUserQueue = userQueue.slice(1);
+          const updatedHistory =
+            currentSong ? [...history.slice(-49), currentSong] : history;
+
+          set({
+            userQueue: updatedUserQueue,
+            currentSong: nextSong,
+            currentTime: 0,
+            progress: 0,
+            duration: nextSong.duration || 0,
+            isPlaying: true,
+            history: updatedHistory,
+          });
+          loadAndPlay(nextSong, 0);
+          recordHistory(nextSong.id);
+          scheduleServerSync(true);
+          return;
+        }
+
+        // 2. Otherwise advance in context queue
         if (!queue.length) return;
 
         let nextIndex: number;
@@ -192,37 +456,84 @@ export const usePlayerStore = create<PlayerState>()(
           nextIndex = 0;
         } else {
           set({ isPlaying: false });
+          scheduleServerSync(true);
           return;
         }
 
-        const song = queue[nextIndex];
-        set({ currentIndex: nextIndex, currentSong: song, isPlaying: true });
-        loadAndPlay(song);
-        recordHistory(song.id);
+        const nextSong = queue[nextIndex];
+        const updatedHistory =
+          currentSong ? [...history.slice(-49), currentSong] : history;
+
+        set({
+          currentIndex: nextIndex,
+          currentSong: nextSong,
+          currentTime: 0,
+          progress: 0,
+          duration: nextSong.duration || 0,
+          isPlaying: true,
+          history: updatedHistory,
+        });
+        loadAndPlay(nextSong, 0);
+        recordHistory(nextSong.id);
+        scheduleServerSync(true);
       },
 
       prev: () => {
-        const { queue, currentIndex, currentTime } = get();
+        const { queue, currentIndex, currentTime, history } = get();
         const audio = getAudioElement();
         // If past 3 seconds, restart current song
         if (currentTime > 3 && audio) {
           audio.currentTime = 0;
+          set({ currentTime: 0, progress: 0 });
+          scheduleServerSync(false);
           return;
         }
+
+        // If we have history tracks (e.g. from user queue or previous songs)
+        if (history.length > 0) {
+          const prevSong = history[history.length - 1];
+          const updatedHistory = history.slice(0, -1);
+          const indexInQueue = queue.findIndex((s) => s.id === prevSong.id);
+          set({
+            history: updatedHistory,
+            currentSong: prevSong,
+            currentIndex: indexInQueue >= 0 ? indexInQueue : currentIndex,
+            currentTime: 0,
+            progress: 0,
+            duration: prevSong.duration || 0,
+            isPlaying: true,
+          });
+          loadAndPlay(prevSong, 0);
+          scheduleServerSync(true);
+          return;
+        }
+
         if (!queue.length) return;
         const prevIndex = currentIndex > 0 ? currentIndex - 1 : queue.length - 1;
         const song = queue[prevIndex];
-        set({ currentIndex: prevIndex, currentSong: song, isPlaying: true });
-        loadAndPlay(song);
+        set({
+          currentIndex: prevIndex,
+          currentSong: song,
+          currentTime: 0,
+          progress: 0,
+          duration: song.duration || 0,
+          isPlaying: true,
+        });
+        loadAndPlay(song, 0);
+        scheduleServerSync(true);
       },
 
       seek: (progress) => {
         const { duration } = get();
         const audio = getAudioElement();
-        if (audio && duration) {
-          audio.currentTime = progress * duration;
+        const targetTime = duration > 0 ? progress * duration : 0;
+        if (audio && duration > 0) {
+          try {
+            audio.currentTime = targetTime;
+          } catch {}
         }
-        set({ progress });
+        set({ progress, currentTime: targetTime });
+        scheduleServerSync(false);
       },
 
       setVolume: (vol) => {
@@ -231,12 +542,17 @@ export const usePlayerStore = create<PlayerState>()(
         set({ volume: vol });
       },
 
-      toggleShuffle: () => set((s) => ({ shuffle: !s.shuffle })),
+      toggleShuffle: () => {
+        set((s) => ({ shuffle: !s.shuffle }));
+        scheduleServerSync(false);
+      },
 
-      toggleRepeat: () =>
+      toggleRepeat: () => {
         set((s) => ({
           repeat: s.repeat === 'none' ? 'all' : s.repeat === 'all' ? 'one' : 'none',
-        })),
+        }));
+        scheduleServerSync(false);
+      },
 
       setProgress: (progress) => set({ progress }),
       setCurrentTime: (currentTime) => set({ currentTime }),
@@ -244,7 +560,7 @@ export const usePlayerStore = create<PlayerState>()(
       setIsPlaying: (isPlaying) => set({ isPlaying }),
 
       setSongLiked: (songId: string, liked: boolean) => {
-        const { currentSong, queue } = get();
+        const { currentSong, queue, userQueue } = get();
         const updatedCurrentSong =
           currentSong && currentSong.id === songId
             ? {
@@ -273,27 +589,240 @@ export const usePlayerStore = create<PlayerState>()(
             : s
         );
 
-        set({ currentSong: updatedCurrentSong, queue: updatedQueue });
+        const updatedUserQueue = userQueue.map((s) =>
+          s.id === songId
+            ? {
+                ...s,
+                likes: liked ? [{ userId: 'me' }] : [],
+                _count: {
+                  ...s._count,
+                  likes: Math.max(0, (s._count?.likes ?? 0) + (liked ? 1 : -1)),
+                },
+              }
+            : s
+        );
+
+        set({
+          currentSong: updatedCurrentSong,
+          queue: updatedQueue,
+          userQueue: updatedUserQueue,
+        });
+      },
+
+      // ── Track Queue Operations ─────────────────────────────────────────────
+      playNext: (songs) => {
+        const songArr = Array.isArray(songs) ? songs : [songs];
+        if (!songArr.length) return;
+
+        const { currentSong, userQueue } = get();
+
+        // If nothing is playing, play immediately
+        if (!currentSong) {
+          get().playSong(songArr[0], songArr);
+          toast.success(
+            songArr.length === 1
+              ? `Playing "${songArr[0].title}"`
+              : `Playing ${songArr.length} tracks`
+          );
+          return;
+        }
+
+        // Filter out duplicate consecutive or add to front of userQueue
+        set({
+          userQueue: [...songArr, ...userQueue],
+        });
+
+        toast.success(
+          songArr.length === 1
+            ? `Playing next: "${songArr[0].title}"`
+            : `${songArr.length} tracks will play next`
+        );
+      },
+
+      addToQueue: (songs) => {
+        const songArr = Array.isArray(songs) ? songs : [songs];
+        if (!songArr.length) return;
+
+        const { currentSong, userQueue } = get();
+
+        // If nothing is playing, play immediately
+        if (!currentSong) {
+          get().playSong(songArr[0], songArr);
+          toast.success(
+            songArr.length === 1
+              ? `Playing "${songArr[0].title}"`
+              : `Playing ${songArr.length} tracks`
+          );
+          return;
+        }
+
+        set({
+          userQueue: [...userQueue, ...songArr],
+        });
+
+        toast.success(
+          songArr.length === 1
+            ? `Added to queue: "${songArr[0].title}"`
+            : `Added ${songArr.length} tracks to queue`
+        );
+      },
+
+      removeFromUserQueue: (index) => {
+        const { userQueue } = get();
+        if (index < 0 || index >= userQueue.length) return;
+        const updated = [...userQueue];
+        const [removed] = updated.splice(index, 1);
+        set({ userQueue: updated });
+        if (removed) {
+          toast.info(`Removed "${removed.title}" from queue`);
+        }
+      },
+
+      removeFromContextQueue: (index) => {
+        const { queue, currentIndex } = get();
+        if (index < 0 || index >= queue.length) return;
+        const updated = [...queue];
+        const [removed] = updated.splice(index, 1);
+        const newIndex =
+          index < currentIndex ? Math.max(0, currentIndex - 1) : currentIndex;
+        set({ queue: updated, currentIndex: newIndex });
+        if (removed) {
+          toast.info(`Removed "${removed.title}" from upcoming`);
+        }
+      },
+
+      clearUserQueue: () => {
+        set({ userQueue: [] });
+        toast.info('Cleared user queue');
+      },
+
+      clearContextQueue: () => {
+        const { queue, currentIndex } = get();
+        set({ queue: queue.slice(0, currentIndex + 1) });
+        toast.info('Cleared upcoming tracks');
+      },
+
+      clearAllUpcoming: () => {
+        const { queue, currentIndex } = get();
+        set({
+          userQueue: [],
+          queue: queue.slice(0, currentIndex + 1),
+        });
+        toast.info('Queue cleared');
+      },
+
+      reorderUserQueue: (fromIndex, toIndex) => {
+        const { userQueue } = get();
+        if (
+          fromIndex < 0 ||
+          fromIndex >= userQueue.length ||
+          toIndex < 0 ||
+          toIndex >= userQueue.length ||
+          fromIndex === toIndex
+        ) {
+          return;
+        }
+        const updated = [...userQueue];
+        const [item] = updated.splice(fromIndex, 1);
+        updated.splice(toIndex, 0, item);
+        set({ userQueue: updated });
+      },
+
+      reorderContextQueue: (fromIndex, toIndex) => {
+        const { queue } = get();
+        if (
+          fromIndex < 0 ||
+          fromIndex >= queue.length ||
+          toIndex < 0 ||
+          toIndex >= queue.length ||
+          fromIndex === toIndex
+        ) {
+          return;
+        }
+        const updated = [...queue];
+        const [item] = updated.splice(fromIndex, 1);
+        updated.splice(toIndex, 0, item);
+        set({ queue: updated });
+      },
+
+      playFromUserQueue: (index) => {
+        const { userQueue, currentSong, history } = get();
+        if (index < 0 || index >= userQueue.length) return;
+        const song = userQueue[index];
+        // Consume up to this index
+        const remainingUserQueue = userQueue.slice(index + 1);
+        const updatedHistory =
+          currentSong ? [...history.slice(-49), currentSong] : history;
+
+        set({
+          userQueue: remainingUserQueue,
+          currentSong: song,
+          currentTime: 0,
+          progress: 0,
+          duration: song.duration || 0,
+          isPlaying: true,
+          history: updatedHistory,
+        });
+        loadAndPlay(song, 0);
+        recordHistory(song.id);
+      },
+
+      playFromContextQueue: (index) => {
+        const { queue, currentSong, history } = get();
+        if (index < 0 || index >= queue.length) return;
+        const song = queue[index];
+        const updatedHistory =
+          currentSong ? [...history.slice(-49), currentSong] : history;
+
+        set({
+          currentIndex: index,
+          currentSong: song,
+          currentTime: 0,
+          progress: 0,
+          duration: song.duration || 0,
+          isPlaying: true,
+          history: updatedHistory,
+        });
+        loadAndPlay(song, 0);
+        recordHistory(song.id);
+      },
+
+      toggleQueue: () => set((s) => ({ isQueueOpen: !s.isQueueOpen })),
+      setQueueOpen: (open) => set({ isQueueOpen: open }),
+      setContextTitle: (title) => set({ contextTitle: title }),
+      openNowPlaying: () => set({ isNowPlayingOpen: true }),
+      closeNowPlaying: () => set({ isNowPlayingOpen: false }),
+      toggleNowPlaying: () => set((s) => ({ isNowPlayingOpen: !s.isNowPlayingOpen })),
+
+      restoreServerState: (serverState) => {
+        if (!serverState) return;
+        set({
+          currentSong: serverState.currentSong ?? null,
+          currentTime: serverState.currentTime ?? 0,
+          duration: serverState.duration || serverState.currentSong?.duration || 0,
+          progress: serverState.progress ?? 0,
+          queue: Array.isArray(serverState.queue) ? serverState.queue : [],
+          userQueue: Array.isArray(serverState.userQueue) ? serverState.userQueue : [],
+          currentIndex: serverState.currentIndex ?? 0,
+          contextType: serverState.contextType ?? null,
+          contextId: serverState.contextId ?? null,
+          contextTitle: serverState.contextTitle ?? null,
+          volume: serverState.volume ?? get().volume,
+          shuffle: serverState.shuffle ?? false,
+          repeat: serverState.repeat ?? 'none',
+          isPlaying: false,
+        });
       },
     }),
     {
       name: 'sonicly-player',
       /**
-       * Only persist user preferences and queue state.
-       * Ephemeral playback state (isPlaying, progress, currentTime, duration)
-       * is intentionally excluded — the audio element resets on page reload.
+       * Volume is persisted locally per device hardware.
+       * All track queues and positions are synchronized across devices via the server.
        */
       partialize: (state) => ({
-        queue: state.queue,
-        currentIndex: state.currentIndex,
-        currentSong: state.currentSong,
         volume: state.volume,
-        shuffle: state.shuffle,
-        repeat: state.repeat,
-        contextType: state.contextType,
-        contextId: state.contextId,
       }),
     }
   )
 );
-

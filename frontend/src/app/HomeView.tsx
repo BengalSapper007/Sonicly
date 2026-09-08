@@ -64,7 +64,8 @@ export function HomeView({
                   featured.songs.map((s: any) => s.song || s),
                   0,
                   'playlist',
-                  featured.id
+                  featured.id,
+                  featured.title
                 );
               }
             }}
@@ -84,7 +85,8 @@ export function HomeView({
                 key={album.id}
                 album={album}
                 onPlay={() => {
-                  if (album.songs?.length) playQueue(album.songs, 0, 'album', album.id);
+                  if (album.songs?.length)
+                    playQueue(album.songs, 0, 'album', album.id, album.title);
                 }}
               />
             ))}
@@ -116,7 +118,8 @@ export function HomeView({
                 key={album.id}
                 album={album}
                 onPlay={() => {
-                  if (album.songs?.length) playQueue(album.songs, 0, 'album', album.id);
+                  if (album.songs?.length)
+                    playQueue(album.songs, 0, 'album', album.id, album.title);
                 }}
                 grid
               />
@@ -250,7 +253,7 @@ function ArtistCard({ artist }: { artist: any }) {
 
 // ── Playlist Card ─────────────────────────────────────────────────────────────
 function PlaylistCard({ playlist }: { playlist: any }) {
-  const cover = artworkUrl(playlist.imageKey);
+  const cover = artworkUrl(playlist.coverUrl || playlist.imageKey);
   return (
     <Link href={`/playlist/${playlist.id}`} className="group flex-none w-[160px] cursor-pointer block">
       <div className="relative w-full aspect-square rounded-lg overflow-hidden mb-2 border-l-2 border-l-crisp-green border-y border-r border-border-light transition-colors">

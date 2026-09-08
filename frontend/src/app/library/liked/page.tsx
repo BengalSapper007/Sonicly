@@ -71,7 +71,7 @@ export default function LikedSongsPage() {
         {displaySongs.length > 0 && !loading && (
           <button
             className="mt-6 w-14 h-14 rounded-full flex items-center justify-center bg-vibrant-saffron transition-all hover:scale-105 hover:bg-deep-saffron cursor-pointer"
-            onClick={() => playQueue(displaySongs, 0, 'search', undefined)}
+            onClick={() => playQueue(displaySongs, 0, 'search', undefined, 'Liked Songs')}
           >
             <Play className="w-6 h-6 fill-current text-white ml-0.5" />
           </button>
@@ -95,7 +95,14 @@ export default function LikedSongsPage() {
         ) : (
           <div className="space-y-1">
             {displaySongs.map((song: any, i: number) => (
-              <SongRow key={song.id} song={song} index={i} queue={displaySongs} contextType="search" />
+              <SongRow
+                key={song.id}
+                song={song}
+                index={i}
+                queue={displaySongs}
+                contextType="search"
+                contextTitle="Liked Songs"
+              />
             ))}
           </div>
         )}

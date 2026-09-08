@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { ArtworkImage } from '@/components/ui/ArtworkImage';
 import { formatNumber } from '@/lib/utils';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
+import { useMounted } from '@/hooks/useMounted';
 
 interface ArtistViewProps {
   artistId: string;
@@ -22,6 +23,7 @@ export function ArtistView({ artistId, initialArtist }: ArtistViewProps) {
   const [loading, setLoading] = useState(!initialArtist);
   const { playQueue } = usePlayerStore();
   const { isAuthenticated } = useAuthStore();
+  const mounted = useMounted();
 
   const isArtistFollowed = useLibraryStore((s) => s.isArtistFollowed);
   const toggleFollowArtist = useLibraryStore((s) => s.toggleFollowArtist);
@@ -53,8 +55,8 @@ export function ArtistView({ artistId, initialArtist }: ArtistViewProps) {
 
   const topSongs = artist.popularSongs?.slice(0, 5) || [];
   const albums = artist.albums || [];
-  const following = isArtistFollowed(artistId);
-  const followLoading = !!loadingArtists[artistId];
+  const following = mounted ? isArtistFollowed(artistId) : false;
+  const followLoading = mounted ? !!loadingArtists[artistId] : false;
 
   return (
     <div className="min-h-full pb-16">
@@ -114,7 +116,15 @@ export function ArtistView({ artistId, initialArtist }: ArtistViewProps) {
       <div className="px-8 py-5 flex items-center gap-4">
         {topSongs.length > 0 && (
           <button
-            onClick={() => playQueue(topSongs, 0, 'artist', artistId)}
+            onClick={() =>
+              playQueue(
+                topSongs,
+                0,
+                'artist',
+                artistId,
+                `${artist.name} - Popular Tracks`
+              )
+            }
             className="btn-primary flex items-center gap-2 px-6 py-2.5"
           >
             <Play className="w-4 h-4 fill-current ml-0.5" />
@@ -151,6 +161,7 @@ export function ArtistView({ artistId, initialArtist }: ArtistViewProps) {
                 queue={topSongs}
                 contextType="artist"
                 contextId={artistId}
+                contextTitle={`${artist.name} - Popular Tracks`}
                 showAlbum={true}
               />
             ))}
@@ -187,7 +198,7 @@ export function ArtistView({ artistId, initialArtist }: ArtistViewProps) {
   );
 }
 
-function ArtistSkeleton() {
+export function ArtistSkeleton() {
   return (
     <div className="animate-fade-in">
       <Skeleton className="h-72 rounded-none shimmer" />

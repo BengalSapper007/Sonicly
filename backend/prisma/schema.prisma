@@ -94,6 +94,7 @@ model Song {
   playlistEntries PlaylistSong[]
   history         ListeningHistory[]
   searchHistory   SearchHistory[]
+  playbackStates  PlaybackState[]
 
   @@map("songs")
 }
@@ -118,6 +119,7 @@ model User {
   savedAlbums SavedAlbum[]
   history     ListeningHistory[]
   searchHistory SearchHistory[]
+  playbackState PlaybackState?
 
   @@map("users")
 }
@@ -255,4 +257,39 @@ model SearchHistory {
   @@index([userId, updatedAt(sort: Desc)])
   @@map("search_history")
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Playback State (Cross-device sync)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model PlaybackState {
+  userId       String   @id
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  songId       String?
+  song         Song?    @relation(fields: [songId], references: [id], onDelete: SetNull)
+
+  currentTime  Float    @default(0)
+  duration     Float    @default(0)
+  progress     Float    @default(0)
+
+  contextType  String?
+  contextId    String?
+  contextTitle String?
+  currentIndex Int      @default(0)
+
+  queueJson    String?  @db.Text
+  userQueueJson String? @db.Text
+
+  volume       Float    @default(0.8)
+  shuffle      Boolean  @default(false)
+  repeat       String   @default("none")
+
+  activeDeviceId String?
+
+  updatedAt    DateTime @updatedAt
+
+  @@map("playback_states")
+}
+
 

@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSidebarStore, SIDEBAR_DEFAULT_WIDTH } from '@/stores/sidebar.store';
+import { useMounted } from '@/hooks/useMounted';
 import {
   Home,
   Search,
@@ -39,6 +40,8 @@ const LIBRARY_ITEMS: NavItemConfig[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const { isAuthenticated } = useAuthStore();
+  const mounted = useMounted();
+  const authed = mounted && isAuthenticated;
   const {
     width,
     isCollapsed,
@@ -166,7 +169,7 @@ export function Sidebar() {
           isCollapsed ? 'px-2' : 'px-3'
         )}
       >
-        {isAuthenticated ? (
+        {authed ? (
           <>
             <div>
               <div

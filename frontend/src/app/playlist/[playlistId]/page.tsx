@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import type { Metadata } from 'next';
 import { playlistsApi, artworkUrl } from '@/lib/api';
 import { JsonLd } from '@/components/seo/JsonLd';
@@ -7,11 +8,20 @@ interface PageProps {
   params: Promise<{ playlistId: string }>;
 }
 
+const getPlaylistCached = cache(async (playlistId: string) => {
+  try {
+    const res = await playlistsApi.get(playlistId);
+    return res.data ?? null;
+  } catch (err) {
+    console.error(`Failed to pre-fetch playlist ${playlistId} on server:`, err);
+    return null;
+  }
+});
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { playlistId } = await params;
   try {
-    const res = await playlistsApi.get(playlistId);
-    const playlist = res.data;
+    const playlist = await getPlaylistCached(playlistId);
     if (!playlist) {
       return { title: 'Playlist Not Found' };
     }
@@ -49,14 +59,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function PlaylistPage({ params }: PageProps) {
   const { playlistId } = await params;
-  let playlist: any = null;
-
-  try {
-    const res = await playlistsApi.get(playlistId);
-    playlist = res.data ?? null;
-  } catch (err) {
-    console.error(`Failed to pre-fetch playlist ${playlistId} on server:`, err);
-  }
+  const playlist = await getPlaylistCached(playlistId);
 
   const songs = playlist?.songs?.map((ps: any) => ps.song).filter(Boolean) || [];
   const playlistSchema = playlist

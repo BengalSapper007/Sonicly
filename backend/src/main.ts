@@ -34,7 +34,7 @@ async function bootstrap() {
   );
 
   // CORS — allow frontend origin (strip trailing slashes, support comma-separated origins)
-  const defaultOrigin = isProd ? '' : 'http://localhost:3000';
+  const defaultOrigin = isProd ? '' : 'http://localhost:3000,http://[IP_ADDRESS]';
   const rawOrigins = process.env.CORS_ORIGIN || defaultOrigin;
   const allowedOrigins = rawOrigins
     .split(',')
@@ -65,5 +65,13 @@ async function bootstrap() {
   console.log(`🚀 Sonicly API running on http://localhost:${port}/api`);
   console.log(`☁️  Media storage: Cloudflare R2 (bucket: ${process.env.R2_BUCKET_NAME ?? 'sonicly'})`);
 }
+
+process.on('unhandledRejection', (reason: any) => {
+  console.error('Unhandled Rejection at:', reason?.message || reason);
+});
+
+process.on('uncaughtException', (err: Error) => {
+  console.error('Uncaught Exception:', err?.message || err);
+});
 
 bootstrap();

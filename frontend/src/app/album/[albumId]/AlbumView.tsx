@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { ArtworkImage } from '@/components/ui/ArtworkImage';
 import { formatDuration } from '@/lib/utils';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
+import { useMounted } from '@/hooks/useMounted';
 
 interface AlbumViewProps {
   albumId: string;
@@ -21,6 +22,7 @@ export function AlbumView({ albumId, initialAlbum }: AlbumViewProps) {
   const [loading, setLoading] = useState(!initialAlbum);
   const { playQueue } = usePlayerStore();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const mounted = useMounted();
 
   const isAlbumSaved = useLibraryStore((s) => s.isAlbumSaved);
   const toggleSaveAlbum = useLibraryStore((s) => s.toggleSaveAlbum);
@@ -48,8 +50,8 @@ export function AlbumView({ albumId, initialAlbum }: AlbumViewProps) {
     }
   }, [albumId, initialAlbum, registerAlbum]);
 
-  const saved = isAlbumSaved(albumId);
-  const saveLoading = !!loadingAlbums[albumId];
+  const saved = mounted ? isAlbumSaved(albumId) : false;
+  const saveLoading = mounted ? !!loadingAlbums[albumId] : false;
 
   if (loading) return <AlbumSkeleton />;
   if (!album) {
@@ -60,7 +62,15 @@ export function AlbumView({ albumId, initialAlbum }: AlbumViewProps) {
     );
   }
 
-  const songs = album.songs || [];
+  const songs = (album.songs || []).map((s: any) => ({
+    ...s,
+    album: s.album || {
+      id: album.id,
+      title: album.title,
+      imageKey: album.imageKey,
+      artist: album.artist,
+    },
+  }));
   const totalDuration = songs.reduce((acc: number, s: any) => acc + (s.duration || 0), 0);
 
   return (
@@ -110,7 +120,7 @@ export function AlbumView({ albumId, initialAlbum }: AlbumViewProps) {
       {/* ── Action Bar ──────────────────────────────────────────────────────── */}
       <div className="px-4 md:px-8 py-4 flex items-center gap-3 border-b border-border-light bg-surface">
         <button
-          onClick={() => playQueue(songs, 0, 'album', album.id)}
+          onClick={() => playQueue(songs, 0, 'album', album.id, album.title)}
           disabled={!songs.length}
           className="btn-primary disabled:opacity-50"
         >
@@ -120,7 +130,7 @@ export function AlbumView({ albumId, initialAlbum }: AlbumViewProps) {
         <button
           onClick={() => {
             const idx = Math.floor(Math.random() * songs.length);
-            playQueue(songs, idx, 'album', album.id);
+            playQueue(songs, idx, 'album', album.id, album.title);
           }}
           disabled={!songs.length}
           className="btn-secondary disabled:opacity-50"
@@ -168,7 +178,8 @@ export function AlbumView({ albumId, initialAlbum }: AlbumViewProps) {
               queue={songs}
               contextType="album"
               contextId={album.id}
-              showAlbum={false}
+              contextTitle={album.title}
+              showAlbum={true}
             />
           ))}
         </div>
@@ -177,7 +188,7 @@ export function AlbumView({ albumId, initialAlbum }: AlbumViewProps) {
   );
 }
 
-function AlbumSkeleton() {
+export function AlbumSkeleton() {
   return (
     <div className="pb-24 bg-background animate-fade-in">
       <div className="bg-vibrant-saffron/30 border-b-2 border-prussian-blue/20 px-4 md:px-8 pt-8 pb-6">

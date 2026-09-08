@@ -14,15 +14,27 @@ export class AppCacheService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 
-    try {
-      const client = new Redis(redisUrl, {
-        lazyConnect: true,
-        connectTimeout: 1500,
-        maxRetriesPerRequest: 1,
-        enableOfflineQueue: false,
-        retryStrategy: () => null, // Do not spam retries if Redis is down
-      });
+    const client = new Redis(redisUrl, {
+      lazyConnect: true,
+      connectTimeout: 1500,
+      maxRetriesPerRequest: 1,
+      enableOfflineQueue: false,
+      retryStrategy: () => null, // Do not spam retries if Redis is down
+    });
 
+    // Always attach error listener immediately so it never emits an unhandled error event
+    client.on('error', (err) => {
+      if (this.isRedisReady) {
+        this.logger.warn(`Redis disconnected: ${err.message}. Falling back to memory cache.`);
+        this.isRedisReady = false;
+      }
+    });
+
+    client.on('ready', () => {
+      this.isRedisReady = true;
+    });
+
+    try {
       // Quick probe with timeout
       await Promise.race([
         client.connect(),
@@ -34,19 +46,12 @@ export class AppCacheService implements OnModuleInit, OnModuleDestroy {
       this.redisClient = client;
       this.isRedisReady = true;
       this.logger.log(`Connected to Redis at ${redisUrl} for distributed caching.`);
-
-      client.on('error', (err) => {
-        if (this.isRedisReady) {
-          this.logger.warn(`Redis disconnected: ${err.message}. Falling back to memory cache.`);
-          this.isRedisReady = false;
-        }
-      });
-
-      client.on('ready', () => {
-        this.isRedisReady = true;
-      });
     } catch {
       this.isRedisReady = false;
+      try {
+        client.disconnect();
+      } catch {}
+      this.redisClient = null;
       this.logger.log('Redis is offline or not configured. Using high-performance in-memory cache.');
     }
   }
