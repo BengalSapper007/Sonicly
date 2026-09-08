@@ -9,10 +9,69 @@ let _socketInstance: WebSocket | null = null;
 
 export function sendSocketMessage(msg: any): boolean {
   if (_socketInstance && _socketInstance.readyState === WebSocket.OPEN) {
-    _socketInstance.send(JSON.stringify(msg));
-    return true;
+    try {
+      _socketInstance.send(JSON.stringify(msg));
+      return true;
+    } catch {}
   }
   return false;
+}
+
+/**
+ * Determine the appropriate WebSocket endpoint for the player gateway.
+ * - Prioritizes NEXT_PUBLIC_WS_URL (e.g. wss://backend.domain.com)
+ * - Derives from NEXT_PUBLIC_API_URL if available
+ * - Enforces wss:// if the current page is served over https:// to prevent Mixed Content SecurityErrors
+ */
+function getWebSocketUrl(
+  token: string,
+  myDeviceId: string,
+  myDeviceName: string,
+  myDeviceType: string,
+): string | null {
+  if (typeof window === 'undefined') return null;
+
+  const isHttps = window.location.protocol === 'https:';
+
+  // 1. Explicit WS URL environment variable
+  let baseWsUrl = process.env.NEXT_PUBLIC_WS_URL?.trim();
+
+  // 2. Derive from NEXT_PUBLIC_API_URL if available
+  if (!baseWsUrl && process.env.NEXT_PUBLIC_API_URL) {
+    const rawApi = process.env.NEXT_PUBLIC_API_URL.trim();
+    if (rawApi.startsWith('http://') || rawApi.startsWith('https://')) {
+      try {
+        const urlObj = new URL(rawApi);
+        const wsProtocol = urlObj.protocol === 'https:' ? 'wss:' : 'ws:';
+        baseWsUrl = `${wsProtocol}//${urlObj.host}`;
+      } catch {}
+    }
+  }
+
+  // 3. Fallback for localhost vs deployed
+  if (!baseWsUrl) {
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') {
+      baseWsUrl = `ws://${host}:3001`;
+    } else {
+      // In production, fallback to current host
+      baseWsUrl = `${isHttps ? 'wss:' : 'ws:'}//${window.location.host}`;
+    }
+  }
+
+  // Strip trailing slashes and any /api suffix
+  baseWsUrl = baseWsUrl.replace(/\/+$/, '').replace(/\/api\/?$/, '');
+
+  // Crucial security constraint: NEVER use insecure ws:// from an https:// origin
+  if (isHttps && baseWsUrl.startsWith('ws://')) {
+    baseWsUrl = baseWsUrl.replace(/^ws:\/\//, 'wss://');
+  }
+
+  return `${baseWsUrl}/api/player/connect?token=${encodeURIComponent(
+    token,
+  )}&deviceId=${encodeURIComponent(myDeviceId)}&deviceName=${encodeURIComponent(
+    myDeviceName,
+  )}&deviceType=${encodeURIComponent(myDeviceType)}`;
 }
 
 export function transferPlaybackTo(targetDeviceId: string) {
@@ -90,24 +149,29 @@ export function useDeviceSocket() {
       try {
         socketRef.current.close();
       } catch {}
+      socketRef.current = null;
     }
 
-    const host = window.location.hostname || 'localhost';
-    const wsUrl = `ws://${host}:3001/api/player/connect?token=${encodeURIComponent(
-      token,
-    )}&deviceId=${encodeURIComponent(myDeviceId)}&deviceName=${encodeURIComponent(
-      myDeviceName,
-    )}&deviceType=${encodeURIComponent(myDeviceType)}`;
+    let ws: WebSocket;
+    try {
+      const wsUrl = getWebSocketUrl(token, myDeviceId, myDeviceName, myDeviceType);
+      if (!wsUrl) return;
 
-    const ws = new WebSocket(wsUrl);
-    socketRef.current = ws;
-    _socketInstance = ws;
+      ws = new WebSocket(wsUrl);
+      socketRef.current = ws;
+      _socketInstance = ws;
+    } catch (err) {
+      console.warn('[DeviceSocket] WebSocket connection could not be initiated:', err);
+      return;
+    }
 
     ws.onopen = () => {
       // Start ping heartbeat
       pingIntervalRef.current = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'PING' }));
+          try {
+            ws.send(JSON.stringify({ type: 'PING' }));
+          } catch {}
         }
       }, 25000);
     };

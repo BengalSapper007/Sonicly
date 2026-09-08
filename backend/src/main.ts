@@ -46,7 +46,11 @@ async function bootstrap() {
       // Allow non-browser requests (server-to-server, mobile native, curl)
       if (!origin) return callback(null, true);
       const cleanOrigin = origin.replace(/\/+$/, '');
-      if (allowedOrigins.includes(cleanOrigin) || (!isProd && allowedOrigins.includes('*'))) {
+      if (
+        allowedOrigins.includes(cleanOrigin) ||
+        cleanOrigin.endsWith('.vercel.app') ||
+        (!isProd && allowedOrigins.includes('*'))
+      ) {
         return callback(null, true);
       }
       callback(new Error(`Origin ${origin} not allowed by CORS`));
