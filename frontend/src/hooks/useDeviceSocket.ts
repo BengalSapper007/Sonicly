@@ -62,6 +62,13 @@ function getWebSocketUrl(
   // Strip trailing slashes and any /api suffix
   baseWsUrl = baseWsUrl.replace(/\/+$/, '').replace(/\/api\/?$/, '');
 
+  // Normalize http(s) schemes to ws(s) if an HTTP/HTTPS URL was provided
+  if (baseWsUrl.startsWith('https://')) {
+    baseWsUrl = baseWsUrl.replace(/^https:\/\//, 'wss://');
+  } else if (baseWsUrl.startsWith('http://')) {
+    baseWsUrl = baseWsUrl.replace(/^http:\/\//, 'ws://');
+  }
+
   // Crucial security constraint: NEVER use insecure ws:// from an https:// origin
   if (isHttps && baseWsUrl.startsWith('ws://')) {
     baseWsUrl = baseWsUrl.replace(/^ws:\/\//, 'wss://');
