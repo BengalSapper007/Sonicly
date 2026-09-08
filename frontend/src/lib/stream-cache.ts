@@ -78,3 +78,11 @@ export function evictStreamUrl(songId: string): void {
   if (typeof window === 'undefined') return;
   sessionStorage.removeItem(cacheKey(songId));
 }
+
+/**
+ * Checks whether a non-expired cached URL exists in sessionStorage.
+ */
+export function isStreamCached(songId: string): boolean {
+  return readEntry(songId) !== null;
+}
+

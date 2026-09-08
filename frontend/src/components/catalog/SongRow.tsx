@@ -8,6 +8,7 @@ import { cn, formatDuration } from '@/lib/utils';
 import { artworkUrl } from '@/lib/api';
 import { ArtworkImage } from '@/components/ui/ArtworkImage';
 import { TrackOptionsMenu } from '@/components/catalog/TrackOptionsMenu';
+import { useMounted } from '@/hooks/useMounted';
 
 interface SongRowProps {
   song: Song;
@@ -30,6 +31,7 @@ export function SongRow({
 }: SongRowProps) {
   const { currentSong, isPlaying, playSong, togglePlay } = usePlayerStore();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const mounted = useMounted();
 
   const isSongLiked = useLibraryStore((s) => s.isSongLiked);
   const toggleLikeSong = useLibraryStore((s) => s.toggleLikeSong);
@@ -43,8 +45,8 @@ export function SongRow({
     }
   }, [song?.id, (song as any)?.likes, registerSong]);
 
-  const liked = isSongLiked(song.id);
-  const likeLoading = !!loadingLikes[song.id];
+  const liked = mounted ? isSongLiked(song.id) : false;
+  const likeLoading = mounted ? !!loadingLikes[song.id] : false;
 
   const isCurrent = currentSong?.id === song.id;
   const isCurrentlyPlaying = isCurrent && isPlaying;

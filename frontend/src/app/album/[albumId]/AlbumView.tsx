@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { ArtworkImage } from '@/components/ui/ArtworkImage';
 import { formatDuration } from '@/lib/utils';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
+import { useMounted } from '@/hooks/useMounted';
 
 interface AlbumViewProps {
   albumId: string;
@@ -21,6 +22,7 @@ export function AlbumView({ albumId, initialAlbum }: AlbumViewProps) {
   const [loading, setLoading] = useState(!initialAlbum);
   const { playQueue } = usePlayerStore();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const mounted = useMounted();
 
   const isAlbumSaved = useLibraryStore((s) => s.isAlbumSaved);
   const toggleSaveAlbum = useLibraryStore((s) => s.toggleSaveAlbum);
@@ -48,8 +50,8 @@ export function AlbumView({ albumId, initialAlbum }: AlbumViewProps) {
     }
   }, [albumId, initialAlbum, registerAlbum]);
 
-  const saved = isAlbumSaved(albumId);
-  const saveLoading = !!loadingAlbums[albumId];
+  const saved = mounted ? isAlbumSaved(albumId) : false;
+  const saveLoading = mounted ? !!loadingAlbums[albumId] : false;
 
   if (loading) return <AlbumSkeleton />;
   if (!album) {

@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { ArtworkImage } from '@/components/ui/ArtworkImage';
 import { formatNumber } from '@/lib/utils';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
+import { useMounted } from '@/hooks/useMounted';
 
 interface ArtistViewProps {
   artistId: string;
@@ -22,6 +23,7 @@ export function ArtistView({ artistId, initialArtist }: ArtistViewProps) {
   const [loading, setLoading] = useState(!initialArtist);
   const { playQueue } = usePlayerStore();
   const { isAuthenticated } = useAuthStore();
+  const mounted = useMounted();
 
   const isArtistFollowed = useLibraryStore((s) => s.isArtistFollowed);
   const toggleFollowArtist = useLibraryStore((s) => s.toggleFollowArtist);
@@ -53,8 +55,8 @@ export function ArtistView({ artistId, initialArtist }: ArtistViewProps) {
 
   const topSongs = artist.popularSongs?.slice(0, 5) || [];
   const albums = artist.albums || [];
-  const following = isArtistFollowed(artistId);
-  const followLoading = !!loadingArtists[artistId];
+  const following = mounted ? isArtistFollowed(artistId) : false;
+  const followLoading = mounted ? !!loadingArtists[artistId] : false;
 
   return (
     <div className="min-h-full pb-16">

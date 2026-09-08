@@ -185,3 +185,41 @@ export const searchApi = {
 export const genresApi = {
   list: () => api.get('/genres'),
 };
+
+// Player (cross-device playback state sync)
+export interface PlayerStatePayload {
+  songId?: string | null;
+  currentTime?: number;
+  duration?: number;
+  progress?: number;
+  contextType?: string | null;
+  contextId?: string | null;
+  contextTitle?: string | null;
+  currentIndex?: number;
+  queue?: any[];
+  userQueue?: any[];
+  volume?: number;
+  shuffle?: boolean;
+  repeat?: string;
+}
+
+export const playerApi = {
+  getState: () => api.get('/player/state'),
+  updateState: (data: PlayerStatePayload) => api.put('/player/state', data),
+  syncKeepalive: (data: PlayerStatePayload) => {
+    if (typeof window === 'undefined') return;
+    const token = getStoredToken();
+    try {
+      fetch('/api/player/state', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(data),
+        keepalive: true,
+      }).catch(() => {});
+    } catch {}
+  },
+};
+

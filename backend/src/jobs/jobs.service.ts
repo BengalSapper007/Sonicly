@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { AppCacheService } from '../common/cache/app-cache.service';
 import { CatalogProcessor } from './processors/catalog.processor';
@@ -17,7 +17,7 @@ export interface JobPayload {
 }
 
 @Injectable()
-export class JobsService {
+export class JobsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(JobsService.name);
   private queue: Queue | null = null;
 
@@ -25,14 +25,29 @@ export class JobsService {
     private cache: AppCacheService,
     private catalogProcessor: CatalogProcessor,
     private analyticsProcessor: AnalyticsProcessor,
-  ) {
+  ) {}
+
+  onModuleInit() {
     this.initQueue();
   }
 
+  async onModuleDestroy() {
+    if (this.queue) {
+      try {
+        await this.queue.close();
+      } catch {}
+    }
+  }
+
   private initQueue() {
+    if (!this.cache.isRedisActive) {
+      this.queue = null;
+      this.logger.log('BullMQ running in in-process fallback mode (Redis offline).');
+      return;
+    }
+
     try {
       const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-      // If Redis is reachable, setup BullMQ queue
       this.queue = new Queue('sonicly-jobs', {
         connection: {
           url: redisUrl,

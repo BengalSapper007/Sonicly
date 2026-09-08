@@ -15,6 +15,7 @@ import { LibraryModule } from './library/library.module';
 import { HistoryModule } from './history/history.module';
 import { SearchModule } from './search/search.module';
 import { AdminCatalogModule } from './admin-catalog/admin-catalog.module';
+import { PlayerModule } from './player/player.module';
 import { AppCacheModule } from './common/cache/app-cache.module';
 import { JobsModule } from './jobs/jobs.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -41,6 +42,7 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
     HistoryModule,
     SearchModule,
     AdminCatalogModule,
+    PlayerModule,
   ],
   providers: [
     // IP rate limiting guard (runs before JWT so brute-force is blocked early)

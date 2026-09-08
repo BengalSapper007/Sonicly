@@ -1,28 +1,28 @@
 'use client';
 import { useEffect, useRef } from 'react';
-import { usePlayerStore, setAudioElement } from '@/stores/player.store';
-import { getStreamUrl } from '@/lib/stream-cache';
+import { usePlayerStore, setAudioElement, scheduleServerSync } from '@/stores/player.store';
+import { useAuthStore } from '@/stores/auth.store';
+import { playerApi } from '@/lib/api';
+import { evictStreamUrl } from '@/lib/stream-cache';
 import { useMusicControls } from '@/hooks/useMusicControls';
+import { useDeviceStore } from '@/stores/device.store';
+import { useDeviceSocket, broadcastLocalPlaybackState } from '@/hooks/useDeviceSocket';
 
 /**
  * AudioEngine
  * -----------
  * Renders a hidden <audio> element and wires it to the player store.
- * Also activates global music controls (keyboard shortcuts + Media Session API).
+ * Also activates global music controls (keyboard shortcuts + Media Session API)
+ * and the Spotify Connect real-time device socket.
  * This is the ONLY component that touches HTMLAudioElement.
- * It is completely decoupled from any UI.
- *
- * The audio element reference is stored in a module-level variable
- * (not Zustand state) to avoid SSR/serialization issues.
- *
- * On mount it also restores the persisted song (from localStorage via the
- * player store) by priming the audio src WITHOUT autoplaying, so the user
- * sees their previous song in the player bar after a page reload.
  */
 export function AudioEngine() {
   const audioRef = useRef<HTMLAudioElement>(null);
   useMusicControls();
+  useDeviceSocket();
 
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const currentSong = usePlayerStore((s) => s.currentSong);
   const {
     setProgress,
     setCurrentTime,
@@ -30,8 +30,58 @@ export function AudioEngine() {
     setIsPlaying,
     next,
     volume,
-    currentSong,
+    restoreServerState,
   } = usePlayerStore();
+
+  // Restore cross-device player state from server on login / app load
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    playerApi
+      .getState()
+      .then((res) => {
+        if (res.data) {
+          restoreServerState(res.data);
+        }
+      })
+      .catch(() => {});
+  }, [isAuthenticated, restoreServerState]);
+
+  // Broadcast song changes immediately so remote controller devices switch tracks in real-time
+  useEffect(() => {
+    if (!currentSong) return;
+    const { activeDeviceId, myDeviceId } = useDeviceStore.getState();
+    // Only broadcast if this device is the active playback device
+    if (activeDeviceId && activeDeviceId !== myDeviceId) return;
+
+    broadcastLocalPlaybackState({ currentSong });
+  }, [currentSong?.id]);
+
+  const tabIdRef = useRef<string>('');
+  if (!tabIdRef.current) {
+    tabIdRef.current = Math.random().toString(36).substring(2, 10);
+  }
+
+  // ── Multi-Tab Coordination (BroadcastChannel) ───────────────────────────
+  // Pauses this tab immediately if another tab in the same browser starts playing
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return;
+
+    const channel = new BroadcastChannel('sonicly_tab_playback');
+    channel.onmessage = (event) => {
+      // ONLY pause if the play event originated from a DIFFERENT tab/window
+      if (event.data?.type === 'PLAY_STARTED' && event.data?.tabId && event.data.tabId !== tabIdRef.current) {
+        const el = audioRef.current;
+        if (el && !el.paused) {
+          el.pause();
+        }
+      }
+    };
+
+    return () => {
+      channel.close();
+    };
+  }, []);
 
   useEffect(() => {
     const el = audioRef.current;
@@ -43,6 +93,9 @@ export function AudioEngine() {
     // Sync initial volume
     el.volume = volume;
 
+    let lastSyncTime = 0;
+    let lastBroadcastTime = 0;
+
     const onTimeUpdate = () => {
       const savedTime = usePlayerStore.getState().currentTime;
       // Prevent resetting saved currentTime to 0 on initial load before playback or seek
@@ -53,6 +106,24 @@ export function AudioEngine() {
       const cur = el.currentTime;
       setCurrentTime(cur);
       setProgress(dur > 0 ? cur / dur : 0);
+
+      const now = Date.now();
+      // Periodically sync position to server (every 5 seconds while playing)
+      if (!el.paused && now - lastSyncTime > 5000) {
+        lastSyncTime = now;
+        scheduleServerSync(false);
+      }
+
+      // Real-time broadcast to remote controller devices (every 1 second while playing)
+      if (!el.paused && now - lastBroadcastTime > 1000) {
+        lastBroadcastTime = now;
+        broadcastLocalPlaybackState({
+          currentTime: cur,
+          duration: dur,
+          progress: dur > 0 ? cur / dur : 0,
+          isPlaying: true,
+        });
+      }
     };
 
     const onDurationChange = () => {
@@ -60,8 +131,35 @@ export function AudioEngine() {
         setDuration(el.duration);
       }
     };
-    const onPlay = () => setIsPlaying(true);
-    const onPause = () => setIsPlaying(false);
+
+    const onPlay = () => {
+      setIsPlaying(true);
+      // Notify other local browser tabs to pause audio
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        try {
+          const channel = new BroadcastChannel('sonicly_tab_playback');
+          channel.postMessage({ type: 'PLAY_STARTED', tabId: tabIdRef.current });
+          channel.close();
+        } catch {}
+      }
+      broadcastLocalPlaybackState({
+        currentTime: el.currentTime,
+        duration: el.duration || 0,
+        progress: el.duration > 0 ? el.currentTime / el.duration : 0,
+        isPlaying: true,
+      });
+    };
+
+    const onPause = () => {
+      setIsPlaying(false);
+      broadcastLocalPlaybackState({
+        currentTime: el.currentTime,
+        duration: el.duration || 0,
+        progress: el.duration > 0 ? el.currentTime / el.duration : 0,
+        isPlaying: false,
+      });
+    };
+
     const onEnded = () => {
       const {
         repeat: r,
@@ -84,10 +182,16 @@ export function AudioEngine() {
         setCurrentTime(0);
       }
     };
+
     const onError = () => {
-      // Audio failed to load (missing file or expired URL) — log and auto-advance
-      console.warn('[AudioEngine] Error loading audio, advancing to next track');
-      setTimeout(() => next(), 1500);
+      const state = usePlayerStore.getState();
+      // If the audio element errors while paused, do nothing!
+      // NEVER advance or wipe out the user's persisted track/progress while paused.
+      if (!state.isPlaying || !state.currentSong) return;
+
+      console.warn('[AudioEngine] Playback error on', state.currentSong.title, '— refreshing stream');
+      evictStreamUrl(state.currentSong.id);
+      state.resume();
     };
 
     el.addEventListener('timeupdate', onTimeUpdate);
@@ -109,37 +213,6 @@ export function AudioEngine() {
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Sync audio element src and seek position with currentSong (handles initial hydration & page refresh)
-  useEffect(() => {
-    const el = audioRef.current;
-    if (!el || !currentSong) return;
-
-    getStreamUrl(currentSong.id)
-      .then((url) => {
-        if (el.src !== url) {
-          el.src = url;
-          el.preload = 'metadata';
-          const { currentTime, duration } = usePlayerStore.getState();
-          const targetTime = duration > 0 && currentTime >= duration - 2 ? 0 : currentTime;
-          if (targetTime > 0) {
-            const applySeek = () => {
-              try {
-                el.currentTime = targetTime;
-              } catch {}
-            };
-            if (el.readyState >= 1) {
-              applySeek();
-            } else {
-              el.addEventListener('loadedmetadata', applySeek, { once: true });
-            }
-          }
-        }
-      })
-      .catch(() => {
-        // Non-fatal — user can still press play to trigger a fresh fetch
-      });
-  }, [currentSong?.id]);
 
   // Sync volume changes from store → audio element
   useEffect(() => {

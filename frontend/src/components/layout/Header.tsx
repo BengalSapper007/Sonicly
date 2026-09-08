@@ -34,6 +34,7 @@ import {
   removeLocalRecentSearch,
   clearLocalRecentSearches,
 } from '@/lib/search-history';
+import { useMounted } from '@/hooks/useMounted';
 
 function formatDuration(seconds: number): string {
   if (!seconds || isNaN(seconds)) return '0:00';
@@ -47,6 +48,8 @@ export function Header() {
   const pathname = usePathname();
   const { isAuthenticated, user, logout } = useAuthStore();
   const { playSong, currentSong, isPlaying } = usePlayerStore();
+  const mounted = useMounted();
+  const authed = mounted && isAuthenticated;
 
   // Search input & popover state
   const [query, setQuery] = useState('');
@@ -738,7 +741,7 @@ export function Header() {
 
       {/* Right side: Profile & Notifications */}
       <div className="flex items-center gap-2 md:gap-3 flex-shrink-0 ml-auto">
-        {isAuthenticated && (
+        {authed && (
           <button
             className="p-2 rounded-full text-ink-muted hover:text-ink hover:bg-sand/50 transition-colors"
             title="Notifications"
@@ -747,7 +750,7 @@ export function Header() {
           </button>
         )}
 
-        {isAuthenticated ? (
+        {authed ? (
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setIsMenuOpen((prev) => !prev)}
