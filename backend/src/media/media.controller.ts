@@ -44,10 +44,14 @@ export class MediaController {
 
     const cleanKey = key.replace(/^\/+/, '').replace(/^images\//, '');
 
-    // Only allow artwork keys — never expose audio through this endpoint
-    if (!cleanKey.startsWith('artists/') && !cleanKey.startsWith('albums/')) {
+    // Disallow path traversal or audio keys — this endpoint is strictly for artwork/images
+    if (
+      cleanKey.includes('..') ||
+      cleanKey.startsWith('audio/') ||
+      cleanKey.startsWith('songs/')
+    ) {
       throw new BadRequestException(
-        'Only artists/ and albums/ keys are allowed on this endpoint',
+        'Audio keys are not allowed on this endpoint. Use /api/songs/:id/stream instead.',
       );
     }
 
