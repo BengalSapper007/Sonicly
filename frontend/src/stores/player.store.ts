@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { getStreamUrl, evictStreamUrl, isStreamCached } from '@/lib/stream-cache';
 import { toast } from '@/stores/toast.store';
+import { useDeviceStore } from '@/stores/device.store';
 
 export interface Song {
   id: string;
@@ -30,6 +31,12 @@ export type ContextType = 'album' | 'playlist' | 'artist' | 'search' | null;
  * Use getAudio() / setAudio() to access it from actions.
  */
 let _audioEl: HTMLAudioElement | null = null;
+let _loadingSongId: string | null = null;
+
+export function isSongLoading(songId?: string): boolean {
+  if (songId) return _loadingSongId === songId;
+  return _loadingSongId !== null;
+}
 
 export function setAudioElement(el: HTMLAudioElement | null) {
   _audioEl = el;
@@ -119,6 +126,7 @@ async function loadAndPlay(song: Song, startTime?: number): Promise<void> {
   if (!audio) return;
 
   const requestId = ++_currentPlayRequestId;
+  _loadingSongId = song.id;
 
   try {
     const streamUrl = await getStreamUrl(song.id);
@@ -160,6 +168,10 @@ async function loadAndPlay(song: Song, startTime?: number): Promise<void> {
     }
     console.error(`[Player] Failed to load stream for ${song.id}:`, err);
     evictStreamUrl(song.id);
+  } finally {
+    if (requestId === _currentPlayRequestId && _loadingSongId === song.id) {
+      _loadingSongId = null;
+    }
   }
 }
 
@@ -281,6 +293,11 @@ export const usePlayerStore = create<PlayerState>()(
             ? [...history.slice(-49), currentSong]
             : history;
 
+        const { myDeviceId, activeDeviceId } = useDeviceStore.getState();
+        if (activeDeviceId !== myDeviceId) {
+          useDeviceStore.getState().setActiveDeviceId(myDeviceId);
+        }
+
         set({
           queue: newQueue,
           currentIndex: index >= 0 ? index : 0,
@@ -311,6 +328,11 @@ export const usePlayerStore = create<PlayerState>()(
           currentSong && currentSong.id !== song.id
             ? [...history.slice(-49), currentSong]
             : history;
+
+        const { myDeviceId, activeDeviceId } = useDeviceStore.getState();
+        if (activeDeviceId !== myDeviceId) {
+          useDeviceStore.getState().setActiveDeviceId(myDeviceId);
+        }
 
         set({
           queue: songs,
@@ -386,6 +408,13 @@ export const usePlayerStore = create<PlayerState>()(
         const { currentSong, currentTime, duration } = get();
         const audio = getAudioElement();
         if (!currentSong) return;
+
+        // If this song is currently loading in loadAndPlay (e.g. from a user click in playSong/playQueue),
+        // do not restart loadAndPlay. Doing so cancels the in-flight user request and violates browser autoplay rules.
+        if (_loadingSongId === currentSong.id) {
+          return;
+        }
+
         const targetTime = duration > 0 && currentTime >= duration - 2 ? 0 : currentTime;
         const hasValidSrc = Boolean(
           audio?.src &&

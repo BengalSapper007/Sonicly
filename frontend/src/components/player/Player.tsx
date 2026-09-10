@@ -63,7 +63,13 @@ export function Player() {
 
   const handleTogglePlay = () => {
     if (!isPlayingLocally && activeDevice) {
-      sendRemotePlayerCommand('TOGGLE_PLAY');
+      if (isPlaying) {
+        sendRemotePlayerCommand('PAUSE', undefined, activeDeviceId);
+        usePlayerStore.setState({ isPlaying: false });
+      } else {
+        sendRemotePlayerCommand('RESUME', undefined, activeDeviceId);
+        usePlayerStore.setState({ isPlaying: true });
+      }
     } else {
       claimActivePlayback();
       togglePlay();
@@ -72,7 +78,7 @@ export function Player() {
 
   const handleNext = () => {
     if (!isPlayingLocally && activeDevice) {
-      sendRemotePlayerCommand('NEXT');
+      sendRemotePlayerCommand('NEXT', undefined, activeDeviceId);
     } else {
       next();
     }
@@ -80,7 +86,7 @@ export function Player() {
 
   const handlePrev = () => {
     if (!isPlayingLocally && activeDevice) {
-      sendRemotePlayerCommand('PREV');
+      sendRemotePlayerCommand('PREV', undefined, activeDeviceId);
     } else {
       prev();
     }

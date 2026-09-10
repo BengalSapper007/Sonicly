@@ -250,8 +250,11 @@ export class PlayerGatewayService implements OnModuleInit, OnModuleDestroy {
             // Tell target device to take over audio playback
             this.safeSend(dev.ws, JSON.stringify({ type: 'TAKE_OVER_PLAYBACK' }));
           } else {
-            // Tell other devices to pause audio output
-            this.safeSend(dev.ws, JSON.stringify({ type: 'YIELD_PLAYBACK' }));
+            // Tell other devices to pause audio output and update their active device pointer
+            this.safeSend(dev.ws, JSON.stringify({
+              type: 'YIELD_PLAYBACK',
+              newActiveDeviceId: targetDeviceId,
+            }));
           }
         }
 
@@ -262,11 +265,15 @@ export class PlayerGatewayService implements OnModuleInit, OnModuleDestroy {
       }
 
       case 'REMOTE_COMMAND': {
-        // Forward command to the active device
-        const activeDevice = Array.from(devices.values()).find((d) => d.isPlaybackActive);
-        if (activeDevice && activeDevice.deviceId !== senderDeviceId) {
+        // Forward command to target device or active device
+        const targetDeviceId = msg.targetDeviceId;
+        const targetDevice = targetDeviceId && devices.has(targetDeviceId)
+          ? devices.get(targetDeviceId)
+          : Array.from(devices.values()).find((d) => d.isPlaybackActive);
+
+        if (targetDevice && targetDevice.deviceId !== senderDeviceId) {
           this.safeSend(
-            activeDevice.ws,
+            targetDevice.ws,
             JSON.stringify({
               type: 'EXECUTE_COMMAND',
               command: msg.command,
@@ -289,6 +296,15 @@ export class PlayerGatewayService implements OnModuleInit, OnModuleDestroy {
               if (dev.isPlaybackActive !== shouldBeActive) {
                 dev.isPlaybackActive = shouldBeActive;
                 activeChanged = true;
+                if (!shouldBeActive) {
+                  this.safeSend(
+                    dev.ws,
+                    JSON.stringify({
+                      type: 'YIELD_PLAYBACK',
+                      newActiveDeviceId: senderDeviceId,
+                    }),
+                  );
+                }
               }
             }
             if (activeChanged) {
@@ -296,17 +312,22 @@ export class PlayerGatewayService implements OnModuleInit, OnModuleDestroy {
               this.playerService.updateState(userId, { activeDeviceId: senderDeviceId }).catch(() => {});
             }
           }
-          this.userStates.set(userId, msg.state);
 
-          const payload = JSON.stringify({
-            type: 'REMOTE_STATE_SYNC',
-            state: msg.state,
-            activeDeviceId: senderDeviceId,
-          });
+          // ONLY forward state sync to other devices if sender is active.
+          // Inactive devices (e.g. freshly yielded devices pausing) must not clobber active device state.
+          if (sender.isPlaybackActive) {
+            this.userStates.set(userId, msg.state);
 
-          for (const [id, dev] of devices.entries()) {
-            if (id !== senderDeviceId) {
-              this.safeSend(dev.ws, payload);
+            const payload = JSON.stringify({
+              type: 'REMOTE_STATE_SYNC',
+              state: msg.state,
+              activeDeviceId: senderDeviceId,
+            });
+
+            for (const [id, dev] of devices.entries()) {
+              if (id !== senderDeviceId) {
+                this.safeSend(dev.ws, payload);
+              }
             }
           }
         }
