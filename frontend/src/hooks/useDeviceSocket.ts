@@ -2,7 +2,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useAuthStore } from '@/stores/auth.store';
 import { useDeviceStore } from '@/stores/device.store';
-import { usePlayerStore } from '@/stores/player.store';
+import { usePlayerStore, isSongLoading, getAudioElement } from '@/stores/player.store';
 import { toast } from '@/stores/toast.store';
 
 let _socketInstance: WebSocket | null = null;
@@ -90,21 +90,21 @@ export function transferPlaybackTo(targetDeviceId: string) {
 }
 
 export function claimActivePlayback() {
-  const { myDeviceId, activeDeviceId } = useDeviceStore.getState();
-  if (activeDeviceId !== myDeviceId) {
-    useDeviceStore.getState().setActiveDeviceId(myDeviceId);
-    sendSocketMessage({
-      type: 'TRANSFER_PLAYBACK',
-      targetDeviceId: myDeviceId,
-    });
-  }
+  const { myDeviceId } = useDeviceStore.getState();
+  useDeviceStore.getState().setActiveDeviceId(myDeviceId);
+  sendSocketMessage({
+    type: 'TRANSFER_PLAYBACK',
+    targetDeviceId: myDeviceId,
+  });
 }
 
-export function sendRemotePlayerCommand(command: string, payload?: any) {
+export function sendRemotePlayerCommand(command: string, payload?: any, targetDeviceId?: string) {
+  const target = targetDeviceId || useDeviceStore.getState().activeDeviceId;
   sendSocketMessage({
     type: 'REMOTE_COMMAND',
     command,
     payload,
+    targetDeviceId: target,
   });
 }
 
@@ -190,17 +190,33 @@ export function useDeviceSocket() {
         switch (msg.type) {
           case 'DEVICES_UPDATED': {
             setDevices(msg.devices, msg.activeDeviceId);
+            const { myDeviceId } = useDeviceStore.getState();
+            // If another device is active, make sure this device is not continuing to play local audio
+            if (msg.activeDeviceId && msg.activeDeviceId !== myDeviceId) {
+              const audio = getAudioElement();
+              if (audio && !audio.paused) {
+                usePlayerStore.getState().pause();
+              }
+            }
             break;
           }
 
           case 'TAKE_OVER_PLAYBACK': {
             toast.info('Listening on this device');
             const player = usePlayerStore.getState();
-            player.resume();
+            const audio = getAudioElement();
+            const isAudioActive = (audio && !audio.paused) || isSongLoading();
+            // Only resume if local audio is not already actively playing or loading a track
+            if (!isAudioActive) {
+              player.resume();
+            }
             break;
           }
 
           case 'YIELD_PLAYBACK': {
+            if (msg.newActiveDeviceId) {
+              useDeviceStore.getState().setActiveDeviceId(msg.newActiveDeviceId);
+            }
             const player = usePlayerStore.getState();
             player.pause();
             toast.info('Playback transferred to another device');
@@ -242,8 +258,19 @@ export function useDeviceSocket() {
 
           case 'REMOTE_STATE_SYNC': {
             // Received state updates from the active remote device
-            const { myDeviceId } = useDeviceStore.getState();
-            const activeDevId = msg.activeDeviceId || useDeviceStore.getState().activeDeviceId;
+            const { myDeviceId, activeDeviceId } = useDeviceStore.getState();
+            const activeDevId = msg.activeDeviceId || activeDeviceId;
+
+            // If THIS device is currently active, ignore remote state broadcasts
+            if (activeDeviceId === myDeviceId) {
+              break;
+            }
+
+            // If another device is active, ensure local audio element is not producing sound
+            const audio = getAudioElement();
+            if (audio && !audio.paused) {
+              usePlayerStore.getState().pause();
+            }
 
             if (activeDevId && activeDevId !== myDeviceId && msg.state) {
               if (activeDevId !== useDeviceStore.getState().activeDeviceId) {

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MediaService } from '../media/media.service';
+import { AppCacheService } from '../common/cache/app-cache.service';
 import { nanoid } from 'nanoid';
 
 @Injectable()
@@ -8,25 +9,42 @@ export class SongsService {
   constructor(
     private prisma: PrismaService,
     private media: MediaService,
+    private cache: AppCacheService,
   ) {}
 
   async findOne(id: string, userId?: string) {
-    const song = await this.prisma.song.findUnique({
-      where: { id },
-      include: {
-        album: {
-          include: {
-            artist: { select: { id: true, name: true, imageKey: true } },
+    const baseSong = await this.cache.wrap(`catalog:song:${id}`, async () => {
+      const song = await this.prisma.song.findUnique({
+        where: { id },
+        include: {
+          album: {
+            include: {
+              artist: { select: { id: true, name: true, imageKey: true } },
+            },
           },
+          genre: { select: { id: true, name: true } },
+          _count: { select: { likes: true } },
         },
-        genre: { select: { id: true, name: true } },
-        _count: { select: { likes: true } },
-        ...(userId ? { likes: { where: { userId } } } : {}),
-      },
+      });
+
+      if (!song) return null;
+      return song;
+    }, 600);
+
+    if (!baseSong) throw new NotFoundException('Track not found');
+
+    if (!userId) {
+      return baseSong;
+    }
+
+    const userLike = await this.prisma.like.findUnique({
+      where: { userId_songId: { userId, songId: id } },
     });
 
-    if (!song) throw new NotFoundException('Track not found');
-    return song;
+    return {
+      ...baseSong,
+      likes: userLike ? [userLike] : [],
+    };
   }
 
   /**
@@ -38,7 +56,12 @@ export class SongsService {
    */
   async getStreamUrl(id: string, userId?: string) {
     const song = await this.findOne(id, userId);
-    const streamUrl = await this.media.getPresignedUrl(song.audioKey);
+    // Presigned R2 URLs last 1 hour; cache for 30 minutes
+    const streamUrl = await this.cache.wrap(
+      `stream:url:${song.audioKey}`,
+      () => this.media.getPresignedUrl(song.audioKey, 3600),
+      1800,
+    );
     return { ...song, streamUrl };
   }
 
@@ -52,11 +75,13 @@ export class SongsService {
       update: {},
     });
 
+    await this.cache.del(`catalog:song:${songId}`);
     return { liked: true };
   }
 
   async unlike(songId: string, userId: string) {
     await this.prisma.like.deleteMany({ where: { userId, songId } });
+    await this.cache.del(`catalog:song:${songId}`);
     return { liked: false };
   }
 }

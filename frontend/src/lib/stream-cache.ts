@@ -65,9 +65,17 @@ export async function getStreamUrl(songId: string): Promise<string> {
   const cached = readEntry(songId);
   if (cached) return cached.url;
 
-  const { data } = await songsApi.getStreamUrl(songId);
-  writeEntry(songId, data.streamUrl);
-  return data.streamUrl;
+  try {
+    const { data } = await songsApi.getStreamUrl(songId);
+    writeEntry(songId, data.streamUrl);
+    return data.streamUrl;
+  } catch {
+    // Transient cold-start or proxy timeout retry (wait 800ms and try once more)
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    const { data } = await songsApi.getStreamUrl(songId);
+    writeEntry(songId, data.streamUrl);
+    return data.streamUrl;
+  }
 }
 
 /**

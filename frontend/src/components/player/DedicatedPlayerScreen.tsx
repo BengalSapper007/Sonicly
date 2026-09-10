@@ -26,6 +26,8 @@ import {
 } from 'lucide-react';
 import { usePlayerStore } from '@/stores/player.store';
 import { useLibraryStore } from '@/stores/library.store';
+import { useDeviceStore } from '@/stores/device.store';
+import { sendRemotePlayerCommand, claimActivePlayback } from '@/hooks/useDeviceSocket';
 import { artistsApi, artworkUrl } from '@/lib/api';
 import { ArtworkImage } from '@/components/ui/ArtworkImage';
 import { formatDuration, formatNumber } from '@/lib/utils';
@@ -124,12 +126,44 @@ export function DedicatedPlayerScreen({
     };
   }, [artistId, registerArtist]);
 
-  // Keyboard controls when open
-  useEffect(() => {
-    if (mode === 'overlay' && !isNowPlayingOpen) return;
+  const { myDeviceId, activeDeviceId, availableDevices } = useDeviceStore();
+  const isPlayingLocally = !activeDeviceId || activeDeviceId === myDeviceId;
+  const activeDevice = availableDevices.find((d) => d.deviceId === activeDeviceId);
 
+  const handleTogglePlay = useCallback(() => {
+    if (!isPlayingLocally && activeDevice) {
+      if (isPlaying) {
+        sendRemotePlayerCommand('PAUSE', undefined, activeDeviceId);
+        usePlayerStore.setState({ isPlaying: false });
+      } else {
+        sendRemotePlayerCommand('RESUME', undefined, activeDeviceId);
+        usePlayerStore.setState({ isPlaying: true });
+      }
+    } else {
+      claimActivePlayback();
+      togglePlay();
+    }
+  }, [isPlayingLocally, activeDevice, isPlaying, activeDeviceId, togglePlay]);
+
+  const handleNext = useCallback(() => {
+    if (!isPlayingLocally && activeDevice) {
+      sendRemotePlayerCommand('NEXT', undefined, activeDeviceId);
+    } else {
+      next();
+    }
+  }, [isPlayingLocally, activeDevice, activeDeviceId, next]);
+
+  const handlePrev = useCallback(() => {
+    if (!isPlayingLocally && activeDevice) {
+      sendRemotePlayerCommand('PREV', undefined, activeDeviceId);
+    } else {
+      prev();
+    }
+  }, [isPlayingLocally, activeDevice, activeDeviceId, prev]);
+
+  // Keyboard shortcut listener
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't intercept when user is typing in form inputs
       const target = e.target as HTMLElement;
       if (
         target.tagName === 'INPUT' ||
@@ -143,26 +177,38 @@ export function DedicatedPlayerScreen({
         handleClose();
       } else if (e.code === 'Space') {
         e.preventDefault();
-        togglePlay();
+        handleTogglePlay();
       } else if (e.key === 'ArrowRight' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        next();
+        handleNext();
       } else if (e.key === 'ArrowLeft' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        prev();
+        handlePrev();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleClose, isNowPlayingOpen, mode, next, prev, togglePlay]);
+  }, [handleClose, isNowPlayingOpen, mode, handleNext, handlePrev, handleTogglePlay]);
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    seek(Number(e.target.value) / 100);
+    const p = Number(e.target.value) / 100;
+    if (!isPlayingLocally && activeDevice) {
+      sendRemotePlayerCommand('SEEK', { progress: p }, activeDeviceId);
+      usePlayerStore.setState({ progress: p, currentTime: p * duration });
+    } else {
+      seek(p);
+    }
   };
 
   const handleVolume = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setVolume(Number(e.target.value) / 100);
+    const vol = Number(e.target.value) / 100;
+    if (!isPlayingLocally && activeDevice) {
+      sendRemotePlayerCommand('SET_VOLUME', { volume: vol }, activeDeviceId);
+      setVolume(vol);
+    } else {
+      setVolume(vol);
+    }
   };
 
   if (mode === 'overlay' && !isNowPlayingOpen) {
@@ -389,7 +435,7 @@ export function DedicatedPlayerScreen({
                   </button>
 
                   <button
-                    onClick={prev}
+                    onClick={handlePrev}
                     className="p-2.5 rounded-full text-white/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
                     title="Previous Track"
                   >
@@ -398,7 +444,7 @@ export function DedicatedPlayerScreen({
 
                   {/* Big Play / Pause Button */}
                   <button
-                    onClick={togglePlay}
+                    onClick={handleTogglePlay}
                     className="w-14 h-14 rounded-full bg-gradient-to-tr from-vibrant-saffron to-deep-saffron text-white flex items-center justify-center shadow-lg shadow-vibrant-saffron/30 hover:scale-105 active:scale-95 transition-all cursor-pointer"
                     title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
                   >
@@ -410,7 +456,7 @@ export function DedicatedPlayerScreen({
                   </button>
 
                   <button
-                    onClick={next}
+                    onClick={handleNext}
                     className="p-2.5 rounded-full text-white/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
                     title="Next Track"
                   >

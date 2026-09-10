@@ -142,22 +142,28 @@ export function AudioEngine() {
           channel.close();
         } catch {}
       }
-      broadcastLocalPlaybackState({
-        currentTime: el.currentTime,
-        duration: el.duration || 0,
-        progress: el.duration > 0 ? el.currentTime / el.duration : 0,
-        isPlaying: true,
-      });
+      const { activeDeviceId, myDeviceId } = useDeviceStore.getState();
+      if (!activeDeviceId || activeDeviceId === myDeviceId) {
+        broadcastLocalPlaybackState({
+          currentTime: el.currentTime,
+          duration: el.duration || 0,
+          progress: el.duration > 0 ? el.currentTime / el.duration : 0,
+          isPlaying: true,
+        });
+      }
     };
 
     const onPause = () => {
       setIsPlaying(false);
-      broadcastLocalPlaybackState({
-        currentTime: el.currentTime,
-        duration: el.duration || 0,
-        progress: el.duration > 0 ? el.currentTime / el.duration : 0,
-        isPlaying: false,
-      });
+      const { activeDeviceId, myDeviceId } = useDeviceStore.getState();
+      if (!activeDeviceId || activeDeviceId === myDeviceId) {
+        broadcastLocalPlaybackState({
+          currentTime: el.currentTime,
+          duration: el.duration || 0,
+          progress: el.duration > 0 ? el.currentTime / el.duration : 0,
+          isPlaying: false,
+        });
+      }
     };
 
     const onEnded = () => {
