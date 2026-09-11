@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import { SoniclyLogo } from '@/components/ui/SoniclyLogo';
 import { useRouter } from 'next/navigation';
 import { EyeIcon, EyeOffIcon, LoaderIcon } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
@@ -32,9 +33,11 @@ export default function RegisterPage() {
 
       <div className="relative w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl overflow-hidden mx-auto mb-4 relative" style={{ boxShadow: '0 0 30px rgba(232, 114, 12, 0.35)' }}>
-            <img src="/logo-icon.png" alt="Sonicly" className="w-full h-full object-cover scale-110" />
-          </div>
+          <Link href="/" className="inline-block group" title="Return to Sonicly Home">
+            <div className="w-16 h-16 rounded-2xl mx-auto mb-4 relative flex items-center justify-center p-1 transition-transform duration-300 group-hover:scale-105" style={{ boxShadow: '0 0 30px rgba(232, 114, 12, 0.25)' }}>
+              <SoniclyLogo size={64} className="w-full h-full object-contain drop-shadow-sm" priority />
+            </div>
+          </Link>
           <h1 className="font-display font-bold text-2xl text-on-surface">Create your account</h1>
           <p className="text-on-surface-muted text-sm mt-1">Start listening with Sonicly</p>
         </div>

@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { SoniclyLogo } from '@/components/ui/SoniclyLogo';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSidebarStore, SIDEBAR_DEFAULT_WIDTH } from '@/stores/sidebar.store';
 import { useMounted } from '@/hooks/useMounted';
@@ -112,14 +113,14 @@ export function Sidebar() {
           className="flex items-center"
           title="Sonicly"
         >
-          <div
+          <SoniclyLogo
+            size={isCollapsed ? 36 : 32}
             className={cn(
-              'rounded-full bg-saffron flex items-center justify-center text-white font-bold flex-shrink-0 transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-105 shadow-sm',
-              isCollapsed ? 'w-9 h-9 text-base' : 'w-8 h-8 text-sm'
+              'transition-transform duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-105 drop-shadow-xs',
+              isCollapsed ? 'w-9 h-9' : 'w-8 h-8'
             )}
-          >
-            S
-          </div>
+            priority
+          />
           <span
             className={cn(
               'font-display font-semibold text-lg text-ink block tracking-tight leading-none whitespace-nowrap overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]',

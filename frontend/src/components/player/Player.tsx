@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePlayerStore } from '@/stores/player.store';
 import { useLibraryStore } from '@/stores/library.store';
 import { useDeviceStore } from '@/stores/device.store';
-import { sendRemotePlayerCommand, claimActivePlayback } from '@/hooks/useDeviceSocket';
+import { sendRemotePlayerCommand } from '@/hooks/useDeviceSocket';
 import { DevicePickerPopover } from '@/components/player/DevicePickerPopover';
 import { formatDuration } from '@/lib/utils';
 import { artworkUrl } from '@/lib/api';
@@ -71,7 +71,6 @@ export function Player() {
         usePlayerStore.setState({ isPlaying: true });
       }
     } else {
-      claimActivePlayback();
       togglePlay();
     }
   };

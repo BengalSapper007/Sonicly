@@ -82,6 +82,8 @@ function getWebSocketUrl(
 }
 
 export function transferPlaybackTo(targetDeviceId: string) {
+  const { activeDeviceId } = useDeviceStore.getState();
+  if (activeDeviceId === targetDeviceId) return;
   useDeviceStore.getState().setActiveDeviceId(targetDeviceId);
   sendSocketMessage({
     type: 'TRANSFER_PLAYBACK',
@@ -90,7 +92,8 @@ export function transferPlaybackTo(targetDeviceId: string) {
 }
 
 export function claimActivePlayback() {
-  const { myDeviceId } = useDeviceStore.getState();
+  const { myDeviceId, activeDeviceId } = useDeviceStore.getState();
+  if (!myDeviceId || activeDeviceId === myDeviceId) return;
   useDeviceStore.getState().setActiveDeviceId(myDeviceId);
   sendSocketMessage({
     type: 'TRANSFER_PLAYBACK',
@@ -206,8 +209,8 @@ export function useDeviceSocket() {
             const player = usePlayerStore.getState();
             const audio = getAudioElement();
             const isAudioActive = (audio && !audio.paused) || isSongLoading();
-            // Only resume if local audio is not already actively playing or loading a track
-            if (!isAudioActive) {
+            // Only resume if playback was playing and local audio is not already actively playing/loading
+            if (player.isPlaying && !isAudioActive) {
               player.resume();
             }
             break;
