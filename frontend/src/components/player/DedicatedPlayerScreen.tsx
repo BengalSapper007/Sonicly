@@ -27,7 +27,7 @@ import {
 import { usePlayerStore } from '@/stores/player.store';
 import { useLibraryStore } from '@/stores/library.store';
 import { useDeviceStore } from '@/stores/device.store';
-import { sendRemotePlayerCommand, claimActivePlayback } from '@/hooks/useDeviceSocket';
+import { sendRemotePlayerCommand } from '@/hooks/useDeviceSocket';
 import { artistsApi, artworkUrl } from '@/lib/api';
 import { ArtworkImage } from '@/components/ui/ArtworkImage';
 import { formatDuration, formatNumber } from '@/lib/utils';
@@ -140,7 +140,6 @@ export function DedicatedPlayerScreen({
         usePlayerStore.setState({ isPlaying: true });
       }
     } else {
-      claimActivePlayback();
       togglePlay();
     }
   }, [isPlayingLocally, activeDevice, isPlaying, activeDeviceId, togglePlay]);

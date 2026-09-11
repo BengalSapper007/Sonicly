@@ -10,6 +10,15 @@ export const metadata: Metadata = {
   title: { default: 'Sonicly', template: '%s | Sonicly' },
   description: 'A premium music listening experience built for people who care about sound.',
   keywords: ['music', 'streaming', 'sonicly', 'listen', 'albums', 'playlists', 'high fidelity'],
+  icons: {
+    icon: [
+      { url: '/logo.svg', type: 'image/svg+xml' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: 'any' },
+    ],
+    shortcut: '/logo.svg',
+    apple: '/logo.svg',
+  },
   alternates: {
     canonical: './',
   },
@@ -38,7 +47,7 @@ const rootStructuredData = {
       url: siteUrl,
       logo: {
         '@type': 'ImageObject',
-        url: `${siteUrl}/logo-icon.png`,
+        url: `${siteUrl}/logo.svg`,
       },
       description: 'High-fidelity music streaming platform built for sound enthusiasts.',
     },
@@ -80,6 +89,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Instrument+Sans:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
+        <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+        <link rel="apple-touch-icon" href="/logo.svg" />
         <JsonLd data={rootStructuredData} />
       </head>
       <body className="h-full overflow-hidden bg-[#F6F1E4] text-[#211E1A]">

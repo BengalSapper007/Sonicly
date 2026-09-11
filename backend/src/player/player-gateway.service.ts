@@ -242,6 +242,12 @@ export class PlayerGatewayService implements OnModuleInit, OnModuleDestroy {
         const targetDeviceId = msg.targetDeviceId;
         if (!targetDeviceId || !devices.has(targetDeviceId)) return;
 
+        const currentActive = Array.from(devices.values()).find((d) => d.isPlaybackActive);
+        if (currentActive && currentActive.deviceId === targetDeviceId) {
+          // Already the active device, no handover needed
+          return;
+        }
+
         // Set target as active, all others as inactive
         for (const [id, dev] of devices.entries()) {
           const shouldBeActive = id === targetDeviceId;

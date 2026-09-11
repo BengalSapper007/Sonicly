@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect, useTransition } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { SoniclyLogo } from '@/components/ui/SoniclyLogo';
 import {
   Search,
   Bell,
@@ -269,10 +270,8 @@ export function Header() {
       style={{ height: 'var(--header-height)', background: '#F6F1E4' }}
     >
       {/* Logo — mobile only */}
-      <Link href="/" className="md:hidden flex items-center gap-2 flex-shrink-0">
-        <div className="w-8 h-8 rounded-full bg-saffron flex items-center justify-center text-white font-bold text-sm shadow-sm">
-          S
-        </div>
+      <Link href="/" className="md:hidden flex items-center gap-2 flex-shrink-0" title="Sonicly">
+        <SoniclyLogo size={32} className="w-8 h-8 drop-shadow-xs" priority />
       </Link>
 
       {/* Dynamic Search Bar Container (Desktop) */}
