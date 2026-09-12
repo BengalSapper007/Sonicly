@@ -15,11 +15,15 @@ interface DeviceState {
   availableDevices: DeviceInfo[];
   activeDeviceId: string | null;
   isDevicePickerOpen: boolean;
+  isConnected: boolean;
+  isTransferringToDeviceId: string | null;
 
   setDevices: (devices: DeviceInfo[], activeDeviceId: string | null) => void;
   setActiveDeviceId: (activeDeviceId: string | null) => void;
   setDevicePickerOpen: (open: boolean) => void;
   toggleDevicePicker: () => void;
+  setIsConnected: (connected: boolean) => void;
+  setIsTransferring: (deviceId: string | null) => void;
 }
 
 function detectDevice(): {
@@ -79,6 +83,8 @@ export const useDeviceStore = create<DeviceState>((set) => ({
   availableDevices: [],
   activeDeviceId: null,
   isDevicePickerOpen: false,
+  isConnected: false,
+  isTransferringToDeviceId: null,
 
   setDevices: (availableDevices, activeDeviceId) =>
     set({ availableDevices, activeDeviceId }),
@@ -87,4 +93,7 @@ export const useDeviceStore = create<DeviceState>((set) => ({
 
   setDevicePickerOpen: (isDevicePickerOpen) => set({ isDevicePickerOpen }),
   toggleDevicePicker: () => set((s) => ({ isDevicePickerOpen: !s.isDevicePickerOpen })),
+
+  setIsConnected: (isConnected) => set({ isConnected }),
+  setIsTransferring: (isTransferringToDeviceId) => set({ isTransferringToDeviceId }),
 }));

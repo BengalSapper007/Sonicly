@@ -84,6 +84,7 @@ function getWebSocketUrl(
 export function transferPlaybackTo(targetDeviceId: string) {
   const { activeDeviceId } = useDeviceStore.getState();
   if (activeDeviceId === targetDeviceId) return;
+  useDeviceStore.getState().setIsTransferring(targetDeviceId);
   useDeviceStore.getState().setActiveDeviceId(targetDeviceId);
   sendSocketMessage({
     type: 'TRANSFER_PLAYBACK',
@@ -148,9 +149,12 @@ export function broadcastLocalPlaybackState(override?: Partial<{
 export function useDeviceSocket() {
   const token = useAuthStore((s) => s.token);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const { myDeviceId, myDeviceName, myDeviceType, setDevices } = useDeviceStore();
+  const { myDeviceId, myDeviceName, myDeviceType, setDevices, setIsConnected, setIsTransferring } = useDeviceStore();
   const socketRef = useRef<WebSocket | null>(null);
   const pingIntervalRef = useRef<any>(null);
+  const reconnectTimeoutRef = useRef<any>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const isMountedRef = useRef(true);
 
   const connect = useCallback(() => {
     if (!isAuthenticated || !token || typeof window === 'undefined') return;
@@ -160,6 +164,11 @@ export function useDeviceSocket() {
         socketRef.current.close();
       } catch {}
       socketRef.current = null;
+    }
+
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
     }
 
     let ws: WebSocket;
@@ -176,7 +185,13 @@ export function useDeviceSocket() {
     }
 
     ws.onopen = () => {
+      reconnectAttemptsRef.current = 0;
+      setIsConnected(true);
+
       // Start ping heartbeat
+      if (pingIntervalRef.current) {
+        clearInterval(pingIntervalRef.current);
+      }
       pingIntervalRef.current = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
           try {
@@ -193,6 +208,7 @@ export function useDeviceSocket() {
         switch (msg.type) {
           case 'DEVICES_UPDATED': {
             setDevices(msg.devices, msg.activeDeviceId);
+            setIsTransferring(null);
             const { myDeviceId } = useDeviceStore.getState();
             // If another device is active, make sure this device is not continuing to play local audio
             if (msg.activeDeviceId && msg.activeDeviceId !== myDeviceId) {
@@ -205,6 +221,7 @@ export function useDeviceSocket() {
           }
 
           case 'TAKE_OVER_PLAYBACK': {
+            setIsTransferring(null);
             toast.info('Listening on this device');
             const player = usePlayerStore.getState();
             const audio = getAudioElement();
@@ -217,6 +234,7 @@ export function useDeviceSocket() {
           }
 
           case 'YIELD_PLAYBACK': {
+            setIsTransferring(null);
             if (msg.newActiveDeviceId) {
               useDeviceStore.getState().setActiveDeviceId(msg.newActiveDeviceId);
             }
@@ -324,11 +342,23 @@ export function useDeviceSocket() {
     };
 
     ws.onclose = () => {
+      setIsConnected(false);
       if (pingIntervalRef.current) {
         clearInterval(pingIntervalRef.current);
       }
       if (_socketInstance === ws) {
         _socketInstance = null;
+      }
+
+      // Auto-reconnect with exponential backoff if component is still mounted & authenticated
+      if (isMountedRef.current && isAuthenticated) {
+        const delay = Math.min(1000 * Math.pow(1.5, reconnectAttemptsRef.current), 10000);
+        reconnectAttemptsRef.current += 1;
+        reconnectTimeoutRef.current = setTimeout(() => {
+          if (isMountedRef.current) {
+            connect();
+          }
+        }, delay);
       }
     };
 
@@ -337,12 +367,35 @@ export function useDeviceSocket() {
         ws.close();
       } catch {}
     };
-  }, [isAuthenticated, token, myDeviceId, myDeviceName, myDeviceType, setDevices]);
+  }, [isAuthenticated, token, myDeviceId, myDeviceName, myDeviceType, setDevices, setIsConnected, setIsTransferring]);
 
   useEffect(() => {
+    isMountedRef.current = true;
     connect();
 
+    const handleOnline = () => {
+      if (socketRef.current?.readyState !== WebSocket.OPEN) {
+        reconnectAttemptsRef.current = 0;
+        connect();
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && socketRef.current?.readyState !== WebSocket.OPEN) {
+        connect();
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
+      isMountedRef.current = false;
+      window.removeEventListener('online', handleOnline);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
       if (pingIntervalRef.current) {
         clearInterval(pingIntervalRef.current);
       }

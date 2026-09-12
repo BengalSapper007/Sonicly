@@ -23,11 +23,13 @@ import {
   UserPlus,
   UserCheck,
   Disc,
+  MonitorSpeaker,
 } from 'lucide-react';
 import { usePlayerStore } from '@/stores/player.store';
 import { useLibraryStore } from '@/stores/library.store';
 import { useDeviceStore } from '@/stores/device.store';
 import { sendRemotePlayerCommand } from '@/hooks/useDeviceSocket';
+import { DevicePickerPopover } from '@/components/player/DevicePickerPopover';
 import { artistsApi, artworkUrl } from '@/lib/api';
 import { ArtworkImage } from '@/components/ui/ArtworkImage';
 import { formatDuration, formatNumber } from '@/lib/utils';
@@ -126,7 +128,7 @@ export function DedicatedPlayerScreen({
     };
   }, [artistId, registerArtist]);
 
-  const { myDeviceId, activeDeviceId, availableDevices } = useDeviceStore();
+  const { myDeviceId, activeDeviceId, availableDevices, toggleDevicePicker, isDevicePickerOpen } = useDeviceStore();
   const isPlayingLocally = !activeDeviceId || activeDeviceId === myDeviceId;
   const activeDevice = availableDevices.find((d) => d.deviceId === activeDeviceId);
 
@@ -282,6 +284,34 @@ export function DedicatedPlayerScreen({
 
         {/* Right header actions */}
         <div className="flex items-center gap-2">
+          {/* Device Connect Button */}
+          <button
+            onClick={toggleDevicePicker}
+            data-device-picker-toggle="true"
+            className={`p-2 sm:p-2.5 rounded-full transition-all cursor-pointer flex items-center gap-1.5 ${
+              !isPlayingLocally && activeDevice
+                ? 'text-crisp-green bg-crisp-green/15 ring-1 ring-crisp-green/40 px-3'
+                : 'text-white/80 hover:text-white hover:bg-white/10'
+            }`}
+            title={
+              !isPlayingLocally && activeDevice
+                ? `Listening on ${activeDevice.deviceName}`
+                : 'Connect to a device'
+            }
+            aria-label="Connect to a device"
+          >
+            <div className="relative flex flex-col items-center justify-center">
+              <MonitorSpeaker className="w-5 h-5" />
+              {(!isPlayingLocally && activeDevice) && (
+                <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-crisp-green shadow-[0_0_4px_#1db954]" />
+              )}
+            </div>
+            {!isPlayingLocally && activeDevice && (
+              <span className="text-xs font-semibold max-w-[120px] truncate hidden sm:inline">
+                {activeDevice.deviceName}
+              </span>
+            )}
+          </button>
           {currentSong && (
             <button
               onClick={() => toggleLikeSong(currentSong)}
@@ -711,6 +741,7 @@ export function DedicatedPlayerScreen({
           </div>
         )}
       </main>
+      <DevicePickerPopover />
     </div>
   );
 }
