@@ -253,8 +253,17 @@ export function Header() {
 
   const handleLogout = async () => {
     setIsMenuOpen(false);
-    await logout();
-    router.push('/');
+    try {
+      await logout();
+    } finally {
+      if (typeof window !== 'undefined') {
+        if (window.location.pathname === '/') {
+          window.location.reload();
+        } else {
+          window.location.href = '/';
+        }
+      }
+    }
   };
 
   const hasSuggestions =

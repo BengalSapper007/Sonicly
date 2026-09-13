@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePlayerStore } from '@/stores/player.store';
 import { useLibraryStore } from '@/stores/library.store';
 import { useDeviceStore } from '@/stores/device.store';
-import { sendRemotePlayerCommand } from '@/hooks/useDeviceSocket';
+import { sendRemotePlayerCommand, transferPlaybackTo } from '@/hooks/useDeviceSocket';
 import { DevicePickerPopover } from '@/components/player/DevicePickerPopover';
 import { formatDuration } from '@/lib/utils';
 import { artworkUrl } from '@/lib/api';
@@ -137,13 +137,40 @@ export function Player() {
 
   return (
     <div
-      className="h-full flex flex-col justify-center select-none"
+      className="h-full flex flex-col justify-center select-none relative"
       style={{ background: '#12192F' }}
     >
+      {/* ── Remote Playback Banner (Spotify Style) ── */}
+      {!isPlayingLocally && activeDevice && (
+        <div className="absolute bottom-full left-0 right-0 z-30 bg-crisp-green text-black px-4 py-1.5 flex items-center justify-between text-xs font-semibold shadow-md select-none animate-in slide-in-from-bottom-2 duration-150">
+          <div className="flex items-center gap-2 truncate">
+            <MonitorSpeaker className="w-4 h-4 flex-shrink-0 text-black animate-pulse" />
+            <span className="truncate">
+              Listening on{' '}
+              <button
+                type="button"
+                onClick={toggleDevicePicker}
+                data-device-picker-toggle="true"
+                className="font-bold underline cursor-pointer hover:opacity-80"
+              >
+                {activeDevice.deviceName}
+              </button>
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => transferPlaybackTo(myDeviceId)}
+            className="ml-3 px-2.5 py-0.5 rounded bg-black/15 hover:bg-black/25 text-black text-[11px] font-bold transition-colors cursor-pointer flex-shrink-0"
+          >
+            Play here instead
+          </button>
+        </div>
+      )}
+
       {/* ════════════ MOBILE LAYOUT (< md) ════════════ */}
       <div className="flex md:hidden flex-col w-full">
 
-        {/* Row 1: art · info · controls (Shuffle · Repeat · Play/Pause · Queue on extreme right) */}
+        {/* Row 1: art · info · controls (Shuffle · Repeat · Play/Pause · Connect · Queue on extreme right) */}
         <div className="flex items-center gap-2 px-3 py-2">
           {/* Album Art - tap to expand */}
           <div
@@ -177,7 +204,7 @@ export function Player() {
             )}
           </div>
 
-          {/* Controls: Shuffle · Repeat · Play/Pause · Queue (extreme right) */}
+          {/* Controls: Shuffle · Repeat · Play/Pause · Connect · Queue (extreme right) */}
           <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
             {/* Shuffle */}
             <button
@@ -214,7 +241,7 @@ export function Player() {
             {/* Play / Pause */}
             <button
               onClick={handleTogglePlay}
-              className="w-9 h-9 rounded-full bg-vibrant-saffron text-white flex items-center justify-center transition-all hover:bg-deep-saffron hover:scale-105 active:scale-95 shadow-sm mx-0.5"
+              className="w-9 h-9 rounded-full bg-vibrant-saffron text-white flex items-center justify-center transition-all hover:bg-deep-saffron hover:scale-105 active:scale-95 shadow-sm mx-0.5 cursor-pointer"
               aria-label={isPlaying ? 'Pause' : 'Play'}
             >
               {isPlaying ? (
@@ -222,6 +249,28 @@ export function Player() {
               ) : (
                 <Play className="w-4 h-4 fill-current ml-0.5" />
               )}
+            </button>
+
+            {/* Connect to a device (Mobile) */}
+            <button
+              onClick={toggleDevicePicker}
+              data-device-picker-toggle="true"
+              className={`p-1.5 sm:p-2 rounded transition-all hover:scale-105 active:scale-95 cursor-pointer relative ${
+                !isPlayingLocally && activeDevice
+                  ? 'text-crisp-green'
+                  : isDevicePickerOpen
+                  ? 'text-white'
+                  : 'text-on-primary-muted hover:text-white'
+              }`}
+              aria-label="Connect to a device"
+              title={!isPlayingLocally && activeDevice ? `Listening on ${activeDevice.deviceName}` : 'Connect to a device'}
+            >
+              <div className="relative flex flex-col items-center justify-center">
+                <MonitorSpeaker className="w-4 h-4" />
+                {(!isPlayingLocally && activeDevice) && (
+                  <span className="absolute -bottom-1 w-1 h-1 rounded-full bg-crisp-green shadow-[0_0_4px_#1db954]" />
+                )}
+              </div>
             </button>
 
             {/* Queue (extreme right) */}
@@ -426,9 +475,10 @@ export function Player() {
           {/* Device Picker (Spotify Connect) */}
           <button
             onClick={toggleDevicePicker}
+            data-device-picker-toggle="true"
             className={`relative p-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
               !isPlayingLocally && activeDevice
-                ? 'text-crisp-green bg-crisp-green/15 ring-1 ring-crisp-green/40 font-medium text-xs px-2'
+                ? 'text-crisp-green bg-crisp-green/15 ring-1 ring-crisp-green/40 font-medium text-xs px-2.5 py-1'
                 : isDevicePickerOpen
                 ? 'text-white bg-white/10'
                 : 'text-on-primary-muted hover:text-white hover:bg-white/5'
@@ -440,14 +490,16 @@ export function Player() {
             }
             aria-label="Connect to a device"
           >
-            <MonitorSpeaker className="w-4 h-4" />
+            <div className="relative flex flex-col items-center justify-center">
+              <MonitorSpeaker className="w-4 h-4" />
+              {(!isPlayingLocally && activeDevice) && (
+                <span className="absolute -bottom-1.5 w-1 h-1 rounded-full bg-crisp-green shadow-[0_0_4px_#1db954]" />
+              )}
+            </div>
             {!isPlayingLocally && activeDevice && (
-              <span className="hidden xl:inline text-[11px] truncate max-w-[100px]">
+              <span className="hidden xl:inline text-[11px] truncate max-w-[110px] font-semibold">
                 {activeDevice.deviceName}
               </span>
-            )}
-            {!isPlayingLocally && activeDevice && (
-              <span className="w-1.5 h-1.5 rounded-full bg-crisp-green animate-pulse" />
             )}
           </button>
 

@@ -10,8 +10,6 @@ import { ArtworkImage } from '@/components/ui/ArtworkImage';
 import { TrackOptionsMenu } from '@/components/catalog/TrackOptionsMenu';
 import { useMounted } from '@/hooks/useMounted';
 
-import { useDeviceStore } from '@/stores/device.store';
-
 interface SongRowProps {
   song: Song;
   index?: number;
@@ -32,8 +30,6 @@ export function SongRow({
   showAlbum = true,
 }: SongRowProps) {
   const { currentSong, isPlaying, playSong, togglePlay } = usePlayerStore();
-  const { myDeviceId, activeDeviceId } = useDeviceStore();
-  const isPlayingLocally = !activeDeviceId || activeDeviceId === myDeviceId;
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const mounted = useMounted();
 
@@ -53,10 +49,10 @@ export function SongRow({
   const likeLoading = mounted ? !!loadingLikes[song.id] : false;
 
   const isCurrent = currentSong?.id === song.id;
-  const isCurrentlyPlaying = isCurrent && isPlaying && isPlayingLocally;
+  const isCurrentlyPlaying = isCurrent && isPlaying;
 
   const handlePlay = () => {
-    if (isCurrent && isPlayingLocally) {
+    if (isCurrent) {
       togglePlay();
     } else {
       playSong(song, queue, contextType, contextId, contextTitle);

@@ -133,6 +133,9 @@ export function AudioEngine() {
     };
 
     const onPlay = () => {
+      const { activeDeviceId, myDeviceId } = useDeviceStore.getState();
+      if (activeDeviceId && activeDeviceId !== myDeviceId) return;
+
       setIsPlaying(true);
       // Notify other local browser tabs to pause audio
       if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
@@ -142,31 +145,32 @@ export function AudioEngine() {
           channel.close();
         } catch {}
       }
-      const { activeDeviceId, myDeviceId } = useDeviceStore.getState();
-      if (!activeDeviceId || activeDeviceId === myDeviceId) {
-        broadcastLocalPlaybackState({
-          currentTime: el.currentTime,
-          duration: el.duration || 0,
-          progress: el.duration > 0 ? el.currentTime / el.duration : 0,
-          isPlaying: true,
-        });
-      }
+      broadcastLocalPlaybackState({
+        currentTime: el.currentTime,
+        duration: el.duration || 0,
+        progress: el.duration > 0 ? el.currentTime / el.duration : 0,
+        isPlaying: true,
+      });
     };
 
     const onPause = () => {
-      setIsPlaying(false);
       const { activeDeviceId, myDeviceId } = useDeviceStore.getState();
-      if (!activeDeviceId || activeDeviceId === myDeviceId) {
-        broadcastLocalPlaybackState({
-          currentTime: el.currentTime,
-          duration: el.duration || 0,
-          progress: el.duration > 0 ? el.currentTime / el.duration : 0,
-          isPlaying: false,
-        });
-      }
+      // If this device is yielding playback or is remote, pausing local audio hardware must not mark the session as paused
+      if (activeDeviceId && activeDeviceId !== myDeviceId) return;
+
+      setIsPlaying(false);
+      broadcastLocalPlaybackState({
+        currentTime: el.currentTime,
+        duration: el.duration || 0,
+        progress: el.duration > 0 ? el.currentTime / el.duration : 0,
+        isPlaying: false,
+      });
     };
 
     const onEnded = () => {
+      const { activeDeviceId, myDeviceId } = useDeviceStore.getState();
+      if (activeDeviceId && activeDeviceId !== myDeviceId) return;
+
       const {
         repeat: r,
         userQueue,

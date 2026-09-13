@@ -49,6 +49,19 @@ export function getAudioElement(): HTMLAudioElement | null {
 /** Tracking token to prevent stale track loads from interrupting newer requests */
 let _currentPlayRequestId = 0;
 
+function isRemotePlaybackActive(): boolean {
+  if (typeof window === 'undefined') return false;
+  const { myDeviceId, activeDeviceId } = useDeviceStore.getState();
+  return Boolean(activeDeviceId && activeDeviceId !== myDeviceId);
+}
+
+function sendRemote(command: string, payload?: any) {
+  if (typeof window === 'undefined') return;
+  import('@/hooks/useDeviceSocket').then(({ sendRemotePlayerCommand }) => {
+    sendRemotePlayerCommand(command, payload);
+  }).catch(() => {});
+}
+
 let _syncTimer: any = null;
 
 /** Throttled/debounced sync of active playback state to the user's cloud account */
@@ -293,6 +306,30 @@ export const usePlayerStore = create<PlayerState>()(
             ? [...history.slice(-49), currentSong]
             : history;
 
+        if (isRemotePlaybackActive()) {
+          set({
+            queue: newQueue,
+            currentIndex: index >= 0 ? index : 0,
+            currentSong: song,
+            currentTime: 0,
+            progress: 0,
+            duration: song.duration || 0,
+            isPlaying: true,
+            contextType,
+            contextId,
+            contextTitle,
+            history: updatedHistory,
+          });
+          sendRemote('PLAY_SONG', {
+            song,
+            queue: newQueue,
+            contextType,
+            contextId,
+            contextTitle,
+          });
+          return;
+        }
+
         const { myDeviceId, activeDeviceId } = useDeviceStore.getState();
         if (activeDeviceId !== myDeviceId) {
           useDeviceStore.getState().setActiveDeviceId(myDeviceId);
@@ -329,6 +366,30 @@ export const usePlayerStore = create<PlayerState>()(
             ? [...history.slice(-49), currentSong]
             : history;
 
+        if (isRemotePlaybackActive()) {
+          set({
+            queue: songs,
+            currentIndex: startIndex,
+            currentSong: song,
+            currentTime: 0,
+            progress: 0,
+            duration: song.duration || 0,
+            isPlaying: true,
+            contextType,
+            contextId,
+            contextTitle,
+            history: updatedHistory,
+          });
+          sendRemote('PLAY_QUEUE', {
+            songs,
+            startIndex,
+            contextType,
+            contextId,
+            contextTitle,
+          });
+          return;
+        }
+
         const { myDeviceId, activeDeviceId } = useDeviceStore.getState();
         if (activeDeviceId !== myDeviceId) {
           useDeviceStore.getState().setActiveDeviceId(myDeviceId);
@@ -358,6 +419,13 @@ export const usePlayerStore = create<PlayerState>()(
 
       togglePlay: async () => {
         const { isPlaying, currentSong, currentTime, duration } = get();
+        if (isRemotePlaybackActive()) {
+          const nextIsPlaying = !isPlaying;
+          set({ isPlaying: nextIsPlaying });
+          sendRemote(nextIsPlaying ? 'RESUME' : 'PAUSE');
+          return;
+        }
+
         const audio = getAudioElement();
         if (isPlaying) {
           audio?.pause();
@@ -399,6 +467,11 @@ export const usePlayerStore = create<PlayerState>()(
       },
 
       pause: () => {
+        if (isRemotePlaybackActive()) {
+          set({ isPlaying: false });
+          sendRemote('PAUSE');
+          return;
+        }
         getAudioElement()?.pause();
         set({ isPlaying: false });
         scheduleServerSync(true);
@@ -406,6 +479,11 @@ export const usePlayerStore = create<PlayerState>()(
 
       resume: async () => {
         const { currentSong, currentTime, duration } = get();
+        if (isRemotePlaybackActive()) {
+          set({ isPlaying: true });
+          sendRemote('RESUME');
+          return;
+        }
         const audio = getAudioElement();
         if (!currentSong) return;
 
@@ -447,6 +525,11 @@ export const usePlayerStore = create<PlayerState>()(
       },
 
       next: () => {
+        if (isRemotePlaybackActive()) {
+          sendRemote('NEXT');
+          return;
+        }
+
         const { queue, currentIndex, userQueue, history, shuffle, repeat, currentSong } = get();
 
         // 1. If user queue has songs, play the first one next!
@@ -508,6 +591,11 @@ export const usePlayerStore = create<PlayerState>()(
       },
 
       prev: () => {
+        if (isRemotePlaybackActive()) {
+          sendRemote('PREV');
+          return;
+        }
+
         const { queue, currentIndex, currentTime, history } = get();
         const audio = getAudioElement();
         // If past 3 seconds, restart current song
@@ -554,8 +642,14 @@ export const usePlayerStore = create<PlayerState>()(
 
       seek: (progress) => {
         const { duration } = get();
-        const audio = getAudioElement();
         const targetTime = duration > 0 ? progress * duration : 0;
+        if (isRemotePlaybackActive()) {
+          set({ progress, currentTime: targetTime });
+          sendRemote('SEEK', { progress });
+          return;
+        }
+
+        const audio = getAudioElement();
         if (audio && duration > 0) {
           try {
             audio.currentTime = targetTime;
@@ -566,20 +660,33 @@ export const usePlayerStore = create<PlayerState>()(
       },
 
       setVolume: (vol) => {
+        if (isRemotePlaybackActive()) {
+          set({ volume: vol });
+          sendRemote('SET_VOLUME', { volume: vol });
+          return;
+        }
         const audio = getAudioElement();
         if (audio) audio.volume = vol;
         set({ volume: vol });
       },
 
       toggleShuffle: () => {
-        set((s) => ({ shuffle: !s.shuffle }));
+        const nextShuffle = !get().shuffle;
+        set({ shuffle: nextShuffle });
+        if (isRemotePlaybackActive()) {
+          sendRemote('SET_SHUFFLE', { shuffle: nextShuffle });
+          return;
+        }
         scheduleServerSync(false);
       },
 
       toggleRepeat: () => {
-        set((s) => ({
-          repeat: s.repeat === 'none' ? 'all' : s.repeat === 'all' ? 'one' : 'none',
-        }));
+        const nextRepeat = get().repeat === 'none' ? 'all' : get().repeat === 'all' ? 'one' : 'none';
+        set({ repeat: nextRepeat });
+        if (isRemotePlaybackActive()) {
+          sendRemote('SET_REPEAT', { repeat: nextRepeat });
+          return;
+        }
         scheduleServerSync(false);
       },
 
@@ -661,6 +768,10 @@ export const usePlayerStore = create<PlayerState>()(
           userQueue: [...songArr, ...userQueue],
         });
 
+        if (isRemotePlaybackActive()) {
+          sendRemote('PLAY_NEXT', { songs: songArr });
+        }
+
         toast.success(
           songArr.length === 1
             ? `Playing next: "${songArr[0].title}"`
@@ -689,6 +800,10 @@ export const usePlayerStore = create<PlayerState>()(
           userQueue: [...userQueue, ...songArr],
         });
 
+        if (isRemotePlaybackActive()) {
+          sendRemote('ADD_TO_QUEUE', { songs: songArr });
+        }
+
         toast.success(
           songArr.length === 1
             ? `Added to queue: "${songArr[0].title}"`
@@ -702,6 +817,9 @@ export const usePlayerStore = create<PlayerState>()(
         const updated = [...userQueue];
         const [removed] = updated.splice(index, 1);
         set({ userQueue: updated });
+        if (isRemotePlaybackActive()) {
+          sendRemote('REMOVE_FROM_USER_QUEUE', { index });
+        }
         if (removed) {
           toast.info(`Removed "${removed.title}" from queue`);
         }
@@ -715,6 +833,9 @@ export const usePlayerStore = create<PlayerState>()(
         const newIndex =
           index < currentIndex ? Math.max(0, currentIndex - 1) : currentIndex;
         set({ queue: updated, currentIndex: newIndex });
+        if (isRemotePlaybackActive()) {
+          sendRemote('REMOVE_FROM_CONTEXT_QUEUE', { index });
+        }
         if (removed) {
           toast.info(`Removed "${removed.title}" from upcoming`);
         }
@@ -722,12 +843,18 @@ export const usePlayerStore = create<PlayerState>()(
 
       clearUserQueue: () => {
         set({ userQueue: [] });
+        if (isRemotePlaybackActive()) {
+          sendRemote('CLEAR_USER_QUEUE');
+        }
         toast.info('Cleared user queue');
       },
 
       clearContextQueue: () => {
         const { queue, currentIndex } = get();
         set({ queue: queue.slice(0, currentIndex + 1) });
+        if (isRemotePlaybackActive()) {
+          sendRemote('CLEAR_CONTEXT_QUEUE');
+        }
         toast.info('Cleared upcoming tracks');
       },
 
@@ -737,6 +864,9 @@ export const usePlayerStore = create<PlayerState>()(
           userQueue: [],
           queue: queue.slice(0, currentIndex + 1),
         });
+        if (isRemotePlaybackActive()) {
+          sendRemote('CLEAR_ALL_UPCOMING');
+        }
         toast.info('Queue cleared');
       },
 
@@ -755,6 +885,9 @@ export const usePlayerStore = create<PlayerState>()(
         const [item] = updated.splice(fromIndex, 1);
         updated.splice(toIndex, 0, item);
         set({ userQueue: updated });
+        if (isRemotePlaybackActive()) {
+          sendRemote('REORDER_USER_QUEUE', { fromIndex, toIndex });
+        }
       },
 
       reorderContextQueue: (fromIndex, toIndex) => {
@@ -772,6 +905,9 @@ export const usePlayerStore = create<PlayerState>()(
         const [item] = updated.splice(fromIndex, 1);
         updated.splice(toIndex, 0, item);
         set({ queue: updated });
+        if (isRemotePlaybackActive()) {
+          sendRemote('REORDER_CONTEXT_QUEUE', { fromIndex, toIndex });
+        }
       },
 
       playFromUserQueue: (index) => {
@@ -792,6 +928,12 @@ export const usePlayerStore = create<PlayerState>()(
           isPlaying: true,
           history: updatedHistory,
         });
+
+        if (isRemotePlaybackActive()) {
+          sendRemote('PLAY_FROM_USER_QUEUE', { index });
+          return;
+        }
+
         loadAndPlay(song, 0);
         recordHistory(song.id);
       },
@@ -812,6 +954,12 @@ export const usePlayerStore = create<PlayerState>()(
           isPlaying: true,
           history: updatedHistory,
         });
+
+        if (isRemotePlaybackActive()) {
+          sendRemote('PLAY_FROM_CONTEXT_QUEUE', { index });
+          return;
+        }
+
         loadAndPlay(song, 0);
         recordHistory(song.id);
       },
