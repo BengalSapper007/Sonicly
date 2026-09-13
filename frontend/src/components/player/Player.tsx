@@ -142,7 +142,7 @@ export function Player() {
     >
       {/* ── Remote Playback Banner (Spotify Style) ── */}
       {!isPlayingLocally && activeDevice && (
-        <div className="w-full bg-crisp-green text-black px-4 py-1.5 flex items-center justify-between text-xs font-semibold shadow-inner select-none animate-in slide-in-from-bottom-1 duration-150">
+        <div className="absolute bottom-full left-0 right-0 z-30 bg-crisp-green text-black px-4 py-1.5 flex items-center justify-between text-xs font-semibold shadow-md select-none animate-in slide-in-from-bottom-2 duration-150">
           <div className="flex items-center gap-2 truncate">
             <MonitorSpeaker className="w-4 h-4 flex-shrink-0 text-black animate-pulse" />
             <span className="truncate">

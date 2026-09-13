@@ -85,6 +85,8 @@ export function DevicePickerPopover() {
     }
   ];
 
+  const isRemoteBannerShowing = Boolean(activeDeviceId && activeDeviceId !== myDeviceId);
+
   return (
     <>
       {/* Mobile Backdrop Overlay (< md) */}
@@ -103,7 +105,7 @@ export function DevicePickerPopover() {
         className={`
           fixed md:absolute z-50 overflow-hidden text-white shadow-2xl transition-all
           /* Mobile styles: Bottom Sheet */
-          inset-x-0 bottom-0 md:inset-auto md:bottom-full md:mb-3 md:right-4 md:right-16
+          inset-x-0 bottom-0 md:inset-auto md:bottom-full ${isRemoteBannerShowing ? 'md:mb-12' : 'md:mb-3'} md:right-4 md:right-16
           w-full md:w-84 max-w-full md:max-w-[340px]
           rounded-t-3xl md:rounded-2xl
           bg-[#121624] border border-white/10

@@ -294,31 +294,6 @@ export class PlayerGatewayService implements OnModuleInit, OnModuleDestroy {
       case 'STATE_BROADCAST': {
         const sender = devices.get(senderDeviceId);
         if (sender) {
-          // If the sender is playing, it automatically holds active playback status
-          if (msg.state?.isPlaying) {
-            let activeChanged = false;
-            for (const [id, dev] of devices.entries()) {
-              const shouldBeActive = id === senderDeviceId;
-              if (dev.isPlaybackActive !== shouldBeActive) {
-                dev.isPlaybackActive = shouldBeActive;
-                activeChanged = true;
-                if (!shouldBeActive) {
-                  this.safeSend(
-                    dev.ws,
-                    JSON.stringify({
-                      type: 'YIELD_PLAYBACK',
-                      newActiveDeviceId: senderDeviceId,
-                    }),
-                  );
-                }
-              }
-            }
-            if (activeChanged) {
-              this.broadcastDeviceList(userId);
-              this.playerService.updateState(userId, { activeDeviceId: senderDeviceId }).catch(() => {});
-            }
-          }
-
           // ONLY forward state sync to other devices if sender is active.
           // Inactive devices (e.g. freshly yielded devices pausing) must not clobber active device state.
           if (sender.isPlaybackActive) {

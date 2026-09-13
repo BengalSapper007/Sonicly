@@ -53,12 +53,14 @@ export class AuthController {
     return { success: true, user, token };
   }
 
+  @Public()
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   logout(@Res({ passthrough: true }) res: any) {
     // Mirror the same options used to set the cookie so browsers clear it correctly
     const { maxAge: _maxAge, ...clearOptions } = COOKIE_OPTIONS;
     res.clearCookie(COOKIE_NAME, clearOptions);
+    res.clearCookie(COOKIE_NAME, { path: '/' });
     return { success: true, message: 'Logged out' };
   }
 

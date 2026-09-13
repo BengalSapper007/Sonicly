@@ -82,7 +82,7 @@ function getWebSocketUrl(
 }
 
 export function transferPlaybackTo(targetDeviceId: string) {
-  const { activeDeviceId } = useDeviceStore.getState();
+  const { myDeviceId, activeDeviceId } = useDeviceStore.getState();
   if (activeDeviceId === targetDeviceId) return;
   useDeviceStore.getState().setIsTransferring(targetDeviceId);
   useDeviceStore.getState().setActiveDeviceId(targetDeviceId);
@@ -90,6 +90,14 @@ export function transferPlaybackTo(targetDeviceId: string) {
     type: 'TRANSFER_PLAYBACK',
     targetDeviceId,
   });
+
+  // If taking over playback on THIS device and playback was active, start loading/resuming immediately in this user gesture
+  if (targetDeviceId === myDeviceId) {
+    const player = usePlayerStore.getState();
+    if (player.isPlaying && player.currentSong) {
+      player.resume();
+    }
+  }
 }
 
 export function claimActivePlayback() {
@@ -149,21 +157,38 @@ export function broadcastLocalPlaybackState(override?: Partial<{
 export function useDeviceSocket() {
   const token = useAuthStore((s) => s.token);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const { myDeviceId, myDeviceName, myDeviceType, setDevices, setIsConnected, setIsTransferring } = useDeviceStore();
+
   const socketRef = useRef<WebSocket | null>(null);
   const pingIntervalRef = useRef<any>(null);
   const reconnectTimeoutRef = useRef<any>(null);
   const reconnectAttemptsRef = useRef(0);
   const isMountedRef = useRef(true);
+  const isIntentionalCloseRef = useRef(false);
 
   const connect = useCallback(() => {
-    if (!isAuthenticated || !token || typeof window === 'undefined') return;
+    if (typeof window === 'undefined') return;
+    const currentToken = useAuthStore.getState().token;
+    const currentAuth = useAuthStore.getState().isAuthenticated;
 
-    if (socketRef.current) {
-      try {
-        socketRef.current.close();
-      } catch {}
-      socketRef.current = null;
+    if (!currentAuth || !currentToken) {
+      if (socketRef.current) {
+        isIntentionalCloseRef.current = true;
+        try {
+          socketRef.current.close();
+        } catch {}
+        socketRef.current = null;
+        _socketInstance = null;
+      }
+      return;
+    }
+
+    // Do NOT clobber if already open or in the middle of connecting
+    if (
+      socketRef.current &&
+      (socketRef.current.readyState === WebSocket.OPEN ||
+        socketRef.current.readyState === WebSocket.CONNECTING)
+    ) {
+      return;
     }
 
     if (reconnectTimeoutRef.current) {
@@ -171,11 +196,14 @@ export function useDeviceSocket() {
       reconnectTimeoutRef.current = null;
     }
 
+    const { myDeviceId, myDeviceName, myDeviceType } = useDeviceStore.getState();
+
     let ws: WebSocket;
     try {
-      const wsUrl = getWebSocketUrl(token, myDeviceId, myDeviceName, myDeviceType);
+      const wsUrl = getWebSocketUrl(currentToken, myDeviceId, myDeviceName, myDeviceType);
       if (!wsUrl) return;
 
+      isIntentionalCloseRef.current = false;
       ws = new WebSocket(wsUrl);
       socketRef.current = ws;
       _socketInstance = ws;
@@ -186,7 +214,7 @@ export function useDeviceSocket() {
 
     ws.onopen = () => {
       reconnectAttemptsRef.current = 0;
-      setIsConnected(true);
+      useDeviceStore.getState().setIsConnected(true);
 
       // Start ping heartbeat
       if (pingIntervalRef.current) {
@@ -207,21 +235,21 @@ export function useDeviceSocket() {
 
         switch (msg.type) {
           case 'DEVICES_UPDATED': {
-            setDevices(msg.devices, msg.activeDeviceId);
-            setIsTransferring(null);
+            useDeviceStore.getState().setDevices(msg.devices, msg.activeDeviceId);
+            useDeviceStore.getState().setIsTransferring(null);
             const { myDeviceId } = useDeviceStore.getState();
             // If another device is active, make sure this device is not continuing to play local audio
             if (msg.activeDeviceId && msg.activeDeviceId !== myDeviceId) {
               const audio = getAudioElement();
               if (audio && !audio.paused) {
-                usePlayerStore.getState().pause();
+                audio.pause();
               }
             }
             break;
           }
 
           case 'TAKE_OVER_PLAYBACK': {
-            setIsTransferring(null);
+            useDeviceStore.getState().setIsTransferring(null);
             toast.info('Listening on this device');
             const player = usePlayerStore.getState();
             const audio = getAudioElement();
@@ -234,12 +262,15 @@ export function useDeviceSocket() {
           }
 
           case 'YIELD_PLAYBACK': {
-            setIsTransferring(null);
+            useDeviceStore.getState().setIsTransferring(null);
             if (msg.newActiveDeviceId) {
               useDeviceStore.getState().setActiveDeviceId(msg.newActiveDeviceId);
             }
-            const player = usePlayerStore.getState();
-            player.pause();
+            // Silence local audio output without dispatching a remote PAUSE command to the new active device
+            const audio = getAudioElement();
+            if (audio && !audio.paused) {
+              audio.pause();
+            }
             toast.info('Playback transferred to another device');
             break;
           }
@@ -248,6 +279,28 @@ export function useDeviceSocket() {
             const player = usePlayerStore.getState();
             const { command, payload } = msg;
             switch (command) {
+              case 'PLAY_SONG':
+                if (payload?.song) {
+                  player.playSong(
+                    payload.song,
+                    payload.queue,
+                    payload.contextType,
+                    payload.contextId,
+                    payload.contextTitle
+                  );
+                }
+                break;
+              case 'PLAY_QUEUE':
+                if (payload?.songs) {
+                  player.playQueue(
+                    payload.songs,
+                    payload.startIndex ?? 0,
+                    payload.contextType,
+                    payload.contextId,
+                    payload.contextTitle
+                  );
+                }
+                break;
               case 'TOGGLE_PLAY':
                 player.togglePlay();
                 break;
@@ -273,6 +326,76 @@ export function useDeviceSocket() {
                   player.setVolume(payload.volume);
                 }
                 break;
+              case 'SET_SHUFFLE':
+                if (payload?.shuffle !== undefined) {
+                  usePlayerStore.setState({ shuffle: payload.shuffle });
+                  broadcastLocalPlaybackState();
+                }
+                break;
+              case 'SET_REPEAT':
+                if (payload?.repeat !== undefined) {
+                  usePlayerStore.setState({ repeat: payload.repeat });
+                  broadcastLocalPlaybackState();
+                }
+                break;
+              case 'PLAY_NEXT':
+                if (payload?.songs) {
+                  player.playNext(payload.songs);
+                  broadcastLocalPlaybackState();
+                }
+                break;
+              case 'ADD_TO_QUEUE':
+                if (payload?.songs) {
+                  player.addToQueue(payload.songs);
+                  broadcastLocalPlaybackState();
+                }
+                break;
+              case 'REMOVE_FROM_USER_QUEUE':
+                if (payload?.index !== undefined) {
+                  player.removeFromUserQueue(payload.index);
+                  broadcastLocalPlaybackState();
+                }
+                break;
+              case 'REMOVE_FROM_CONTEXT_QUEUE':
+                if (payload?.index !== undefined) {
+                  player.removeFromContextQueue(payload.index);
+                  broadcastLocalPlaybackState();
+                }
+                break;
+              case 'CLEAR_USER_QUEUE':
+                player.clearUserQueue();
+                broadcastLocalPlaybackState();
+                break;
+              case 'CLEAR_CONTEXT_QUEUE':
+                player.clearContextQueue();
+                broadcastLocalPlaybackState();
+                break;
+              case 'CLEAR_ALL_UPCOMING':
+                player.clearAllUpcoming();
+                broadcastLocalPlaybackState();
+                break;
+              case 'REORDER_USER_QUEUE':
+                if (payload?.fromIndex !== undefined && payload?.toIndex !== undefined) {
+                  player.reorderUserQueue(payload.fromIndex, payload.toIndex);
+                  broadcastLocalPlaybackState();
+                }
+                break;
+              case 'REORDER_CONTEXT_QUEUE':
+                if (payload?.fromIndex !== undefined && payload?.toIndex !== undefined) {
+                  player.reorderContextQueue(payload.fromIndex, payload.toIndex);
+                  broadcastLocalPlaybackState();
+                }
+                break;
+              case 'PLAY_FROM_USER_QUEUE':
+                if (payload?.index !== undefined) {
+                  player.playFromUserQueue(payload.index);
+                }
+                break;
+              case 'PLAY_FROM_CONTEXT_QUEUE':
+                if (payload?.index !== undefined) {
+                  player.playFromContextQueue(payload.index);
+                }
+                break;
             }
             break;
           }
@@ -290,7 +413,7 @@ export function useDeviceSocket() {
             // If another device is active, ensure local audio element is not producing sound
             const audio = getAudioElement();
             if (audio && !audio.paused) {
-              usePlayerStore.getState().pause();
+              audio.pause();
             }
 
             if (activeDevId && activeDevId !== myDeviceId && msg.state) {
@@ -342,20 +465,23 @@ export function useDeviceSocket() {
     };
 
     ws.onclose = () => {
-      setIsConnected(false);
+      useDeviceStore.getState().setIsConnected(false);
       if (pingIntervalRef.current) {
         clearInterval(pingIntervalRef.current);
       }
       if (_socketInstance === ws) {
         _socketInstance = null;
       }
+      if (socketRef.current === ws) {
+        socketRef.current = null;
+      }
 
-      // Auto-reconnect with exponential backoff if component is still mounted & authenticated
-      if (isMountedRef.current && isAuthenticated) {
+      // Only auto-reconnect if close was UNINTENTIONAL and user is still logged in
+      if (!isIntentionalCloseRef.current && isMountedRef.current && useAuthStore.getState().isAuthenticated) {
         const delay = Math.min(1000 * Math.pow(1.5, reconnectAttemptsRef.current), 10000);
         reconnectAttemptsRef.current += 1;
         reconnectTimeoutRef.current = setTimeout(() => {
-          if (isMountedRef.current) {
+          if (isMountedRef.current && useAuthStore.getState().isAuthenticated) {
             connect();
           }
         }, delay);
@@ -367,21 +493,39 @@ export function useDeviceSocket() {
         ws.close();
       } catch {}
     };
-  }, [isAuthenticated, token, myDeviceId, myDeviceName, myDeviceType, setDevices, setIsConnected, setIsTransferring]);
+  }, []);
 
   useEffect(() => {
     isMountedRef.current = true;
-    connect();
+    isIntentionalCloseRef.current = false;
+
+    if (isAuthenticated && token) {
+      connect();
+    } else {
+      if (socketRef.current) {
+        isIntentionalCloseRef.current = true;
+        try {
+          socketRef.current.close();
+        } catch {}
+        socketRef.current = null;
+        _socketInstance = null;
+      }
+      useDeviceStore.getState().setIsConnected(false);
+    }
 
     const handleOnline = () => {
-      if (socketRef.current?.readyState !== WebSocket.OPEN) {
+      if (socketRef.current?.readyState !== WebSocket.OPEN && socketRef.current?.readyState !== WebSocket.CONNECTING) {
         reconnectAttemptsRef.current = 0;
         connect();
       }
     };
 
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible' && socketRef.current?.readyState !== WebSocket.OPEN) {
+      if (
+        document.visibilityState === 'visible' &&
+        socketRef.current?.readyState !== WebSocket.OPEN &&
+        socketRef.current?.readyState !== WebSocket.CONNECTING
+      ) {
         connect();
       }
     };
@@ -391,13 +535,16 @@ export function useDeviceSocket() {
 
     return () => {
       isMountedRef.current = false;
+      isIntentionalCloseRef.current = true;
       window.removeEventListener('online', handleOnline);
       document.removeEventListener('visibilitychange', handleVisibility);
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
       }
       if (pingIntervalRef.current) {
         clearInterval(pingIntervalRef.current);
+        pingIntervalRef.current = null;
       }
       if (socketRef.current) {
         try {
@@ -407,5 +554,5 @@ export function useDeviceSocket() {
       }
       _socketInstance = null;
     };
-  }, [connect]);
+  }, [isAuthenticated, token, connect]);
 }
