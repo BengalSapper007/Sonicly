@@ -163,16 +163,30 @@ export class PlayerGatewayService implements OnModuleInit, OnModuleDestroy {
 
     ws.on('close', async () => {
       try {
+        const current = devices.get(deviceId);
+        if (current && current.ws !== ws) {
+          this.logger.debug(`Ignoring close event from superseded socket for ${deviceId}`);
+          return;
+        }
+
         devices.delete(deviceId);
         if (devices.size === 0) {
           this.userDevices.delete(userId);
         } else {
-          // If the active device disconnected, promote another device if available
+          // If the active device disconnected, promote another device to primary if available
           if (deviceRecord.isPlaybackActive) {
-            const remaining = Array.from(devices.values());
+            const remaining = Array.from(devices.values()).filter((d) => d.deviceId !== deviceId);
             if (remaining.length > 0) {
-              remaining[0].isPlaybackActive = true;
-              await this.playerService.updateState(userId, { activeDeviceId: remaining[0].deviceId }).catch(() => {});
+              const newPrimary = remaining[0];
+              newPrimary.isPlaybackActive = true;
+              this.safeSend(
+                newPrimary.ws,
+                JSON.stringify({
+                  type: 'TAKE_OVER_PLAYBACK',
+                  activeDeviceId: newPrimary.deviceId,
+                }),
+              );
+              await this.playerService.updateState(userId, { activeDeviceId: newPrimary.deviceId }).catch(() => {});
             }
           }
         }
@@ -202,20 +216,18 @@ export class PlayerGatewayService implements OnModuleInit, OnModuleDestroy {
     // Check DB state asynchronously in background without blocking message flow
     this.playerService.getState(userId).then(async (dbState) => {
       if (!devices.has(deviceId)) return;
-      if (dbState?.activeDeviceId && devices.has(dbState.activeDeviceId)) {
-        let changed = false;
-        for (const [id, dev] of devices.entries()) {
-          const shouldBeActive = id === dbState.activeDeviceId;
-          if (dev.isPlaybackActive !== shouldBeActive) {
-            dev.isPlaybackActive = shouldBeActive;
-            changed = true;
+      // ONLY consult DB state if NO currently connected device is active!
+      const hasActiveDevice = Array.from(devices.values()).some((d) => d.isPlaybackActive);
+      if (!hasActiveDevice) {
+        if (dbState?.activeDeviceId && devices.has(dbState.activeDeviceId)) {
+          const dev = devices.get(dbState.activeDeviceId);
+          if (dev) {
+            dev.isPlaybackActive = true;
+            this.broadcastDeviceList(userId);
           }
+        } else if (isPlaybackActive) {
+          await this.playerService.updateState(userId, { activeDeviceId: deviceId }).catch(() => {});
         }
-        if (changed) {
-          this.broadcastDeviceList(userId);
-        }
-      } else if (isPlaybackActive) {
-        await this.playerService.updateState(userId, { activeDeviceId: deviceId }).catch(() => {});
       }
     }).catch(() => {});
   }
@@ -234,6 +246,27 @@ export class PlayerGatewayService implements OnModuleInit, OnModuleDestroy {
       case 'PING': {
         if (senderDevice) {
           this.safeSend(senderDevice.ws, JSON.stringify({ type: 'PONG' }));
+        }
+        break;
+      }
+
+      case 'DEVICE_UNLOAD': {
+        if (senderDevice?.isPlaybackActive) {
+          senderDevice.isPlaybackActive = false;
+          const remaining = Array.from(devices.values()).filter((d) => d.deviceId !== senderDeviceId);
+          if (remaining.length > 0) {
+            const newPrimary = remaining[0];
+            newPrimary.isPlaybackActive = true;
+            this.safeSend(
+              newPrimary.ws,
+              JSON.stringify({
+                type: 'TAKE_OVER_PLAYBACK',
+                activeDeviceId: newPrimary.deviceId,
+              }),
+            );
+            await this.playerService.updateState(userId, { activeDeviceId: newPrimary.deviceId }).catch(() => {});
+            this.broadcastDeviceList(userId);
+          }
         }
         break;
       }

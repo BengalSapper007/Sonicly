@@ -250,12 +250,14 @@ export function useDeviceSocket() {
 
           case 'TAKE_OVER_PLAYBACK': {
             useDeviceStore.getState().setIsTransferring(null);
+            const targetId = msg.activeDeviceId || useDeviceStore.getState().myDeviceId;
+            useDeviceStore.getState().setActiveDeviceId(targetId);
             toast.info('Listening on this device');
             const player = usePlayerStore.getState();
             const audio = getAudioElement();
             const isAudioActive = (audio && !audio.paused) || isSongLoading();
-            // Only resume if playback was playing and local audio is not already actively playing/loading
-            if (player.isPlaying && !isAudioActive) {
+            // Resume if track is set and local audio is not already actively playing/loading
+            if (player.currentSong && !isAudioActive) {
               player.resume();
             }
             break;
@@ -530,14 +532,32 @@ export function useDeviceSocket() {
       }
     };
 
+    const handleBeforeUnload = () => {
+      const { myDeviceId, activeDeviceId } = useDeviceStore.getState();
+      if (activeDeviceId === myDeviceId && socketRef.current?.readyState === WebSocket.OPEN) {
+        try {
+          socketRef.current.send(
+            JSON.stringify({
+              type: 'DEVICE_UNLOAD',
+              deviceId: myDeviceId,
+            })
+          );
+        } catch {}
+      }
+    };
+
     window.addEventListener('online', handleOnline);
     document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handleBeforeUnload);
 
     return () => {
       isMountedRef.current = false;
       isIntentionalCloseRef.current = true;
       window.removeEventListener('online', handleOnline);
       document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handleBeforeUnload);
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
