@@ -5,7 +5,9 @@ import {
   Redirect,
   BadRequestException,
   Logger,
+  Header,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { MediaService } from './media.service';
 import { Public } from '../common/decorators/public.decorator';
 
@@ -35,6 +37,8 @@ export class MediaController {
    * Allowed key prefixes: artists/ | albums/
    * Audio keys (audio/) are NOT served here — use GET /api/songs/:id/stream.
    */
+  @Throttle({ default: { ttl: 60_000, limit: 300 } }) // 300 artwork requests / min per IP to support dense image grids
+  @Header('Cache-Control', 'public, max-age=3600, s-maxage=3600')
   @Get('artwork')
   @Redirect()
   async getArtworkUrl(@Query('key') key: string) {

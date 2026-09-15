@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
+import { SkipThrottle } from '@nestjs/throttler';
 import { AdminKeyGuard } from '../common/guards/admin-key.guard';
 import { Public } from '../common/decorators/public.decorator';
 import { AdminCatalogService } from './admin-catalog.service';
@@ -23,6 +24,7 @@ const IMAGE_MAX_BYTES = 10 * 1024 * 1024;
  */
 @Public()
 @UseGuards(AdminKeyGuard)
+@SkipThrottle()
 @Controller('admin/catalog')
 export class AdminCatalogController {
   constructor(private service: AdminCatalogService) {}
