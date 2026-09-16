@@ -60,7 +60,7 @@ export function TrackOptionsMenu({
   const handleCopyLink = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      const url = `${window.location.origin}/song/${song.id}`;
+      const url = `${window.location.origin}/song/${encodeURIComponent(song.id)}`;
       await navigator.clipboard.writeText(url);
       setCopied(true);
       toast.success('Link copied to clipboard');

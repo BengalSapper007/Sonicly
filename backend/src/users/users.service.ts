@@ -1,8 +1,19 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { IsOptional, IsString, MaxLength, Matches } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
 
 export class UpdateUserDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
   displayName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  @Matches(/^(https?:\/\/|\/)/, {
+    message: 'imageUrl must be a valid HTTP/HTTPS URL or relative path',
+  })
   imageUrl?: string;
 }
 

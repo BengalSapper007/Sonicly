@@ -48,14 +48,14 @@ export class MediaController {
 
     const cleanKey = key.replace(/^\/+/, '').replace(/^images\//, '');
 
-    // Disallow path traversal or audio keys — this endpoint is strictly for artwork/images
+    // Disallow path traversal, null bytes, and non-artwork key prefixes
     if (
       cleanKey.includes('..') ||
-      cleanKey.startsWith('audio/') ||
-      cleanKey.startsWith('songs/')
+      cleanKey.includes('\0') ||
+      (!cleanKey.startsWith('artists/') && !cleanKey.startsWith('albums/'))
     ) {
       throw new BadRequestException(
-        'Audio keys are not allowed on this endpoint. Use /api/songs/:id/stream instead.',
+        'Invalid artwork key. Key must be prefixed with artists/ or albums/ and must not contain path traversal.',
       );
     }
 

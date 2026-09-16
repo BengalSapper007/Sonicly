@@ -10,7 +10,7 @@ import { SkipThrottle } from '@nestjs/throttler';
 import { AdminKeyGuard } from '../common/guards/admin-key.guard';
 import { Public } from '../common/decorators/public.decorator';
 import { AdminCatalogService } from './admin-catalog.service';
-import type { CreateSongDto, CreateArtistDto, CreateAlbumDto } from './admin-catalog.service';
+import { CreateSongDto, CreateArtistDto, CreateAlbumDto } from './admin-catalog.service';
 
 // 200 MB limit for audio files
 const AUDIO_MAX_BYTES = 200 * 1024 * 1024;

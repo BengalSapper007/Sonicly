@@ -16,20 +16,26 @@ export class RegisterDto {
   username: string;
 
   @IsEmail()
+  @MaxLength(255)
   email: string;
 
   @IsString()
+  @MinLength(1)
+  @MaxLength(50)
   displayName: string;
 
   @IsString()
   @MinLength(8)
+  @MaxLength(72)
   password: string;
 }
 
 export class LoginDto {
   @IsEmail()
+  @MaxLength(255)
   email: string;
 
   @IsString()
+  @MaxLength(72)
   password: string;
 }

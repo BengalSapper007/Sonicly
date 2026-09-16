@@ -7,26 +7,86 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { MediaService } from '../media/media.service';
 import { nanoid } from 'nanoid';
+import {
+  IsString,
+  IsNotEmpty,
+  MinLength,
+  MaxLength,
+  IsInt,
+  Min,
+  Max,
+  IsOptional,
+  IsEnum,
+} from 'class-validator';
 import * as path from 'path';
 import { parseBuffer } from 'music-metadata';
 
-export interface CreateSongDto {
+export class CreateSongDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(150)
   title: string;
+
+  @IsInt()
+  @Min(1)
+  @Max(999)
   trackNum: number;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
   albumId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
   genreId: string;
 }
 
-export interface CreateArtistDto {
+export enum AlbumTypeEnum {
+  ALBUM = 'ALBUM',
+  EP = 'EP',
+  SINGLE = 'SINGLE',
+  COMPILATION = 'COMPILATION',
+}
+
+export class CreateArtistDto {
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(1)
+  @MaxLength(100)
   name: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
   bio?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
   monthlyListeners?: number;
 }
 
-export interface CreateAlbumDto {
+export class CreateAlbumDto {
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(1)
+  @MaxLength(150)
   title: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
   artistId: string;
+
+  @IsInt()
+  @Min(1900)
+  @Max(2100)
   releaseYear: number;
+
+  @IsOptional()
+  @IsEnum(AlbumTypeEnum)
   type?: 'ALBUM' | 'EP' | 'SINGLE' | 'COMPILATION';
 }
 
