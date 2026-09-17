@@ -8,6 +8,7 @@ interface LibraryState {
   likedSongIds: Set<string>;
   savedAlbumIds: Set<string>;
   followedArtistIds: Set<string>;
+  songLikeCounts: Record<string, number>;
   isInitialized: boolean;
 
   loadingLikes: Record<string, boolean>;
@@ -15,11 +16,12 @@ interface LibraryState {
   loadingArtists: Record<string, boolean>;
 
   initLibrary: () => Promise<void>;
-  registerSong: (songId: string, isLiked: boolean) => void;
+  registerSong: (songId: string, isLiked: boolean, likeCount?: number) => void;
   registerAlbum: (albumId: string, isSaved: boolean) => void;
   registerArtist: (artistId: string, isFollowing: boolean) => void;
 
   isSongLiked: (songId: string) => boolean;
+  getSongLikeCount: (songId: string, fallback?: number) => number;
   isAlbumSaved: (albumId: string) => boolean;
   isArtistFollowed: (artistId: string) => boolean;
 
@@ -43,6 +45,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   likedSongIds: new Set<string>(),
   savedAlbumIds: new Set<string>(),
   followedArtistIds: new Set<string>(),
+  songLikeCounts: {},
   isInitialized: false,
 
   loadingLikes: {},
@@ -70,23 +73,40 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         (followedArtistsRes.data || []).map((a: any) => a.id)
       );
 
+      const counts: Record<string, number> = { ...get().songLikeCounts };
+      (likedSongsRes.data || []).forEach((s: any) => {
+        if (s.id && s._count?.likes !== undefined) {
+          counts[s.id] = s._count.likes;
+        }
+      });
+
       set({
         likedSongIds,
         savedAlbumIds,
         followedArtistIds,
+        songLikeCounts: counts,
         isInitialized: true,
       });
-    } catch (err) {
-      console.error('Failed to initialize library store:', err);
+    } catch (err: any) {
+      const status = err?.response?.status;
+      if (status === 401 || status === 403) {
+        // Expired or invalid session — reset auth state silently without error overlay
+        useAuthStore.getState().logout();
+        return;
+      }
+      console.warn('[LibraryStore] Could not initialize library data:', err?.message || err);
     }
   },
 
-  registerSong: (songId: string, isLiked: boolean) => {
-    const { likedSongIds } = get();
-    if (isLiked && !likedSongIds.has(songId)) {
-      const updated = new Set(likedSongIds);
-      updated.add(songId);
-      set({ likedSongIds: updated });
+  registerSong: (songId: string, isLiked: boolean, likeCount?: number) => {
+    const { likedSongIds, songLikeCounts } = get();
+    const needsLikedUpdate = isLiked && !likedSongIds.has(songId);
+    const needsCountUpdate = likeCount !== undefined && songLikeCounts[songId] === undefined;
+
+    if (needsLikedUpdate || needsCountUpdate) {
+      const updatedLikes = needsLikedUpdate ? new Set(likedSongIds).add(songId) : likedSongIds;
+      const updatedCounts = needsCountUpdate ? { ...songLikeCounts, [songId]: likeCount! } : songLikeCounts;
+      set({ likedSongIds: updatedLikes, songLikeCounts: updatedCounts });
     }
   },
 
@@ -112,6 +132,10 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     return get().likedSongIds.has(songId);
   },
 
+  getSongLikeCount: (songId: string, fallback = 0) => {
+    return get().songLikeCounts[songId] ?? fallback;
+  },
+
   isAlbumSaved: (albumId: string) => {
     return get().savedAlbumIds.has(albumId);
   },
@@ -127,11 +151,14 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       return false;
     }
 
-    const { likedSongIds, loadingLikes } = get();
+    const { likedSongIds, loadingLikes, songLikeCounts } = get();
     if (loadingLikes[song.id]) return likedSongIds.has(song.id);
 
     const currentlyLiked = likedSongIds.has(song.id);
     const newLiked = !currentlyLiked;
+
+    const currentCount = songLikeCounts[song.id] ?? (song._count?.likes ?? 0);
+    const optimisticCount = Math.max(0, currentCount + (newLiked ? 1 : -1));
 
     // Optimistic update
     const updated = new Set(likedSongIds);
@@ -144,10 +171,11 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     set({
       likedSongIds: updated,
       loadingLikes: { ...loadingLikes, [song.id]: true },
+      songLikeCounts: { ...songLikeCounts, [song.id]: optimisticCount },
     });
 
     // Synchronize player store
-    usePlayerStore.getState().setSongLiked(song.id, newLiked);
+    usePlayerStore.getState().setSongLiked(song.id, newLiked, optimisticCount);
 
     if (newLiked) {
       toast.success(`Added "${song.title || 'Track'}" to Liked Songs`);
@@ -156,11 +184,14 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     }
 
     try {
-      if (newLiked) {
-        await songsApi.like(song.id);
-      } else {
-        await songsApi.unlike(song.id);
-      }
+      const res = newLiked ? await songsApi.like(song.id) : await songsApi.unlike(song.id);
+      const serverCount = res.data?.likeCount ?? optimisticCount;
+
+      set((state) => ({
+        songLikeCounts: { ...state.songLikeCounts, [song.id]: serverCount },
+      }));
+      usePlayerStore.getState().setSongLiked(song.id, newLiked, serverCount);
+
       return newLiked;
     } catch (err) {
       console.error('Failed to toggle song like:', err);
@@ -171,8 +202,11 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       } else {
         reverted.delete(song.id);
       }
-      set({ likedSongIds: reverted });
-      usePlayerStore.getState().setSongLiked(song.id, currentlyLiked);
+      set({
+        likedSongIds: reverted,
+        songLikeCounts: { ...get().songLikeCounts, [song.id]: currentCount },
+      });
+      usePlayerStore.getState().setSongLiked(song.id, currentlyLiked, currentCount);
       toast.error('Could not update like status');
       return currentlyLiked;
     } finally {

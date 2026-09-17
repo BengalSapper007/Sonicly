@@ -75,13 +75,77 @@ export class SongsService {
       update: {},
     });
 
+    const likeCount = await this.prisma.like.count({ where: { songId } });
+
     await this.cache.del(`catalog:song:${songId}`);
-    return { liked: true };
+    if (song.albumId) {
+      await this.cache.del(`catalog:album:${song.albumId}`);
+    }
+
+    return { liked: true, likeCount };
   }
 
   async unlike(songId: string, userId: string) {
+    const song = await this.prisma.song.findUnique({ where: { id: songId } });
     await this.prisma.like.deleteMany({ where: { userId, songId } });
+
+    const likeCount = await this.prisma.like.count({ where: { songId } });
+
     await this.cache.del(`catalog:song:${songId}`);
-    return { liked: false };
+    if (song?.albumId) {
+      await this.cache.del(`catalog:album:${song.albumId}`);
+    }
+
+    return { liked: false, likeCount };
+  }
+
+  async recordPlay(songId: string, userId?: string) {
+    const song = await this.prisma.song.findUnique({
+      where: { id: songId },
+      include: { album: { select: { artistId: true } } },
+    });
+    if (!song) throw new NotFoundException('Track not found');
+
+    const updatedSong = await this.prisma.song.update({
+      where: { id: songId },
+      data: { playCount: { increment: 1 } },
+      select: { id: true, playCount: true },
+    });
+
+    if (userId) {
+      await this.prisma.listeningHistory.create({
+        data: {
+          id: nanoid(),
+          userId,
+          songId,
+        },
+      });
+    }
+
+    if (song.album?.artistId) {
+      const twentyEightDaysAgo = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000);
+      const distinctUsers = await this.prisma.listeningHistory.findMany({
+        where: {
+          playedAt: { gte: twentyEightDaysAgo },
+          song: { album: { artistId: song.album.artistId } },
+        },
+        distinct: ['userId'],
+        select: { userId: true },
+      });
+
+      await this.prisma.artist.update({
+        where: { id: song.album.artistId },
+        data: { monthlyListeners: distinctUsers.length },
+      }).catch(() => null);
+
+      await this.cache.del(`catalog:artist:${song.album.artistId}`);
+    }
+
+    await this.cache.del(`catalog:song:${songId}`);
+    if (song.albumId) {
+      await this.cache.del(`catalog:album:${song.albumId}`);
+    }
+
+    return { recorded: true, playCount: updatedSong.playCount };
   }
 }

@@ -59,12 +59,19 @@ async function main() {
       trackNum: song.trackNum,
       albumId: song.albumId,
       genreId: song.genreId,
-      audioKey: (song as any).audioKey ?? (song as any).audioUrl ?? `songs/${song.id}.mp3`,
+      playCount: 0,
     };
     await prisma.song.upsert({
       where: { id: song.id },
       create: songData,
-      update: songData,
+      update: {
+        title: songData.title,
+        duration: songData.duration,
+        trackNum: songData.trackNum,
+        albumId: songData.albumId,
+        genreId: songData.genreId,
+        audioKey: songData.audioKey,
+      },
     });
   }
 

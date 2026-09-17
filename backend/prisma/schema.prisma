@@ -96,6 +96,9 @@ model Song {
   searchHistory   SearchHistory[]
   playbackStates  PlaybackState[]
 
+  playCount       Int      @default(0)
+
+  @@index([playCount(sort: Desc)])
   @@map("songs")
 }
 

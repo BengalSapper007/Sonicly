@@ -149,9 +149,17 @@ export function ArtistView({ artistId, initialArtist }: ArtistViewProps) {
       {/* ── Top Songs ────────────────────────────────────────────────────── */}
       {topSongs.length > 0 && (
         <section className="px-8 mb-8">
-          <h2 className="text-xl font-semibold text-on-surface mb-4 tracking-tight">
-            Popular Tracks
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-xl font-semibold text-on-surface tracking-tight">
+              Popular Tracks
+            </h2>
+          </div>
+          <div className="hidden sm:flex items-center px-3 py-1.5 mb-1 border-b border-border-light text-xs font-medium text-on-surface-muted">
+            <div className="w-8 text-center">#</div>
+            <div className="flex-1 ml-14">Title</div>
+            <div className="w-24 text-right pr-2 hidden sm:block">Plays</div>
+            <div className="w-20 text-right pr-8">Duration</div>
+          </div>
           <div className="space-y-1">
             {topSongs.map((song: any, i: number) => (
               <SongRow
@@ -163,6 +171,7 @@ export function ArtistView({ artistId, initialArtist }: ArtistViewProps) {
                 contextId={artistId}
                 contextTitle={`${artist.name} - Popular Tracks`}
                 showAlbum={true}
+                showPlays={true}
               />
             ))}
           </div>

@@ -7,7 +7,7 @@ export const artists = [
     name: 'Neon Pulse',
     bio: 'An electronic duo born from the flickering lights of underground clubs. Neon Pulse blends driving synthesizers with cinematic soundscapes that feel like midnight drives through neon-lit cities.',
     imageUrl: '/images/artists/ar_neonpulse.webp',
-    monthlyListeners: 1240000,
+    monthlyListeners: 0,
     isVerified: true,
   },
   {
@@ -15,7 +15,7 @@ export const artists = [
     name: 'Velvet Echo',
     bio: 'Velvet Echo is the solo project of a singer-songwriter whose voice feels like fog rolling in over a harbour. Atmospheric dream pop with layered harmonics and melancholic textures.',
     imageUrl: '/images/artists/ar_velvetecho.webp',
-    monthlyListeners: 890000,
+    monthlyListeners: 0,
     isVerified: true,
   },
   {
@@ -23,7 +23,7 @@ export const artists = [
     name: 'Solstice',
     bio: 'Solstice crafts ambient electronic music that captures the feeling of watching light change. Their albums are meditations — unhurried and deeply spatial.',
     imageUrl: '/images/artists/ar_solstice.webp',
-    monthlyListeners: 650000,
+    monthlyListeners: 0,
     isVerified: false,
   },
   {
@@ -31,7 +31,7 @@ export const artists = [
     name: 'Chromatic',
     bio: 'Neo-soul meets future bass. Chromatic is known for rich vocal runs, lush chords, and beats that land somewhere between a late-night lounge and a festival mainstage.',
     imageUrl: '/images/artists/ar_chromatic.webp',
-    monthlyListeners: 2100000,
+    monthlyListeners: 0,
     isVerified: true,
   },
   {
@@ -39,7 +39,7 @@ export const artists = [
     name: 'Mirage',
     bio: 'Mirage is an alt-pop act that turns heartbreak into architecture — carefully constructed songs that feel wide open and devastating at once.',
     imageUrl: '/images/artists/ar_mirage.webp',
-    monthlyListeners: 3400000,
+    monthlyListeners: 0,
     isVerified: true,
   },
   {
@@ -47,7 +47,7 @@ export const artists = [
     name: 'Obsidian',
     bio: 'Dark, heavy synths and brooding vocals define Obsidian — a darkwave project that sounds like grief wearing a very expensive coat.',
     imageUrl: '/images/artists/ar_obsidian.webp',
-    monthlyListeners: 480000,
+    monthlyListeners: 0,
     isVerified: false,
   },
   {
@@ -55,7 +55,7 @@ export const artists = [
     name: 'Prism',
     bio: 'Prism is a producer collective that approaches music like light through glass — every song refracts in unexpected directions. Their output spans synthwave, lo-fi, and ambient.',
     imageUrl: '/images/artists/ar_prism.webp',
-    monthlyListeners: 1700000,
+    monthlyListeners: 0,
     isVerified: true,
   },
   {
@@ -63,7 +63,7 @@ export const artists = [
     name: 'Lunar',
     bio: 'Lunar makes music for empty rooms and the space between conversations. Indie electronic with a focus on texture and restraint.',
     imageUrl: '/images/artists/ar_lunar.webp',
-    monthlyListeners: 920000,
+    monthlyListeners: 0,
     isVerified: false,
   },
   {
@@ -71,7 +71,7 @@ export const artists = [
     name: 'Hollow Sky',
     bio: 'A five-piece band that blends post-rock structures with electronic production. Hollow Sky builds walls of sound that collapse into intimate moments.',
     imageUrl: '/images/artists/ar_hollowsky.webp',
-    monthlyListeners: 560000,
+    monthlyListeners: 0,
     isVerified: false,
   },
   {
@@ -79,7 +79,7 @@ export const artists = [
     name: 'Axiom',
     bio: 'Axiom is a solo artist pushing the edges of future bass — hyper-emotional drops, chopped vocals, and a production style that sounds like the future remembering the past.',
     imageUrl: '/images/artists/ar_axiom.webp',
-    monthlyListeners: 1390000,
+    monthlyListeners: 0,
     isVerified: true,
   },
   {
@@ -87,7 +87,7 @@ export const artists = [
     name: 'Driftwood',
     bio: 'Acoustic lo-fi layered with jazz chords and field recordings. Driftwood makes music for reading, studying, and long Saturday mornings.',
     imageUrl: '/images/artists/ar_driftwood.webp',
-    monthlyListeners: 2800000,
+    monthlyListeners: 0,
     isVerified: true,
   },
   {
@@ -95,7 +95,7 @@ export const artists = [
     name: 'Cipher',
     bio: 'Cipher writes darkwave from a place of technical precision. Their tracks are rhythmically complex and melodically haunting — a cold, elegant kind of beauty.',
     imageUrl: '/images/artists/ar_cipher.webp',
-    monthlyListeners: 320000,
+    monthlyListeners: 0,
     isVerified: false,
   },
   {
@@ -103,7 +103,7 @@ export const artists = [
     name: 'Aurora Veil',
     bio: "Aurora Veil makes dream pop that sounds like a half-remembered summer. Layers of reverb, soft drums, and a vocalist who sounds like she's singing from the edge of sleep.",
     imageUrl: '/images/artists/ar_aurora.webp',
-    monthlyListeners: 1150000,
+    monthlyListeners: 0,
     isVerified: true,
   },
   {
@@ -111,7 +111,7 @@ export const artists = [
     name: 'Fracture',
     bio: 'Breakbeats, lo-fi textures, and jazz-hop sensibility. Fracture turns sample science into something deeply human.',
     imageUrl: '/images/artists/ar_fracture.webp',
-    monthlyListeners: 740000,
+    monthlyListeners: 0,
     isVerified: false,
   },
   {
@@ -119,7 +119,7 @@ export const artists = [
     name: 'Silhouette',
     bio: 'Silhouette is a singer-songwriter operating in the space between neo-soul and electronica. Their debut album was recorded in a converted lighthouse.',
     imageUrl: '/images/artists/ar_silhouette.webp',
-    monthlyListeners: 680000,
+    monthlyListeners: 0,
     isVerified: false,
   },
   {
@@ -127,7 +127,7 @@ export const artists = [
     name: 'Zenith',
     bio: 'Electronic pop at its most ambitious. Zenith layers euphoric production with introspective lyrics about connection, distance, and the spaces we inhabit.',
     imageUrl: '/images/artists/ar_zenith.webp',
-    monthlyListeners: 4200000,
+    monthlyListeners: 0,
     isVerified: true,
   },
   {
@@ -135,7 +135,7 @@ export const artists = [
     name: 'Echo Chamber',
     bio: 'A recording project exploring the reverb of human experience. Echo Chamber blends field recordings with synthesized textures to create deeply immersive sonic environments.',
     imageUrl: '/images/artists/ar_echo.webp',
-    monthlyListeners: 390000,
+    monthlyListeners: 0,
     isVerified: false,
   },
   {
@@ -143,7 +143,7 @@ export const artists = [
     name: 'Phantom Signal',
     bio: 'Phantom Signal makes synthwave for people who grew up watching VHS tapes of films that never existed. Nostalgia as architecture.',
     imageUrl: '/images/artists/ar_phantom.webp',
-    monthlyListeners: 1060000,
+    monthlyListeners: 0,
     isVerified: true,
   },
   {
@@ -151,7 +151,7 @@ export const artists = [
     name: 'Meridian',
     bio: 'An ambient collective whose music feels geographic — vast, slow, and full of implied distance. Best experienced through headphones at altitude.',
     imageUrl: '/images/artists/ar_meridian.webp',
-    monthlyListeners: 430000,
+    monthlyListeners: 0,
     isVerified: false,
   },
   {
@@ -159,7 +159,7 @@ export const artists = [
     name: 'Static Bloom',
     bio: 'Static Bloom began as a bedroom project and has grown into one of the defining voices of indie electronic. Their sound is warm, imperfect, and intensely personal.',
     imageUrl: '/images/artists/ar_static.webp',
-    monthlyListeners: 1580000,
+    monthlyListeners: 0,
     isVerified: true,
   },
   {
@@ -167,7 +167,7 @@ export const artists = [
     name: 'Nova Drift',
     bio: 'Spacious, hypnotic, and tinged with melancholy. Nova Drift makes alt-pop that sounds like long drives with the windows down and nothing to say.',
     imageUrl: '/images/artists/ar_nova.webp',
-    monthlyListeners: 870000,
+    monthlyListeners: 0,
     isVerified: false,
   },
   {
@@ -175,7 +175,7 @@ export const artists = [
     name: 'Cascade',
     bio: 'Cascade is a jazz-hop producer whose beats feel like watercolour paintings come to life. Every track is unhurried, warm, and quietly devastating.',
     imageUrl: '/images/artists/ar_cascade.webp',
-    monthlyListeners: 990000,
+    monthlyListeners: 0,
     isVerified: true,
   },
 ];

@@ -42,4 +42,10 @@ export class SongsController {
   unlike(@Param('id') id: string, @CurrentUser() user: any) {
     return this.songsService.unlike(id, user.sub);
   }
+
+  @Public()
+  @Post(':id/play')
+  recordPlay(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.songsService.recordPlay(id, user?.sub);
+  }
 }

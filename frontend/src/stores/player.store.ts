@@ -10,6 +10,7 @@ export interface Song {
   duration: number;
   audioKey: string;
   trackNum?: number;
+  playCount?: number;
   album: {
     id: string;
     title: string;
@@ -188,11 +189,20 @@ async function loadAndPlay(song: Song, startTime?: number): Promise<void> {
   }
 }
 
-/** Record play history silently — import historyApi locally to avoid circular refs. */
+/** Record play history & stream count silently */
 async function recordHistory(songId: string): Promise<void> {
   try {
-    const { historyApi } = await import('@/lib/api');
-    await historyApi.record(songId);
+    const { historyApi, songsApi } = await import('@/lib/api');
+    const { useAuthStore } = await import('@/stores/auth.store');
+    const isAuthenticated = useAuthStore.getState().isAuthenticated;
+
+    if (isAuthenticated) {
+      await historyApi.record(songId);
+    } else {
+      await songsApi.recordPlay(songId);
+    }
+
+    usePlayerStore.getState().incrementSongPlayCount(songId);
   } catch {
     // Non-critical; ignore failures
   }
@@ -252,7 +262,8 @@ interface PlayerState {
   setCurrentTime: (time: number) => void;
   setDuration: (duration: number) => void;
   setIsPlaying: (playing: boolean) => void;
-  setSongLiked: (songId: string, liked: boolean) => void;
+  setSongLiked: (songId: string, liked: boolean, exactCount?: number) => void;
+  incrementSongPlayCount: (songId: string) => void;
 
   // Queue actions
   playNext: (songs: Song | Song[]) => void;
@@ -695,8 +706,13 @@ export const usePlayerStore = create<PlayerState>()(
       setDuration: (duration) => set({ duration }),
       setIsPlaying: (isPlaying) => set({ isPlaying }),
 
-      setSongLiked: (songId: string, liked: boolean) => {
+      setSongLiked: (songId: string, liked: boolean, exactCount?: number) => {
         const { currentSong, queue, userQueue } = get();
+        const calcLikes = (existing?: number) =>
+          exactCount !== undefined
+            ? exactCount
+            : Math.max(0, (existing ?? 0) + (liked ? 1 : -1));
+
         const updatedCurrentSong =
           currentSong && currentSong.id === songId
             ? {
@@ -704,10 +720,7 @@ export const usePlayerStore = create<PlayerState>()(
                 likes: liked ? [{ userId: 'me' }] : [],
                 _count: {
                   ...currentSong._count,
-                  likes: Math.max(
-                    0,
-                    (currentSong._count?.likes ?? 0) + (liked ? 1 : -1)
-                  ),
+                  likes: calcLikes(currentSong._count?.likes),
                 },
               }
             : currentSong;
@@ -719,7 +732,7 @@ export const usePlayerStore = create<PlayerState>()(
                 likes: liked ? [{ userId: 'me' }] : [],
                 _count: {
                   ...s._count,
-                  likes: Math.max(0, (s._count?.likes ?? 0) + (liked ? 1 : -1)),
+                  likes: calcLikes(s._count?.likes),
                 },
               }
             : s
@@ -732,7 +745,7 @@ export const usePlayerStore = create<PlayerState>()(
                 likes: liked ? [{ userId: 'me' }] : [],
                 _count: {
                   ...s._count,
-                  likes: Math.max(0, (s._count?.likes ?? 0) + (liked ? 1 : -1)),
+                  likes: calcLikes(s._count?.likes),
                 },
               }
             : s
@@ -743,6 +756,20 @@ export const usePlayerStore = create<PlayerState>()(
           queue: updatedQueue,
           userQueue: updatedUserQueue,
         });
+      },
+
+      incrementSongPlayCount: (songId: string) => {
+        const { currentSong, queue } = get();
+        const updatedCurrent =
+          currentSong && currentSong.id === songId
+            ? { ...currentSong, playCount: (currentSong.playCount ?? 0) + 1 }
+            : currentSong;
+
+        const updatedQueue = queue.map((s) =>
+          s.id === songId ? { ...s, playCount: (s.playCount ?? 0) + 1 } : s
+        );
+
+        set({ currentSong: updatedCurrent, queue: updatedQueue });
       },
 
       // ── Track Queue Operations ─────────────────────────────────────────────

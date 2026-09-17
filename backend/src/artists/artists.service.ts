@@ -36,7 +36,7 @@ export class ArtistsService {
 
       if (!artist) return null;
 
-      // Get popular songs (top 10 by play count approximation via likes)
+      // Get popular songs (top 10 by play count)
       const popularSongs = await this.prisma.song.findMany({
         where: { album: { artistId: id } },
         include: {
@@ -50,7 +50,7 @@ export class ArtistsService {
           },
           _count: { select: { likes: true } },
         },
-        orderBy: { likes: { _count: 'desc' } },
+        orderBy: { playCount: 'desc' },
         take: 10,
       });
 
@@ -60,14 +60,31 @@ export class ArtistsService {
     if (!baseArtist) throw new NotFoundException('Artist not found');
 
     let isFollowing = false;
+    let popularSongs = baseArtist.popularSongs;
+
     if (userId) {
-      const follow = await this.prisma.follow.findUnique({
-        where: { userId_artistId: { userId, artistId: id } },
-      });
+      const [follow, userLikes] = await Promise.all([
+        this.prisma.follow.findUnique({
+          where: { userId_artistId: { userId, artistId: id } },
+        }),
+        this.prisma.like.findMany({
+          where: {
+            userId,
+            songId: { in: baseArtist.popularSongs.map((s: any) => s.id) },
+          },
+          select: { songId: true },
+        }),
+      ]);
+
       isFollowing = !!follow;
+      const likedSet = new Set(userLikes.map((l) => l.songId));
+      popularSongs = baseArtist.popularSongs.map((s: any) => ({
+        ...s,
+        likes: likedSet.has(s.id) ? [{ userId }] : [],
+      }));
     }
 
-    return { ...baseArtist, isFollowing };
+    return { ...baseArtist, popularSongs, isFollowing };
   }
 
   async follow(artistId: string, userId: string) {
