@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { SoniclyLogo } from '@/components/ui/SoniclyLogo';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSidebarStore, SIDEBAR_DEFAULT_WIDTH } from '@/stores/sidebar.store';
+import { useCookieConsentStore } from '@/stores/cookie-consent.store';
 import { useMounted } from '@/hooks/useMounted';
 import {
   Home,
@@ -54,6 +55,7 @@ export function Sidebar() {
     expand,
     lastExpandedWidth,
   } = useSidebarStore();
+  const openPreferences = useCookieConsentStore((s) => s.openPreferences);
   const dragHandleRef = useRef<HTMLDivElement>(null);
 
   // Drag resizing logic
@@ -258,6 +260,37 @@ export function Sidebar() {
             </div>
           )
         )}
+      </div>
+
+      {/* ── Legal & Compliance Footer ────────────────────────────────────── */}
+      <div
+        className={cn(
+          'transition-all duration-300 border-t border-sand/70 px-4 py-3 text-[11px] text-ink-muted/80 flex-shrink-0 select-text',
+          isCollapsed ? 'hidden' : 'block'
+        )}
+      >
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <Link href="/privacy" className="hover:text-ink hover:underline transition-colors">
+            Privacy
+          </Link>
+          <span>•</span>
+          <Link href="/terms" className="hover:text-ink hover:underline transition-colors">
+            Terms
+          </Link>
+          <span>•</span>
+          <Link href="/cookies" className="hover:text-ink hover:underline transition-colors">
+            Cookies
+          </Link>
+        </div>
+        <div className="mt-1.5 flex items-center justify-between text-[10px]">
+          <span>&copy; {new Date().getFullYear()} Sonicly</span>
+          <button
+            onClick={openPreferences}
+            className="text-ink-muted hover:text-ink hover:underline transition-colors cursor-pointer"
+          >
+            Cookie Settings
+          </button>
+        </div>
       </div>
 
       {/* ── Draggable Edge Handle ─────────────────────────────────────────── */}

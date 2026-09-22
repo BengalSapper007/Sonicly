@@ -18,6 +18,8 @@ interface SongRowProps {
   contextId?: string;
   contextTitle?: string;
   showAlbum?: boolean;
+  showPlays?: boolean;
+  showLikeCount?: boolean;
 }
 
 export function SongRow({
@@ -28,12 +30,15 @@ export function SongRow({
   contextId,
   contextTitle,
   showAlbum = true,
+  showPlays = false,
+  showLikeCount = false,
 }: SongRowProps) {
   const { currentSong, isPlaying, playSong, togglePlay } = usePlayerStore();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const mounted = useMounted();
 
   const isSongLiked = useLibraryStore((s) => s.isSongLiked);
+  const getSongLikeCount = useLibraryStore((s) => s.getSongLikeCount);
   const toggleLikeSong = useLibraryStore((s) => s.toggleLikeSong);
   const registerSong = useLibraryStore((s) => s.registerSong);
   const loadingLikes = useLibraryStore((s) => s.loadingLikes);
@@ -41,11 +46,12 @@ export function SongRow({
   useEffect(() => {
     if (song?.id) {
       const serverLiked = Array.isArray((song as any).likes) && (song as any).likes.length > 0;
-      registerSong(song.id, serverLiked);
+      registerSong(song.id, serverLiked, song._count?.likes);
     }
-  }, [song?.id, (song as any)?.likes, registerSong]);
+  }, [song?.id, (song as any)?.likes, song?._count?.likes, registerSong]);
 
   const liked = mounted ? isSongLiked(song.id) : false;
+  const likeCount = mounted ? getSongLikeCount(song.id, song._count?.likes ?? 0) : (song._count?.likes ?? 0);
   const likeLoading = mounted ? !!loadingLikes[song.id] : false;
 
   const isCurrent = currentSong?.id === song.id;
@@ -122,6 +128,13 @@ export function SongRow({
           )}
         </p>
       </div>
+
+      {/* Plays count */}
+      {showPlays && (
+        <span className="hidden sm:inline-block text-xs text-on-surface-muted tabular-nums w-24 text-right flex-shrink-0 font-normal">
+          {(song.playCount ?? 0).toLocaleString()}
+        </span>
+      )}
 
       {/* Like button */}
       <button

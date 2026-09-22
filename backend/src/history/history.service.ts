@@ -35,6 +35,28 @@ export class HistoryService {
         songId,
       },
     });
-    return { recorded: true };
+
+    const song = await this.prisma.song.update({
+      where: { id: songId },
+      data: { playCount: { increment: 1 } },
+      include: { album: { select: { artistId: true } } },
+    }).catch(() => null);
+
+    if (song?.album?.artistId) {
+      const distinctUsers = await this.prisma.listeningHistory.findMany({
+        where: {
+          song: { album: { artistId: song.album.artistId } },
+        },
+        distinct: ['userId'],
+        select: { userId: true },
+      });
+
+      await this.prisma.artist.update({
+        where: { id: song.album.artistId },
+        data: { monthlyListeners: distinctUsers.length },
+      }).catch(() => null);
+    }
+
+    return { recorded: true, playCount: song?.playCount };
   }
 }

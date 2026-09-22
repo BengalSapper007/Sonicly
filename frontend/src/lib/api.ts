@@ -60,7 +60,20 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    // Bubble up the error — let stores handle auth redirects
+    if (err?.response?.status === 401 && typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('sonicly-auth');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed?.state?.isAuthenticated) {
+            parsed.state.isAuthenticated = false;
+            parsed.state.user = null;
+            parsed.state.token = null;
+            localStorage.setItem('sonicly-auth', JSON.stringify(parsed));
+          }
+        }
+      } catch {}
+    }
     return Promise.reject(err);
   }
 );
@@ -115,8 +128,9 @@ export const songsApi = {
   get: (id: string) => api.get(`/songs/${id}`),
   /** Returns song metadata plus a short-lived presigned R2 streamUrl */
   getStreamUrl: (id: string) => api.get<{ streamUrl: string }>(`/songs/${id}/stream`),
-  like: (id: string) => api.post(`/songs/${id}/like`),
-  unlike: (id: string) => api.delete(`/songs/${id}/like`),
+  like: (id: string) => api.post<{ liked: boolean; likeCount: number }>(`/songs/${id}/like`),
+  unlike: (id: string) => api.delete<{ liked: boolean; likeCount: number }>(`/songs/${id}/like`),
+  recordPlay: (id: string) => api.post<{ recorded: boolean; playCount?: number }>(`/songs/${id}/play`),
 };
 
 // Playlists

@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Delete, Param, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { SongsService } from './songs.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -26,6 +27,7 @@ export class SongsController {
    * R2 supports HTTP Range requests on signed URLs, enabling seeking.
    */
   @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 120 } }) // 120 / min for smooth scrubbing and rapid track skipping
   @Get(':id/stream')
   getStreamUrl(@Param('id') id: string, @CurrentUser() user: any) {
     return this.songsService.getStreamUrl(id, user?.sub);
@@ -39,5 +41,11 @@ export class SongsController {
   @Delete(':id/like')
   unlike(@Param('id') id: string, @CurrentUser() user: any) {
     return this.songsService.unlike(id, user.sub);
+  }
+
+  @Public()
+  @Post(':id/play')
+  recordPlay(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.songsService.recordPlay(id, user?.sub);
   }
 }

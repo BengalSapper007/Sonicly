@@ -92,6 +92,18 @@ export default function RegisterPage() {
               {isLoading && <LoaderIcon size={16} className="animate-spin" />}
               Create account
             </button>
+
+            <p className="text-[11px] text-center text-on-surface-muted leading-relaxed pt-1">
+              By creating an account, you agree to Sonicly&apos;s{' '}
+              <Link href="/terms" className="text-vibrant-saffron hover:underline font-medium">
+                Terms of Service
+              </Link>{' '}
+              and{' '}
+              <Link href="/privacy" className="text-vibrant-saffron hover:underline font-medium">
+                Privacy Policy
+              </Link>
+              .
+            </p>
           </form>
         </div>
 

@@ -39,16 +39,18 @@ export class SearchService {
     if (!trimmed) {
       return { songs: [], artists: [], albums: [], playlists: [] };
     }
+    // Cap query length to prevent high CPU/memory consumption in trigram similarity
+    const sanitized = trimmed.slice(0, 100);
 
-    const cacheKey = `search:${type}:${trimmed.toLowerCase()}${userId ? `:${userId}` : ''}`;
+    const cacheKey = `search:${type}:${sanitized.toLowerCase()}${userId ? `:${userId}` : ''}`;
     return this.cache.wrap(
       cacheKey,
       async () => {
         const [songs, artists, albums, playlists] = await Promise.all([
-          type === 'all' || type === 'songs' ? this.searchSongsFuzzy(trimmed, userId) : [],
-          type === 'all' || type === 'artists' ? this.searchArtistsFuzzy(trimmed) : [],
-          type === 'all' || type === 'albums' ? this.searchAlbumsFuzzy(trimmed) : [],
-          type === 'all' || type === 'playlists' ? this.searchPlaylistsFuzzy(trimmed) : [],
+          type === 'all' || type === 'songs' ? this.searchSongsFuzzy(sanitized, userId) : [],
+          type === 'all' || type === 'artists' ? this.searchArtistsFuzzy(sanitized) : [],
+          type === 'all' || type === 'albums' ? this.searchAlbumsFuzzy(sanitized) : [],
+          type === 'all' || type === 'playlists' ? this.searchPlaylistsFuzzy(sanitized) : [],
         ]);
 
         return { songs, artists, albums, playlists };

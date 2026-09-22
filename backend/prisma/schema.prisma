@@ -30,6 +30,9 @@ model Artist {
   name           String
   bio            String?
   imageKey       String?
+  bannerKey      String?
+  socialLinks    String?  @db.Text
+  artistPickJson String?  @db.Text
   monthlyListeners Int    @default(0)
   isVerified     Boolean  @default(false)
   createdAt      DateTime @default(now())
@@ -38,6 +41,14 @@ model Artist {
   albums    Album[]
   followers Follow[]
   searchHistory SearchHistory[]
+
+  // Studio relations
+  members                 ArtistMember[]
+  verificationRequest     ArtistVerificationRequest?
+  drafts                  ReleaseDraft[]
+  dailyMetrics            DailyArtistMetric[]
+  collaborationsInvited   TrackCollaboration[] @relation("InvitedCollaborations")
+  collaborationsReceived  TrackCollaboration[] @relation("ReceivedCollaborations")
 
   @@map("artists")
 }
@@ -57,6 +68,13 @@ model Album {
 
   artistId String
   artist   Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  // Studio extensions
+  upc                String?
+  copyrightP         String?
+  copyrightC         String?
+  isArchived         Boolean   @default(false)
+  scheduledPublishAt DateTime?
 
   songs       Song[]
   savedBy     SavedAlbum[]
@@ -90,12 +108,24 @@ model Song {
   genreId String?
   genre   Genre?  @relation(fields: [genreId], references: [id], onDelete: SetNull)
 
+  // Studio extensions
+  lyrics         String?              @db.Text
+  isrc           String?
+  isExplicit     Boolean              @default(false)
+  waveformPeaks  String?              @db.Text
+  masterAudioKey String?
+  collaborations TrackCollaboration[]
+  dailyMetrics   DailySongMetric[]
+
   likes           Like[]
   playlistEntries PlaylistSong[]
   history         ListeningHistory[]
   searchHistory   SearchHistory[]
   playbackStates  PlaybackState[]
 
+  playCount       Int      @default(0)
+
+  @@index([playCount(sort: Desc)])
   @@map("songs")
 }
 
@@ -120,6 +150,9 @@ model User {
   history     ListeningHistory[]
   searchHistory SearchHistory[]
   playbackState PlaybackState?
+
+  // Studio memberships
+  artistMemberships ArtistMember[]
 
   @@map("users")
 }
@@ -290,6 +323,115 @@ model PlaybackState {
   updatedAt    DateTime @updatedAt
 
   @@map("playback_states")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Studio Extensions
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CollaborationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum CollaborationRole {
+  CO_ARTIST
+  FEATURED
+}
+
+model ArtistMember {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  artistId  String
+  artist    Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, artistId])
+  @@map("artist_members")
+}
+
+model ArtistVerificationRequest {
+  id            String             @id @default(cuid())
+  artistId      String             @unique
+  artist        Artist             @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  status        VerificationStatus @default(PENDING)
+  evidenceLinks String[]
+  reviewerNotes String?
+  reviewedAt    DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@map("artist_verification_requests")
+}
+
+model TrackCollaboration {
+  id             String              @id @default(cuid())
+  songId         String?
+  draftTrackId   String?
+  albumId        String?
+  inviterId      String
+  inviter        Artist              @relation("InvitedCollaborations", fields: [inviterId], references: [id], onDelete: Cascade)
+  collaboratorId String
+  collaborator   Artist              @relation("ReceivedCollaborations", fields: [collaboratorId], references: [id], onDelete: Cascade)
+  role           CollaborationRole   @default(FEATURED)
+  status         CollaborationStatus @default(PENDING)
+  createdAt      DateTime            @default(now())
+  respondedAt    DateTime?
+
+  song           Song?               @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@index([collaboratorId, status])
+  @@index([songId, status])
+  @@map("track_collaborations")
+}
+
+model ReleaseDraft {
+  id        String    @id @default(cuid())
+  artistId  String
+  artist    Artist    @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  title     String
+  type      AlbumType @default(ALBUM)
+  draftJson String    @db.Text
+  step      Int       @default(1)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("release_drafts")
+}
+
+model DailyArtistMetric {
+  id              String   @id @default(cuid())
+  artistId        String
+  artist          Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  metricDate      DateTime @db.Date
+  totalStreams    Int      @default(0)
+  uniqueListeners Int      @default(0)
+  newFollowers    Int      @default(0)
+  totalSaves      Int      @default(0)
+
+  @@unique([artistId, metricDate])
+  @@map("daily_artist_metrics")
+}
+
+model DailySongMetric {
+  id              String   @id @default(cuid())
+  songId          String
+  song            Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  metricDate      DateTime @db.Date
+  streams         Int      @default(0)
+  completionCount Int      @default(0)
+  skipCount       Int      @default(0)
+
+  @@unique([songId, metricDate])
+  @@map("daily_song_metrics")
 }
 
 

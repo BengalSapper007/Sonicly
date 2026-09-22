@@ -5,7 +5,9 @@ import {
   Redirect,
   BadRequestException,
   Logger,
+  Header,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { MediaService } from './media.service';
 import { Public } from '../common/decorators/public.decorator';
 
@@ -35,6 +37,8 @@ export class MediaController {
    * Allowed key prefixes: artists/ | albums/
    * Audio keys (audio/) are NOT served here — use GET /api/songs/:id/stream.
    */
+  @Throttle({ default: { ttl: 60_000, limit: 300 } }) // 300 artwork requests / min per IP to support dense image grids
+  @Header('Cache-Control', 'public, max-age=3600, s-maxage=3600')
   @Get('artwork')
   @Redirect()
   async getArtworkUrl(@Query('key') key: string) {
@@ -44,14 +48,14 @@ export class MediaController {
 
     const cleanKey = key.replace(/^\/+/, '').replace(/^images\//, '');
 
-    // Disallow path traversal or audio keys — this endpoint is strictly for artwork/images
+    // Disallow path traversal, null bytes, and non-artwork key prefixes
     if (
       cleanKey.includes('..') ||
-      cleanKey.startsWith('audio/') ||
-      cleanKey.startsWith('songs/')
+      cleanKey.includes('\0') ||
+      (!cleanKey.startsWith('artists/') && !cleanKey.startsWith('albums/'))
     ) {
       throw new BadRequestException(
-        'Audio keys are not allowed on this endpoint. Use /api/songs/:id/stream instead.',
+        'Invalid artwork key. Key must be prefixed with artists/ or albums/ and must not contain path traversal.',
       );
     }
 

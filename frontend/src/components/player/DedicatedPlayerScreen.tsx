@@ -71,6 +71,7 @@ export function DedicatedPlayerScreen({
   } = usePlayerStore();
 
   const isSongLiked = useLibraryStore((s) => s.isSongLiked);
+  const getSongLikeCount = useLibraryStore((s) => s.getSongLikeCount);
   const toggleLikeSong = useLibraryStore((s) => s.toggleLikeSong);
   const isArtistFollowed = useLibraryStore((s) => s.isArtistFollowed);
   const toggleFollowArtist = useLibraryStore((s) => s.toggleFollowArtist);
@@ -83,6 +84,7 @@ export function DedicatedPlayerScreen({
 
   const artistId = currentSong?.album?.artist?.id;
   const isLiked = currentSong ? isSongLiked(currentSong.id) : false;
+  const currentLikeCount = currentSong ? getSongLikeCount(currentSong.id, currentSong._count?.likes ?? 0) : 0;
   const isFollowing = artistId ? isArtistFollowed(artistId) : false;
   const followLoading = artistId ? !!loadingArtists[artistId] : false;
 
@@ -409,16 +411,23 @@ export function DedicatedPlayerScreen({
                       ) : (
                         <span className="truncate">{albumTitle}</span>
                       )}
+                      {currentSong.playCount !== undefined && (
+                        <>
+                          <span>•</span>
+                          <span className="text-white/70">{formatNumber(currentSong.playCount)} plays</span>
+                        </>
+                      )}
                     </div>
                   </div>
 
                   <button
                     onClick={() => toggleLikeSong(currentSong)}
                     className="p-2 rounded-full hover:bg-white/10 transition-all flex-shrink-0 cursor-pointer mt-1"
-                    style={{ color: isLiked ? '#E2720A' : 'rgba(255,255,255,0.5)' }}
+                    style={{ color: isLiked ? '#E2720A' : 'rgba(255,255,255,0.7)' }}
                     aria-label={isLiked ? 'Unlike' : 'Like'}
+                    title={isLiked ? 'Unlike' : 'Like'}
                   >
-                    <Heart className={`w-6 h-6 ${isLiked ? 'fill-current text-vibrant-saffron scale-110' : ''}`} />
+                    <Heart className={`w-6 h-6 transition-transform ${isLiked ? 'fill-current text-vibrant-saffron scale-110' : ''}`} />
                   </button>
                 </div>
               </div>
@@ -653,8 +662,10 @@ export function DedicatedPlayerScreen({
                       <p className="text-xs text-white/80 font-medium">
                         {artistLoading ? (
                           <span className="opacity-60">Loading stats...</span>
+                        ) : artistData?.monthlyListeners !== undefined ? (
+                          `${formatNumber(artistData.monthlyListeners)} ${artistData.monthlyListeners === 1 ? 'listener' : 'listeners'}${artistData.totalPlays ? ` • ${formatNumber(artistData.totalPlays)} plays` : ''}`
                         ) : (
-                          `${formatNumber(artistData?.monthlyListeners ?? 42800)} monthly listeners`
+                          'Artist'
                         )}
                       </p>
                     </div>

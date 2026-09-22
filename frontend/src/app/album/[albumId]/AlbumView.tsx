@@ -166,6 +166,7 @@ export function AlbumView({ albumId, initialAlbum }: AlbumViewProps) {
         <div className="hidden sm:flex items-center px-3 py-2 mb-1 border-b border-border-light text-xs font-medium text-on-surface-muted">
           <div className="w-8 text-center">#</div>
           <div className="flex-1 ml-2">Title</div>
+          <div className="w-24 text-right pr-2 hidden sm:block">Plays</div>
           <div className="w-20 text-right pr-8">Duration</div>
         </div>
 
@@ -179,7 +180,8 @@ export function AlbumView({ albumId, initialAlbum }: AlbumViewProps) {
               contextType="album"
               contextId={album.id}
               contextTitle={album.title}
-              showAlbum={true}
+              showAlbum={false}
+              showPlays={true}
             />
           ))}
         </div>

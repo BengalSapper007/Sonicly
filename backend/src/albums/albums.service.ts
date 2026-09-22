@@ -62,14 +62,31 @@ export class AlbumsService {
     if (!baseAlbum) throw new NotFoundException('Album not found');
 
     let isSaved = false;
+    let songs = baseAlbum.songs;
+
     if (userId) {
-      const saved = await this.prisma.savedAlbum.findUnique({
-        where: { userId_albumId: { userId, albumId: id } },
-      });
+      const [saved, userLikes] = await Promise.all([
+        this.prisma.savedAlbum.findUnique({
+          where: { userId_albumId: { userId, albumId: id } },
+        }),
+        this.prisma.like.findMany({
+          where: {
+            userId,
+            songId: { in: baseAlbum.songs.map((s: any) => s.id) },
+          },
+          select: { songId: true },
+        }),
+      ]);
+
       isSaved = !!saved;
+      const likedSet = new Set(userLikes.map((l) => l.songId));
+      songs = baseAlbum.songs.map((s: any) => ({
+        ...s,
+        likes: likedSet.has(s.id) ? [{ userId }] : [],
+      }));
     }
 
-    return { ...baseAlbum, isSaved };
+    return { ...baseAlbum, songs, isSaved };
   }
 
   async save(albumId: string, userId: string) {

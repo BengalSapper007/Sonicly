@@ -92,17 +92,19 @@ export function Player() {
   };
 
   const isSongLiked = useLibraryStore((s) => s.isSongLiked);
+  const getSongLikeCount = useLibraryStore((s) => s.getSongLikeCount);
   const toggleLikeSong = useLibraryStore((s) => s.toggleLikeSong);
   const registerSong = useLibraryStore((s) => s.registerSong);
 
   useEffect(() => {
     if (currentSong?.id) {
       const serverLiked = Array.isArray(currentSong.likes) && currentSong.likes.length > 0;
-      registerSong(currentSong.id, serverLiked);
+      registerSong(currentSong.id, serverLiked, currentSong._count?.likes);
     }
-  }, [currentSong?.id, registerSong]);
+  }, [currentSong?.id, currentSong?._count?.likes, registerSong]);
 
   const isLiked = currentSong ? isSongLiked(currentSong.id) : false;
+  const currentLikeCount = currentSong ? getSongLikeCount(currentSong.id, currentSong._count?.likes ?? 0) : 0;
   const albumArt = currentSong ? artworkUrl(currentSong.album?.imageKey) : '';
 
   const handleSeek = useCallback(
@@ -357,7 +359,7 @@ export function Player() {
           {/* Like */}
           <button
             onClick={() => currentSong && toggleLikeSong(currentSong)}
-            className="p-2 rounded transition-all flex-shrink-0 hover:scale-110 active:scale-95 cursor-pointer"
+            className="p-2 rounded transition-all flex-shrink-0 hover:scale-110 active:scale-95 cursor-pointer flex items-center gap-1"
             style={{ color: isLiked ? '#E2720A' : 'rgba(154,166,194,0.6)' }}
             aria-label={isLiked ? 'Unlike track' : 'Like track'}
             title={isLiked ? 'Unlike (L)' : 'Like (L)'}
