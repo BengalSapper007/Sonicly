@@ -139,7 +139,7 @@ export function SongRow({
       {/* Like button */}
       <button
         className={cn(
-          'p-1.5 transition-all flex-shrink-0 cursor-pointer flex items-center gap-1',
+          'p-1.5 transition-all flex-shrink-0 cursor-pointer',
           liked
             ? 'opacity-100 text-vibrant-saffron hover:text-deep-saffron'
             : 'opacity-0 group-hover:opacity-100 text-on-surface-muted hover:text-vibrant-saffron'
@@ -149,21 +149,12 @@ export function SongRow({
           toggleLikeSong(song);
         }}
         aria-label={liked ? 'Unlike song' : 'Like song'}
-        title={
-          liked
-            ? `Unlike (${likeCount.toLocaleString()} likes)`
-            : `Like (${likeCount.toLocaleString()} likes)`
-        }
+        title={liked ? 'Unlike' : 'Like'}
       >
         {likeLoading ? (
           <Loader2 className="w-4 h-4 animate-spin text-vibrant-saffron" />
         ) : (
           <Heart className={cn('w-4 h-4', liked && 'fill-current text-vibrant-saffron')} />
-        )}
-        {(showLikeCount || (liked && likeCount > 0)) && (
-          <span className="text-[11px] tabular-nums font-medium transition-opacity">
-            {likeCount > 999 ? `${(likeCount / 1000).toFixed(1)}k` : likeCount}
-          </span>
         )}
       </button>
 

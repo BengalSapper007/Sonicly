@@ -54,7 +54,14 @@ export class ArtistsService {
         take: 10,
       });
 
-      return { ...artist, popularSongs };
+      // Sum total plays across all songs by this artist
+      const playSum = await this.prisma.song.aggregate({
+        where: { album: { artistId: id } },
+        _sum: { playCount: true },
+      });
+      const totalPlays = playSum._sum.playCount ?? 0;
+
+      return { ...artist, popularSongs, totalPlays };
     }, 300);
 
     if (!baseArtist) throw new NotFoundException('Artist not found');

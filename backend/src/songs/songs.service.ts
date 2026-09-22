@@ -123,10 +123,8 @@ export class SongsService {
     }
 
     if (song.album?.artistId) {
-      const twentyEightDaysAgo = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000);
       const distinctUsers = await this.prisma.listeningHistory.findMany({
         where: {
-          playedAt: { gte: twentyEightDaysAgo },
           song: { album: { artistId: song.album.artistId } },
         },
         distinct: ['userId'],

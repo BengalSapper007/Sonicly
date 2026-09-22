@@ -104,11 +104,21 @@ export function ArtistView({ artistId, initialArtist }: ArtistViewProps) {
           <h1 className="font-bold text-4xl md:text-6xl text-white tracking-tight">
             {artist.name}
           </h1>
-          {artist.monthlyListeners !== undefined && (
-            <p className="text-sm text-on-primary-muted mt-1">
-              {formatNumber(artist.monthlyListeners)} monthly listeners
-            </p>
-          )}
+          <div className="flex items-center gap-2 text-sm text-on-primary-muted mt-1 font-medium">
+            {artist.monthlyListeners !== undefined && (
+              <span>
+                {formatNumber(artist.monthlyListeners)} {artist.monthlyListeners === 1 ? 'listener' : 'listeners'}
+              </span>
+            )}
+            {artist.totalPlays !== undefined && artist.totalPlays > 0 && (
+              <>
+                <span>•</span>
+                <span>
+                  {formatNumber(artist.totalPlays)} {artist.totalPlays === 1 ? 'play' : 'plays'}
+                </span>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

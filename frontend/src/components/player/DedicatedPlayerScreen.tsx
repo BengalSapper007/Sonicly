@@ -320,11 +320,7 @@ export function DedicatedPlayerScreen({
               className="p-2.5 rounded-full hover:bg-white/10 transition-all cursor-pointer"
               style={{ color: isLiked ? '#E2720A' : 'rgba(255,255,255,0.7)' }}
               aria-label={isLiked ? 'Unlike track' : 'Like track'}
-              title={
-                isLiked
-                  ? `Unlike • ${currentLikeCount.toLocaleString()} likes`
-                  : `Like • ${currentLikeCount.toLocaleString()} likes`
-              }
+              title={isLiked ? 'Unlike' : 'Like'}
             >
               <Heart className={`w-5 h-5 ${isLiked ? 'fill-current text-vibrant-saffron' : ''}`} />
             </button>
@@ -426,21 +422,12 @@ export function DedicatedPlayerScreen({
 
                   <button
                     onClick={() => toggleLikeSong(currentSong)}
-                    className="px-3 py-1.5 rounded-full hover:bg-white/10 transition-all flex items-center gap-1.5 flex-shrink-0 cursor-pointer mt-1 border border-white/10 bg-white/5"
+                    className="p-2 rounded-full hover:bg-white/10 transition-all flex-shrink-0 cursor-pointer mt-1"
                     style={{ color: isLiked ? '#E2720A' : 'rgba(255,255,255,0.7)' }}
                     aria-label={isLiked ? 'Unlike' : 'Like'}
-                    title={
-                      isLiked
-                        ? `Unlike • ${currentLikeCount.toLocaleString()} likes`
-                        : `Like • ${currentLikeCount.toLocaleString()} likes`
-                    }
+                    title={isLiked ? 'Unlike' : 'Like'}
                   >
-                    <Heart className={`w-5 h-5 transition-transform ${isLiked ? 'fill-current text-vibrant-saffron scale-110' : ''}`} />
-                    {currentLikeCount > 0 && (
-                      <span className="text-xs font-semibold tabular-nums text-white/90">
-                        {formatNumber(currentLikeCount)}
-                      </span>
-                    )}
+                    <Heart className={`w-6 h-6 transition-transform ${isLiked ? 'fill-current text-vibrant-saffron scale-110' : ''}`} />
                   </button>
                 </div>
               </div>
@@ -676,7 +663,7 @@ export function DedicatedPlayerScreen({
                         {artistLoading ? (
                           <span className="opacity-60">Loading stats...</span>
                         ) : artistData?.monthlyListeners !== undefined ? (
-                          `${formatNumber(artistData.monthlyListeners)} monthly listeners`
+                          `${formatNumber(artistData.monthlyListeners)} ${artistData.monthlyListeners === 1 ? 'listener' : 'listeners'}${artistData.totalPlays ? ` • ${formatNumber(artistData.totalPlays)} plays` : ''}`
                         ) : (
                           'Artist'
                         )}

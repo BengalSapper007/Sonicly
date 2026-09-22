@@ -362,11 +362,7 @@ export function Player() {
             className="p-2 rounded transition-all flex-shrink-0 hover:scale-110 active:scale-95 cursor-pointer flex items-center gap-1"
             style={{ color: isLiked ? '#E2720A' : 'rgba(154,166,194,0.6)' }}
             aria-label={isLiked ? 'Unlike track' : 'Like track'}
-            title={
-              isLiked
-                ? `Unlike (L) • ${currentLikeCount.toLocaleString()} likes`
-                : `Like (L) • ${currentLikeCount.toLocaleString()} likes`
-            }
+            title={isLiked ? 'Unlike (L)' : 'Like (L)'}
           >
             <Heart className={`w-4 h-4 ${isLiked ? 'fill-current text-[#E2720A]' : ''}`} />
           </button>

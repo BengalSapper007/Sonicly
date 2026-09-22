@@ -9,6 +9,7 @@ import { QueuePanel } from '@/components/player/QueuePanel';
 import { DedicatedPlayerScreen } from '@/components/player/DedicatedPlayerScreen';
 import { AudioEngine } from '@/components/player/AudioEngine';
 import { ToastContainer } from '@/components/ui/Toast';
+import { CookieConsentBanner } from '@/components/legal/CookieConsentBanner';
 import { useAuthStore } from '@/stores/auth.store';
 import { useLibraryStore } from '@/stores/library.store';
 import { useSidebarStore } from '@/stores/sidebar.store';
@@ -37,6 +38,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return (
       <div className="h-full overflow-y-auto" style={{ background: '#F6F1E4' }}>
         <ToastContainer />
+        <CookieConsentBanner />
         {children}
       </div>
     );
@@ -45,6 +47,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="h-full flex flex-col overflow-hidden" style={{ background: '#F6F1E4' }}>
       <ToastContainer />
+      <CookieConsentBanner />
       <AudioEngine />
 
       {/* Main layout (Sidebar + Content column) */}

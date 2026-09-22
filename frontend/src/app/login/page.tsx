@@ -106,6 +106,20 @@ export default function LoginPage() {
             Sign up
           </Link>
         </p>
+
+        <div className="flex items-center justify-center gap-3 text-xs text-on-surface-muted/70 mt-6">
+          <Link href="/privacy" className="hover:text-on-surface hover:underline transition-colors">
+            Privacy Policy
+          </Link>
+          <span>•</span>
+          <Link href="/terms" className="hover:text-on-surface hover:underline transition-colors">
+            Terms of Service
+          </Link>
+          <span>•</span>
+          <Link href="/cookies" className="hover:text-on-surface hover:underline transition-colors">
+            Cookie Policy
+          </Link>
+        </div>
       </div>
     </div>
   );
