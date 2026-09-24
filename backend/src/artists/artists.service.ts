@@ -23,10 +23,20 @@ export class ArtistsService {
 
   async findOne(id: string, userId?: string) {
     const baseArtist = await this.cache.wrap(`catalog:artist:${id}`, async () => {
+      const now = new Date();
+      const albumFilter = {
+        isArchived: false,
+        OR: [
+          { scheduledPublishAt: null },
+          { scheduledPublishAt: { lte: now } },
+        ],
+      };
+
       const artist = await this.prisma.artist.findUnique({
         where: { id },
         include: {
           albums: {
+            where: albumFilter,
             orderBy: { releaseYear: 'desc' },
             include: { _count: { select: { songs: true } } },
           },
@@ -36,9 +46,22 @@ export class ArtistsService {
 
       if (!artist) return null;
 
-      // Get popular songs (top 10 by play count)
+      // Get popular songs (including both artist's own tracks and collaborations where they participated)
       const popularSongs = await this.prisma.song.findMany({
-        where: { album: { artistId: id } },
+        where: {
+          album: albumFilter,
+          OR: [
+            { album: { artistId: id } },
+            {
+              collaborations: {
+                some: {
+                  collaboratorId: id,
+                  status: 'ACCEPTED',
+                },
+              },
+            },
+          ],
+        },
         include: {
           album: {
             select: {
@@ -48,15 +71,34 @@ export class ArtistsService {
               artist: { select: { id: true, name: true } },
             },
           },
+          collaborations: {
+            where: { status: 'ACCEPTED' },
+            include: {
+              collaborator: { select: { id: true, name: true, imageKey: true } },
+            },
+          },
           _count: { select: { likes: true } },
         },
         orderBy: { playCount: 'desc' },
         take: 10,
       });
 
-      // Sum total plays across all songs by this artist
+      // Sum total plays across all active songs by or featuring this artist
       const playSum = await this.prisma.song.aggregate({
-        where: { album: { artistId: id } },
+        where: {
+          album: albumFilter,
+          OR: [
+            { album: { artistId: id } },
+            {
+              collaborations: {
+                some: {
+                  collaboratorId: id,
+                  status: 'ACCEPTED',
+                },
+              },
+            },
+          ],
+        },
         _sum: { playCount: true },
       });
       const totalPlays = playSum._sum.playCount ?? 0;
@@ -70,6 +112,8 @@ export class ArtistsService {
     let popularSongs = baseArtist.popularSongs;
 
     if (userId) {
+      const allSongIds = baseArtist.popularSongs.map((s: any) => s.id);
+
       const [follow, userLikes] = await Promise.all([
         this.prisma.follow.findUnique({
           where: { userId_artistId: { userId, artistId: id } },
@@ -77,7 +121,7 @@ export class ArtistsService {
         this.prisma.like.findMany({
           where: {
             userId,
-            songId: { in: baseArtist.popularSongs.map((s: any) => s.id) },
+            songId: { in: allSongIds },
           },
           select: { songId: true },
         }),

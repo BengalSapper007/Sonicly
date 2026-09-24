@@ -6,9 +6,10 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AppCacheService } from '../common/cache/app-cache.service';
 import { nanoid } from 'nanoid';
+import { CollaborationStatus } from '@prisma/client';
 import { CreatePlaylistDto, UpdatePlaylistDto, AddSongDto, ReorderSongsDto } from './dto/playlist.dto';
 
-const SONG_INCLUDE = {
+const SONG_INCLUDE = (userId?: string) => ({
   song: {
     include: {
       album: {
@@ -16,11 +17,18 @@ const SONG_INCLUDE = {
           artist: { select: { id: true, name: true } },
         },
       },
+      collaborations: {
+        where: { status: CollaborationStatus.ACCEPTED },
+        include: {
+          collaborator: { select: { id: true, name: true, imageKey: true } },
+        },
+      },
       genre: { select: { id: true, name: true } },
       _count: { select: { likes: true } },
+      ...(userId ? { likes: { where: { userId } } } : {}),
     },
   },
-};
+});
 
 @Injectable()
 export class PlaylistsService {
@@ -69,14 +77,21 @@ export class PlaylistsService {
             user: { select: { id: true, username: true, displayName: true } },
             songs: {
               orderBy: { position: 'asc' },
-              include: {
-                ...SONG_INCLUDE,
-              },
+              include: SONG_INCLUDE(),
             },
             _count: { select: { songs: true } },
           },
         });
-        return playlist;
+        if (!playlist) return null;
+        const now = new Date();
+        const activeSongs = (playlist.songs || []).filter((entry: any) => {
+          const al = entry.song?.album;
+          if (!al) return true;
+          if (al.isArchived) return false;
+          if (al.scheduledPublishAt && new Date(al.scheduledPublishAt) > now) return false;
+          return true;
+        });
+        return { ...playlist, songs: activeSongs };
       }, 300);
 
       if (!cached) throw new NotFoundException('Playlist not found');
@@ -89,30 +104,22 @@ export class PlaylistsService {
         user: { select: { id: true, username: true, displayName: true } },
         songs: {
           orderBy: { position: 'asc' },
-          include: {
-            ...SONG_INCLUDE,
-            ...(userId
-              ? {
-                  song: {
-                    include: {
-                      album: {
-                        include: { artist: { select: { id: true, name: true } } },
-                      },
-                      genre: { select: { id: true, name: true } },
-                      _count: { select: { likes: true } },
-                      likes: { where: { userId } },
-                    },
-                  },
-                }
-              : {}),
-          },
+          include: SONG_INCLUDE(userId),
         },
         _count: { select: { songs: true } },
       },
     });
 
     if (!playlist) throw new NotFoundException('Playlist not found');
-    return playlist;
+    const now = new Date();
+    const activeSongs = (playlist.songs || []).filter((entry: any) => {
+      const al = entry.song?.album;
+      if (!al) return true;
+      if (al.isArchived) return false;
+      if (al.scheduledPublishAt && new Date(al.scheduledPublishAt) > now) return false;
+      return true;
+    });
+    return { ...playlist, songs: activeSongs };
   }
 
   async update(id: string, dto: UpdatePlaylistDto, userId: string) {

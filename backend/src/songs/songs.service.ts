@@ -22,16 +22,24 @@ export class SongsService {
               artist: { select: { id: true, name: true, imageKey: true } },
             },
           },
+          collaborations: {
+            where: { status: 'ACCEPTED' },
+            include: {
+              collaborator: { select: { id: true, name: true, imageKey: true } },
+            },
+          },
           genre: { select: { id: true, name: true } },
           _count: { select: { likes: true } },
         },
       });
 
       if (!song) return null;
+      if (song.album?.isArchived) return null;
+      if (song.album?.scheduledPublishAt && song.album.scheduledPublishAt > new Date()) return null;
       return song;
     }, 600);
 
-    if (!baseSong) throw new NotFoundException('Track not found');
+    if (!baseSong) throw new NotFoundException('Track not found or unavailable');
 
     if (!userId) {
       return baseSong;

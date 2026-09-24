@@ -17,3 +17,30 @@ export function formatNumber(n: number): string {
   if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
   return n.toString();
 }
+
+export interface SongCollaborationItem {
+  role?: 'CO_ARTIST' | 'FEATURED' | string;
+  status?: 'ACCEPTED' | 'PENDING' | 'DECLINED' | string;
+  collaborator?: {
+    id: string;
+    name: string;
+    imageKey?: string | null;
+  };
+}
+
+export function formatSongArtists(
+  primaryArtistName?: string,
+  collaborations?: SongCollaborationItem[],
+): string {
+  const primary = primaryArtistName?.trim() || '';
+  const accepted = (collaborations || []).filter(
+    (c) => c.status === 'ACCEPTED' && c.collaborator?.name,
+  );
+
+  const coArtists = accepted
+    .map((c) => c.collaborator!.name.trim())
+    .filter(Boolean);
+
+  const allArtists = [primary, ...coArtists].filter(Boolean);
+  return Array.from(new Set(allArtists)).join(', ');
+}

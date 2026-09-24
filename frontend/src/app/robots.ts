@@ -8,9 +8,11 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/', '/library/', '/login', '/register'],
+        disallow: ['/api/', '/library/', '/login', '/register', '/now-playing/'],
       },
     ],
     sitemap: `${siteUrl}/sitemap.xml`,
+    host: siteUrl,
   };
 }
+

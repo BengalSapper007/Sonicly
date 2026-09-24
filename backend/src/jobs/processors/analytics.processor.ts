@@ -67,11 +67,27 @@ export class AnalyticsProcessor {
       });
 
       const songIds = topPlays.map((p) => p.songId);
+      const now = new Date();
       const topSongs = await this.prisma.song.findMany({
-        where: { id: { in: songIds } },
+        where: {
+          id: { in: songIds },
+          album: {
+            isArchived: false,
+            OR: [
+              { scheduledPublishAt: null },
+              { scheduledPublishAt: { lte: now } },
+            ],
+          },
+        },
         include: {
           album: {
             include: { artist: { select: { id: true, name: true } } },
+          },
+          collaborations: {
+            where: { status: 'ACCEPTED' },
+            include: {
+              collaborator: { select: { id: true, name: true, imageKey: true } },
+            },
           },
           _count: { select: { likes: true } },
         },

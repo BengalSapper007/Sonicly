@@ -53,7 +53,7 @@ export function ArtistView({ artistId, initialArtist }: ArtistViewProps) {
   if (loading) return <ArtistSkeleton />;
   if (!artist) return <div className="p-8 text-on-surface-muted">Artist not found.</div>;
 
-  const topSongs = artist.popularSongs?.slice(0, 5) || [];
+  const topSongs = artist.popularSongs?.slice(0, 10) || [];
   const albums = artist.albums || [];
   const following = mounted ? isArtistFollowed(artistId) : false;
   const followLoading = mounted ? !!loadingArtists[artistId] : false;
@@ -187,6 +187,7 @@ export function ArtistView({ artistId, initialArtist }: ArtistViewProps) {
           </div>
         </section>
       )}
+
 
       {/* ── Albums ───────────────────────────────────────────────────────── */}
       {albums.length > 0 && (

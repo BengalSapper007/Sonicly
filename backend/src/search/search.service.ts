@@ -79,12 +79,30 @@ export class SearchService {
 
       if (raw.length === 0) return [];
 
+      const now = new Date();
+      const albumFilter = {
+        isArchived: false,
+        OR: [
+          { scheduledPublishAt: null },
+          { scheduledPublishAt: { lte: now } },
+        ],
+      };
+
       const ids = raw.map((r) => r.id);
       const hydrated = await this.prisma.song.findMany({
-        where: { id: { in: ids } },
+        where: {
+          id: { in: ids },
+          album: albumFilter,
+        },
         include: {
           album: {
             include: { artist: { select: { id: true, name: true } } },
+          },
+          collaborations: {
+            where: { status: 'ACCEPTED' },
+            include: {
+              collaborator: { select: { id: true, name: true, imageKey: true } },
+            },
           },
           _count: { select: { likes: true } },
           ...(userId ? { likes: { where: { userId } } } : {}),
@@ -95,12 +113,28 @@ export class SearchService {
       return ids.map((id) => map.get(id)).filter(Boolean);
     } catch (err: any) {
       this.logger.warn(`Trigram song search fallback triggered: ${err.message}`);
+      const now = new Date();
       return this.prisma.song.findMany({
-        where: { title: { contains: query, mode: 'insensitive' } },
+        where: {
+          title: { contains: query, mode: 'insensitive' },
+          album: {
+            isArchived: false,
+            OR: [
+              { scheduledPublishAt: null },
+              { scheduledPublishAt: { lte: now } },
+            ],
+          },
+        },
         take: 20,
         include: {
           album: {
             include: { artist: { select: { id: true, name: true } } },
+          },
+          collaborations: {
+            where: { status: 'ACCEPTED' },
+            include: {
+              collaborator: { select: { id: true, name: true, imageKey: true } },
+            },
           },
           _count: { select: { likes: true } },
           ...(userId ? { likes: { where: { userId } } } : {}),
@@ -165,9 +199,21 @@ export class SearchService {
 
       if (raw.length === 0) return [];
 
+      const now = new Date();
+      const albumFilter = {
+        isArchived: false,
+        OR: [
+          { scheduledPublishAt: null },
+          { scheduledPublishAt: { lte: now } },
+        ],
+      };
+
       const ids = raw.map((r) => r.id);
       const hydrated = await this.prisma.album.findMany({
-        where: { id: { in: ids } },
+        where: {
+          id: { in: ids },
+          ...albumFilter,
+        },
         include: { artist: { select: { id: true, name: true } } },
       });
 
@@ -175,8 +221,16 @@ export class SearchService {
       return ids.map((id) => map.get(id)).filter(Boolean);
     } catch (err: any) {
       this.logger.warn(`Trigram album search fallback triggered: ${err.message}`);
+      const now = new Date();
       return this.prisma.album.findMany({
-        where: { title: { contains: query, mode: 'insensitive' } },
+        where: {
+          title: { contains: query, mode: 'insensitive' },
+          isArchived: false,
+          OR: [
+            { scheduledPublishAt: null },
+            { scheduledPublishAt: { lte: now } },
+          ],
+        },
         take: 10,
         include: { artist: { select: { id: true, name: true } } },
       });

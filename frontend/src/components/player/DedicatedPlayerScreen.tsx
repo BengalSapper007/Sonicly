@@ -24,6 +24,7 @@ import {
   UserCheck,
   Disc,
   MonitorSpeaker,
+  X,
 } from 'lucide-react';
 import { usePlayerStore } from '@/stores/player.store';
 import { useLibraryStore } from '@/stores/library.store';
@@ -81,12 +82,18 @@ export function DedicatedPlayerScreen({
   const [artistData, setArtistData] = useState<any | null>(null);
   const [artistLoading, setArtistLoading] = useState(false);
   const [bioExpanded, setBioExpanded] = useState(false);
+  const [showCreditsModal, setShowCreditsModal] = useState(false);
 
   const artistId = currentSong?.album?.artist?.id;
   const isLiked = currentSong ? isSongLiked(currentSong.id) : false;
   const currentLikeCount = currentSong ? getSongLikeCount(currentSong.id, currentSong._count?.likes ?? 0) : 0;
   const isFollowing = artistId ? isArtistFollowed(artistId) : false;
   const followLoading = artistId ? !!loadingArtists[artistId] : false;
+
+  const acceptedCollaborations = (currentSong?.collaborations || []).filter(
+    (c: any) => c.status === 'ACCEPTED' && c.collaborator?.name
+  );
+  const hasMultipleArtists = acceptedCollaborations.length > 0;
 
   const handleClose = useCallback(() => {
     if (onClose) {
@@ -383,11 +390,21 @@ export function DedicatedPlayerScreen({
                 {/* Title & Artist & Album details */}
                 <div className="mt-5 flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <h1 className="text-2xl md:text-3xl font-bold text-white font-serif tracking-tight leading-tight line-clamp-2">
-                      {currentSong.title}
-                    </h1>
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <h1 className="text-2xl md:text-3xl font-bold text-white font-serif tracking-tight leading-tight line-clamp-2">
+                        {currentSong.title}
+                      </h1>
+                      {currentSong.isExplicit && (
+                        <span
+                          className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/20 text-white tracking-wider uppercase leading-none"
+                          title="Explicit Content"
+                        >
+                          Explicit
+                        </span>
+                      )}
+                    </div>
 
-                    <div className="mt-1.5 flex items-center gap-2 text-sm text-on-primary-muted">
+                    <div className="mt-1.5 flex items-center gap-2 text-sm text-on-primary-muted flex-wrap">
                       {artistId ? (
                         <Link
                           href={`/artist/${artistId}`}
@@ -399,6 +416,27 @@ export function DedicatedPlayerScreen({
                       ) : (
                         <span className="font-medium text-white/90 truncate">{artistName}</span>
                       )}
+                      {(() => {
+                        const coArtists = (currentSong.collaborations || []).filter(
+                          (c: any) => c.status === 'ACCEPTED' && c.collaborator?.name
+                        );
+                        if (coArtists.length === 0) return null;
+                        return (
+                          <span className="text-white/90">
+                            {', '}
+                            {coArtists.map((c: any, idx: number) => (
+                              <Link
+                                key={c.collaborator?.id || idx}
+                                href={`/artist/${c.collaborator?.id}`}
+                                onClick={mode === 'overlay' ? handleClose : undefined}
+                                className="hover:text-vibrant-saffron hover:underline"
+                              >
+                                {c.collaborator?.name}{idx < coArtists.length - 1 ? ', ' : ''}
+                              </Link>
+                            ))}
+                          </span>
+                        );
+                      })()}
                       <span>•</span>
                       {currentSong.album?.id ? (
                         <Link
@@ -575,37 +613,57 @@ export function DedicatedPlayerScreen({
                 </div>
 
                 <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white/10 text-white/70 tracking-wide uppercase">
-                  Preview
+                  {currentSong.lyrics ? 'Lyrics' : 'Preview'}
                 </span>
               </div>
 
-              {/* Blank / Placeholder Lyrics Display Area */}
-              <div className="flex-1 my-6 flex flex-col justify-center items-center text-center px-4 py-8 rounded-2xl bg-black/20 border border-white/5 relative overflow-hidden">
-                {/* Decorative background note glow */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
-                  <Music className="w-48 h-48" />
+              {/* Lyrics Display Area */}
+              {currentSong.lyrics ? (
+                <div className="flex-1 my-6 overflow-y-auto max-h-[380px] px-5 py-5 rounded-2xl bg-black/25 border border-white/10 space-y-3.5 text-left custom-scrollbar">
+                  {currentSong.lyrics.split('\n').map((line: string, idx: number) => {
+                    const isEmpty = line.trim() === '';
+                    return (
+                      <p
+                        key={idx}
+                        className={`text-base md:text-lg font-serif transition-colors leading-relaxed ${
+                          isEmpty
+                            ? 'h-3'
+                            : 'text-white/80 hover:text-vibrant-saffron select-text cursor-default'
+                        }`}
+                      >
+                        {line}
+                      </p>
+                    );
+                  })}
                 </div>
-
-                <div className="relative z-10 max-w-sm flex flex-col items-center">
-                  <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/40 mb-3">
-                    <Mic2 className="w-6 h-6" />
+              ) : (
+                <div className="flex-1 my-6 flex flex-col justify-center items-center text-center px-4 py-8 rounded-2xl bg-black/20 border border-white/5 relative overflow-hidden">
+                  {/* Decorative background note glow */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
+                    <Music className="w-48 h-48" />
                   </div>
 
-                  <h3 className="text-base font-semibold text-white/90 mb-1.5">
-                    Lyrics not available yet
-                  </h3>
-                  <p className="text-xs text-on-primary-muted leading-relaxed mb-6">
-                    We're preparing synchronized, real-time lyrics for this track. When ready, lyrics will stream seamlessly in this dedicated panel.
-                  </p>
+                  <div className="relative z-10 max-w-sm flex flex-col items-center">
+                    <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/40 mb-3">
+                      <Mic2 className="w-6 h-6" />
+                    </div>
 
-                  {/* Stylized lyrical line placeholders indicating future karaoke lyrics */}
-                  <div className="w-full space-y-2.5 opacity-30">
-                    <div className="h-3.5 bg-gradient-to-r from-white/10 via-white/30 to-white/10 rounded-full w-4/5 mx-auto" />
-                    <div className="h-4 bg-gradient-to-r from-vibrant-saffron/20 via-vibrant-saffron/40 to-vibrant-saffron/20 rounded-full w-3/5 mx-auto" />
-                    <div className="h-3.5 bg-gradient-to-r from-white/10 via-white/20 to-white/10 rounded-full w-4/6 mx-auto" />
+                    <h3 className="text-base font-semibold text-white/90 mb-1.5">
+                      Lyrics not available yet
+                    </h3>
+                    <p className="text-xs text-on-primary-muted leading-relaxed mb-6">
+                      We're preparing synchronized, real-time lyrics for this track. When ready, lyrics will stream seamlessly in this dedicated panel.
+                    </p>
+
+                    {/* Stylized lyrical line placeholders indicating future karaoke lyrics */}
+                    <div className="w-full space-y-2.5 opacity-30">
+                      <div className="h-3.5 bg-gradient-to-r from-white/10 via-white/30 to-white/10 rounded-full w-4/5 mx-auto" />
+                      <div className="h-4 bg-gradient-to-r from-vibrant-saffron/20 via-vibrant-saffron/40 to-vibrant-saffron/20 rounded-full w-3/5 mx-auto" />
+                      <div className="h-3.5 bg-gradient-to-r from-white/10 via-white/20 to-white/10 rounded-full w-4/6 mx-auto" />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Lyrics Footer Info */}
               <div className="pt-3 border-t border-white/5 flex items-center justify-between text-xs text-white/40">
@@ -614,144 +672,394 @@ export function DedicatedPlayerScreen({
               </div>
             </section>
 
-            {/* ════════════ PANEL 3: ABOUT THE ARTIST (Cols 9-12) ════════════ */}
+            {/* ════════════ PANEL 3: ABOUT THE ARTIST / CREDITS (Cols 9-12) ════════════ */}
             <section className="lg:col-span-4 flex flex-col justify-between bg-white/[0.03] border border-white/10 backdrop-blur-xl rounded-3xl p-6 md:p-7 shadow-2xl shadow-black/40 min-h-[420px]">
-              <div>
-                {/* Artist Panel Header */}
-                <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-5">
-                  <h2 className="text-lg font-bold text-white tracking-tight">
-                    About the Artist
-                  </h2>
-                  {artistId && (
-                    <Link
-                      href={`/artist/${artistId}`}
-                      onClick={mode === 'overlay' ? handleClose : undefined}
-                      className="text-xs font-semibold text-vibrant-saffron hover:underline flex items-center gap-1"
-                    >
-                      <span>Profile</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </Link>
-                  )}
-                </div>
-
-                {/* Artist Banner / Avatar Card */}
-                <div className="relative h-44 w-full rounded-2xl overflow-hidden border border-white/10 group shadow-lg shadow-black/40">
-                  <ArtworkImage
-                    src={artworkUrl(artistData?.imageKey)}
-                    alt={artistName}
-                    type="artist"
-                    id={artistId || currentSong.id}
-                    size="hero"
-                    className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-
-                  {/* Floating Info on Banner */}
-                  <div className="absolute bottom-3.5 left-4 right-4 flex items-end justify-between">
-                    <div>
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <span className="text-lg font-bold text-white leading-tight">
-                          {artistName}
-                        </span>
-                        {(artistData?.isVerified ?? true) && (
-                          <span title="Verified Artist">
-                            <BadgeCheck className="w-5 h-5 text-vibrant-saffron fill-vibrant-saffron/20" />
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-white/80 font-medium">
-                        {artistLoading ? (
-                          <span className="opacity-60">Loading stats...</span>
-                        ) : artistData?.monthlyListeners !== undefined ? (
-                          `${formatNumber(artistData.monthlyListeners)} ${artistData.monthlyListeners === 1 ? 'listener' : 'listeners'}${artistData.totalPlays ? ` • ${formatNumber(artistData.totalPlays)} plays` : ''}`
-                        ) : (
-                          'Artist'
-                        )}
-                      </p>
+              {hasMultipleArtists ? (
+                /* Multiple Artists: Spotify Credits Style */
+                <div className="flex-1 flex flex-col justify-between">
+                  <div>
+                    {/* Header */}
+                    <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-5">
+                      <h2 className="text-lg font-bold text-white tracking-tight">
+                        Credits
+                      </h2>
+                      <button
+                        type="button"
+                        onClick={() => setShowCreditsModal(true)}
+                        className="text-xs font-semibold text-white/70 hover:text-white transition-colors cursor-pointer"
+                      >
+                        Show all
+                      </button>
                     </div>
 
-                    {artistId && (
-                      <button
-                        onClick={() => toggleFollowArtist(artistId)}
-                        disabled={followLoading}
-                        className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shadow-sm ${
-                          isFollowing
-                            ? 'bg-white/20 text-white hover:bg-white/30 border border-white/30'
-                            : 'bg-vibrant-saffron text-white hover:bg-deep-saffron'
-                        }`}
-                      >
-                        {isFollowing ? (
-                          <>
-                            <UserCheck className="w-3.5 h-3.5" />
-                            <span>Following</span>
-                          </>
-                        ) : (
-                          <>
-                            <UserPlus className="w-3.5 h-3.5" />
-                            <span>Follow</span>
-                          </>
-                        )}
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Artist Biography Card */}
-                <div className="mt-5">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-white/50 mb-2">
-                    Biography
-                  </h3>
-                  <div className="bg-black/20 border border-white/5 rounded-2xl p-4">
-                    {artistLoading ? (
-                      <div className="space-y-2 py-2">
-                        <div className="h-3 bg-white/10 rounded w-full animate-pulse" />
-                        <div className="h-3 bg-white/10 rounded w-5/6 animate-pulse" />
-                        <div className="h-3 bg-white/10 rounded w-4/6 animate-pulse" />
-                      </div>
-                    ) : artistData?.bio ? (
-                      <div>
-                        <p
-                          className={`text-sm text-white/80 leading-relaxed ${
-                            !bioExpanded ? 'line-clamp-4' : 'max-h-56 overflow-y-auto pr-1'
-                          }`}
-                        >
-                          {artistData.bio}
-                        </p>
-                        {artistData.bio.length > 200 && (
+                    {/* Artists List */}
+                    <div className="space-y-4">
+                      {/* Primary Artist */}
+                      <div className="flex items-center justify-between py-1">
+                        <div className="min-w-0 pr-3">
+                          {artistId ? (
+                            <Link
+                              href={`/artist/${artistId}`}
+                              onClick={mode === 'overlay' ? handleClose : undefined}
+                              className="text-sm font-bold text-white hover:underline truncate block"
+                            >
+                              {artistName}
+                            </Link>
+                          ) : (
+                            <span className="text-sm font-bold text-white truncate block">
+                              {artistName}
+                            </span>
+                          )}
+                        </div>
+                        {artistId && (
                           <button
-                            onClick={() => setBioExpanded(!bioExpanded)}
-                            className="mt-2 text-xs font-semibold text-vibrant-saffron hover:underline cursor-pointer"
+                            onClick={() => toggleFollowArtist(artistId)}
+                            disabled={followLoading}
+                            className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all cursor-pointer flex-shrink-0 ${
+                              isFollowing
+                                ? 'border border-white/30 text-white/90 hover:border-white/60 bg-white/5'
+                                : 'border border-white/70 text-white hover:border-white hover:bg-white/10'
+                            }`}
                           >
-                            {bioExpanded ? 'Show less' : 'Read more'}
+                            {isFollowing ? 'Following' : 'Follow'}
                           </button>
                         )}
                       </div>
-                    ) : (
-                      <p className="text-sm text-white/60 italic">
-                        Biography for {artistName} is currently being curated. Check back soon.
-                      </p>
-                    )}
+
+                      {/* Collaborators */}
+                      {acceptedCollaborations.map((collab: any) => {
+                        const cId = collab.collaborator?.id;
+                        const cName = collab.collaborator?.name;
+                        const cFollowed = cId ? isArtistFollowed(cId) : false;
+                        const cLoading = cId ? !!loadingArtists[cId] : false;
+
+                        return (
+                          <div key={collab.id || cId} className="flex items-center justify-between py-1">
+                            <div className="min-w-0 pr-3">
+                              {cId ? (
+                                <Link
+                                  href={`/artist/${cId}`}
+                                  onClick={mode === 'overlay' ? handleClose : undefined}
+                                  className="text-sm font-bold text-white hover:underline truncate block"
+                                >
+                                  {cName}
+                                </Link>
+                              ) : (
+                                <span className="text-sm font-bold text-white truncate block">
+                                  {cName}
+                                </span>
+                              )}
+                            </div>
+                            {cId && (
+                              <button
+                                onClick={() => toggleFollowArtist(cId)}
+                                disabled={cLoading}
+                                className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all cursor-pointer flex-shrink-0 ${
+                                  cFollowed
+                                    ? 'border border-white/30 text-white/90 hover:border-white/60 bg-white/5'
+                                    : 'border border-white/70 text-white hover:border-white hover:bg-white/10'
+                                }`}
+                              >
+                                {cFollowed ? 'Following' : 'Follow'}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Bottom Action: View All Credits */}
+                  <div className="mt-6 pt-4 border-t border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setShowCreditsModal(true)}
+                      className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                    >
+                      <span>View All Track Credits</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
-              </div>
+              ) : (
+                /* Single Artist: Full Page About the Artist View */
+                <>
+                  <div>
+                    {/* Artist Panel Header */}
+                    <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-5">
+                      <h2 className="text-lg font-bold text-white tracking-tight">
+                        About the Artist
+                      </h2>
+                      {artistId && (
+                        <Link
+                          href={`/artist/${artistId}`}
+                          onClick={mode === 'overlay' ? handleClose : undefined}
+                          className="text-xs font-semibold text-vibrant-saffron hover:underline flex items-center gap-1"
+                        >
+                          <span>Profile</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </Link>
+                      )}
+                    </div>
 
-              {/* Bottom Card Action: Link to full artist discography */}
-              {artistId && (
-                <div className="mt-6 pt-4 border-t border-white/10">
-                  <Link
-                    href={`/artist/${artistId}`}
-                    onClick={mode === 'overlay' ? handleClose : undefined}
-                    className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
-                  >
-                    <span>View Full Discography & Tracks</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
+                    {/* Artist Banner / Avatar Card */}
+                    <div className="relative h-44 w-full rounded-2xl overflow-hidden border border-white/10 group shadow-lg shadow-black/40">
+                      <ArtworkImage
+                        src={artworkUrl(artistData?.imageKey)}
+                        alt={artistName}
+                        type="artist"
+                        id={artistId || currentSong.id}
+                        size="hero"
+                        className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+                      {/* Floating Info on Banner */}
+                      <div className="absolute bottom-3.5 left-4 right-4 flex items-end justify-between">
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="text-lg font-bold text-white leading-tight">
+                              {artistName}
+                            </span>
+                            {(artistData?.isVerified ?? true) && (
+                              <span title="Verified Artist">
+                                <BadgeCheck className="w-5 h-5 text-vibrant-saffron fill-vibrant-saffron/20" />
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-white/80 font-medium">
+                            {artistLoading ? (
+                              <span className="opacity-60">Loading stats...</span>
+                            ) : artistData?.monthlyListeners !== undefined ? (
+                              `${formatNumber(artistData.monthlyListeners)} ${artistData.monthlyListeners === 1 ? 'listener' : 'listeners'}${artistData.totalPlays ? ` • ${formatNumber(artistData.totalPlays)} plays` : ''}`
+                            ) : (
+                              'Artist'
+                            )}
+                          </p>
+                        </div>
+
+                        {artistId && (
+                          <button
+                            onClick={() => toggleFollowArtist(artistId)}
+                            disabled={followLoading}
+                            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shadow-sm ${
+                              isFollowing
+                                ? 'bg-white/20 text-white hover:bg-white/30 border border-white/30'
+                                : 'bg-vibrant-saffron text-white hover:bg-deep-saffron'
+                            }`}
+                          >
+                            {isFollowing ? (
+                              <>
+                                <UserCheck className="w-3.5 h-3.5" />
+                                <span>Following</span>
+                              </>
+                            ) : (
+                              <>
+                                <UserPlus className="w-3.5 h-3.5" />
+                                <span>Follow</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Artist Biography Card */}
+                    <div className="mt-5">
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-white/50 mb-2">
+                        Biography
+                      </h3>
+                      <div className="bg-black/20 border border-white/5 rounded-2xl p-4">
+                        {artistLoading ? (
+                          <div className="space-y-2 py-2">
+                            <div className="h-3 bg-white/10 rounded w-full animate-pulse" />
+                            <div className="h-3 bg-white/10 rounded w-5/6 animate-pulse" />
+                            <div className="h-3 bg-white/10 rounded w-4/6 animate-pulse" />
+                          </div>
+                        ) : artistData?.bio ? (
+                          <div>
+                            <p
+                              className={`text-sm text-white/80 leading-relaxed ${
+                                !bioExpanded ? 'line-clamp-4' : 'max-h-56 overflow-y-auto pr-1'
+                              }`}
+                            >
+                              {artistData.bio}
+                            </p>
+                            {artistData.bio.length > 200 && (
+                              <button
+                                onClick={() => setBioExpanded(!bioExpanded)}
+                                className="mt-2 text-xs font-semibold text-vibrant-saffron hover:underline cursor-pointer"
+                              >
+                                {bioExpanded ? 'Show less' : 'Read more'}
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-white/60 italic">
+                            Biography for {artistName} is currently being curated. Check back soon.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom Card Action: Link to full artist discography */}
+                  {artistId && (
+                    <div className="mt-6 pt-4 border-t border-white/10">
+                      <Link
+                        href={`/artist/${artistId}`}
+                        onClick={mode === 'overlay' ? handleClose : undefined}
+                        className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
+                      >
+                        <span>View Full Discography & Tracks</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  )}
+                </>
               )}
             </section>
           </div>
         )}
       </main>
+
+      {/* ════════════ DETAILED CREDITS MODAL ════════════ */}
+      {showCreditsModal && currentSong && (
+        <div
+          className="fixed inset-0 z-[150] flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in duration-200"
+          onClick={() => setShowCreditsModal(false)}
+        >
+          <div
+            className="bg-[#18181e] border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl relative text-white"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between pb-4 border-b border-white/10 mb-4">
+              <div className="min-w-0 pr-3">
+                <h3 className="text-lg font-bold truncate">{currentSong.title}</h3>
+                <p className="text-xs text-white/50 mt-0.5">Credits</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreditsModal(false)}
+                className="p-1 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                aria-label="Close credits"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+              <div>
+                <h4 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">
+                  Performed By
+                </h4>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      {artistId ? (
+                        <Link
+                          href={`/artist/${artistId}`}
+                          onClick={() => {
+                            setShowCreditsModal(false);
+                            if (mode === 'overlay') handleClose();
+                          }}
+                          className="text-sm font-semibold text-white hover:underline"
+                        >
+                          {artistName}
+                        </Link>
+                      ) : (
+                        <span className="text-sm font-semibold text-white">{artistName}</span>
+                      )}
+                    </div>
+                    {artistId && (
+                      <button
+                        onClick={() => toggleFollowArtist(artistId)}
+                        disabled={followLoading}
+                        className={`rounded-full px-3.5 py-1 text-xs font-bold transition-all cursor-pointer ${
+                          isFollowing
+                            ? 'border border-white/30 text-white/90 hover:border-white/60 bg-white/5'
+                            : 'border border-white/70 text-white hover:border-white hover:bg-white/10'
+                        }`}
+                      >
+                        {isFollowing ? 'Following' : 'Follow'}
+                      </button>
+                    )}
+                  </div>
+
+                  {acceptedCollaborations.map((collab: any) => {
+                    const cId = collab.collaborator?.id;
+                    const cName = collab.collaborator?.name;
+                    const cFollowed = cId ? isArtistFollowed(cId) : false;
+                    const cLoading = cId ? !!loadingArtists[cId] : false;
+
+                    return (
+                      <div key={collab.id || cId} className="flex items-center justify-between">
+                        <div>
+                          {cId ? (
+                            <Link
+                              href={`/artist/${cId}`}
+                              onClick={() => {
+                                setShowCreditsModal(false);
+                                if (mode === 'overlay') handleClose();
+                              }}
+                              className="text-sm font-semibold text-white hover:underline"
+                            >
+                              {cName}
+                            </Link>
+                          ) : (
+                            <span className="text-sm font-semibold text-white">{cName}</span>
+                          )}
+                        </div>
+                        {cId && (
+                          <button
+                            onClick={() => toggleFollowArtist(cId)}
+                            disabled={cLoading}
+                            className={`rounded-full px-3.5 py-1 text-xs font-bold transition-all cursor-pointer ${
+                              cFollowed
+                                ? 'border border-white/30 text-white/90 hover:border-white/60 bg-white/5'
+                                : 'border border-white/70 text-white hover:border-white hover:bg-white/10'
+                            }`}
+                          >
+                            {cFollowed ? 'Following' : 'Follow'}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-white/10">
+                <h4 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">
+                  Release Information
+                </h4>
+                <div className="space-y-1 text-xs text-white/70">
+                  {currentSong.album?.title && (
+                    <p>
+                      <span className="text-white/40">Album:</span> {currentSong.album.title}
+                    </p>
+                  )}
+                  {currentSong.album?.releaseYear && (
+                    <p>
+                      <span className="text-white/40">Released:</span> {currentSong.album.releaseYear}
+                    </p>
+                  )}
+                  {currentSong.isrc && (
+                    <p>
+                      <span className="text-white/40">ISRC:</span> {currentSong.isrc}
+                    </p>
+                  )}
+                  <p>
+                    <span className="text-white/40">Audio Quality:</span>{' '}
+                    {currentSong.masterAudioKey ? 'Lossless Master Audio (24-bit/48kHz)' : 'High Quality Audio'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <DevicePickerPopover />
     </div>
   );

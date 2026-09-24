@@ -4,7 +4,7 @@ import { Play, Heart, Loader2 } from 'lucide-react';
 import { usePlayerStore, type Song } from '@/stores/player.store';
 import { useAuthStore } from '@/stores/auth.store';
 import { useLibraryStore } from '@/stores/library.store';
-import { cn, formatDuration } from '@/lib/utils';
+import { cn, formatDuration, formatSongArtists } from '@/lib/utils';
 import { artworkUrl } from '@/lib/api';
 import { ArtworkImage } from '@/components/ui/ArtworkImage';
 import { TrackOptionsMenu } from '@/components/catalog/TrackOptionsMenu';
@@ -113,19 +113,26 @@ export function SongRow({
 
       {/* Track info */}
       <div className="flex-1 min-w-0">
-        <p
-          className={cn(
-            'text-sm font-bold truncate transition-colors',
-            isCurrent ? 'text-crisp-green' : 'text-prussian-blue group-hover:text-midnight-blue'
+        <div className="flex items-center gap-1.5 truncate">
+          <p
+            className={cn(
+              'text-sm font-bold truncate transition-colors',
+              isCurrent ? 'text-crisp-green' : 'text-prussian-blue group-hover:text-midnight-blue'
+            )}
+          >
+            {song.title}
+          </p>
+          {song.isExplicit && (
+            <span
+              className="text-[9px] font-bold px-1 py-0.2 rounded bg-neutral-200 text-neutral-700 tracking-wider flex-shrink-0 uppercase leading-none"
+              title="Explicit Content"
+            >
+              E
+            </span>
           )}
-        >
-          {song.title}
-        </p>
+        </div>
         <p className="text-xs text-on-surface-muted truncate mt-0.5">
-          {song.album?.artist?.name}
-          {showAlbum && song.album && (
-            <span>{song.album?.artist?.name ? ', ' : ''}{song.album.title}</span>
-          )}
+          {formatSongArtists(song.album?.artist?.name, song.collaborations)}
         </p>
       </div>
 
