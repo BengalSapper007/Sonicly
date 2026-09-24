@@ -12,6 +12,13 @@ export class AlbumsService {
   async findAll() {
     return this.cache.wrap('catalog:albums:all', () => {
       return this.prisma.album.findMany({
+        where: {
+          isArchived: false,
+          OR: [
+            { scheduledPublishAt: null },
+            { scheduledPublishAt: { lte: new Date() } },
+          ],
+        },
         orderBy: { releaseYear: 'desc' },
         include: {
           artist: { select: { id: true, name: true, imageKey: true } },
@@ -31,6 +38,12 @@ export class AlbumsService {
             orderBy: { trackNum: 'asc' },
             include: {
               genre: { select: { id: true, name: true } },
+              collaborations: {
+                where: { status: 'ACCEPTED' },
+                include: {
+                  collaborator: { select: { id: true, name: true, imageKey: true } },
+                },
+              },
               _count: { select: { likes: true } },
             },
           },
@@ -38,6 +51,8 @@ export class AlbumsService {
       });
 
       if (!album) return null;
+      if (album.isArchived) return null;
+      if (album.scheduledPublishAt && album.scheduledPublishAt > new Date()) return null;
 
       // Calculate total duration
       const totalDuration = album.songs.reduce((sum, s) => sum + s.duration, 0);

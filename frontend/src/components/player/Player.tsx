@@ -338,16 +338,48 @@ export function Player() {
 
           {/* Track Info */}
           <div className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-white truncate" title={currentSong.title}>
-              {currentSong.title}
-            </span>
+            <div className="flex items-center gap-1.5 truncate">
+              <span className="text-sm font-semibold text-white truncate" title={currentSong.title}>
+                {currentSong.title}
+              </span>
+              {currentSong.isExplicit && (
+                <span
+                  className="text-[9px] font-bold px-1 py-0.2 rounded bg-neutral-600/80 text-white tracking-wider flex-shrink-0 uppercase leading-none"
+                  title="Explicit Content"
+                >
+                  E
+                </span>
+              )}
+            </div>
             {currentSong.album?.artist && (
-              <Link
-                href={`/artist/${currentSong.album.artist.id}`}
-                className="block text-xs text-on-primary-muted truncate mt-0.5 hover:underline hover:text-white transition-colors"
-              >
-                {currentSong.album.artist.name}
-              </Link>
+              <div className="text-xs text-on-primary-muted truncate mt-0.5">
+                <Link
+                  href={`/artist/${currentSong.album.artist.id}`}
+                  className="hover:underline hover:text-white transition-colors"
+                >
+                  {currentSong.album.artist.name}
+                </Link>
+                {(() => {
+                  const coArtists = (currentSong.collaborations || []).filter(
+                    (c: any) => c.status === 'ACCEPTED' && c.collaborator?.name
+                  );
+                  if (coArtists.length === 0) return null;
+                  return (
+                    <span className="text-white/80">
+                      {', '}
+                      {coArtists.map((c: any, i: number) => (
+                        <Link
+                          key={c.collaborator?.id || i}
+                          href={`/artist/${c.collaborator?.id}`}
+                          className="hover:underline hover:text-white"
+                        >
+                          {c.collaborator?.name}{i < coArtists.length - 1 ? ', ' : ''}
+                        </Link>
+                      ))}
+                    </span>
+                  );
+                })()}
+              </div>
             )}
             {!isPlayingLocally && activeDevice && (
               <span className="text-[11px] text-crisp-green flex items-center gap-1 mt-0.5 font-medium">

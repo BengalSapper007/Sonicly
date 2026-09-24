@@ -4,6 +4,17 @@ import { getStreamUrl, evictStreamUrl, isStreamCached } from '@/lib/stream-cache
 import { toast } from '@/stores/toast.store';
 import { useDeviceStore } from '@/stores/device.store';
 
+export interface TrackCollaboration {
+  id: string;
+  role: 'CO_ARTIST' | 'FEATURED';
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED';
+  collaborator: {
+    id: string;
+    name: string;
+    imageKey?: string | null;
+  };
+}
+
 export interface Song {
   id: string;
   title: string;
@@ -11,10 +22,16 @@ export interface Song {
   audioKey: string;
   trackNum?: number;
   playCount?: number;
+  lyrics?: string | null;
+  isrc?: string | null;
+  isExplicit?: boolean;
+  masterAudioKey?: string | null;
+  collaborations?: TrackCollaboration[];
   album: {
     id: string;
     title: string;
     imageKey: string;
+    releaseYear?: number;
     artist: { id: string; name: string };
   };
   genre?: { id: string; name: string };
