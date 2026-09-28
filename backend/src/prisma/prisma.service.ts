@@ -11,8 +11,8 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   constructor() {
     const pool = new Pool({
       connectionString: process.env.DATABASE_URL,
-      // SSL required for Neon
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: true } : { rejectUnauthorized: false },
+      // Required for Supabase/Neon connection poolers
+      ssl: { rejectUnauthorized: false },
     });
     const adapter = new PrismaPg(pool);
     super({ adapter } as any);
