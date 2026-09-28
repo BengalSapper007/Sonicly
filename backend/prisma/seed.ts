@@ -32,20 +32,30 @@ async function main() {
   // ── Artists ───────────────────────────────────────────────────────────────
   console.log('  → Artists');
   for (const artist of artists) {
+    const { imageUrl, ...rest } = artist as any;
+    const artistData = {
+      ...rest,
+      imageKey: imageUrl || rest.imageKey,
+    };
     await prisma.artist.upsert({
       where: { id: artist.id },
-      create: artist,
-      update: artist,
+      create: artistData,
+      update: artistData,
     });
   }
 
   // ── Albums ────────────────────────────────────────────────────────────────
   console.log('  → Albums');
   for (const album of albums) {
+    const { imageUrl, ...rest } = album as any;
+    const albumData = {
+      ...rest,
+      imageKey: imageUrl || rest.imageKey,
+    };
     await prisma.album.upsert({
       where: { id: album.id },
-      create: album,
-      update: album,
+      create: albumData,
+      update: albumData,
     });
   }
 
@@ -59,6 +69,7 @@ async function main() {
       trackNum: song.trackNum,
       albumId: song.albumId,
       genreId: song.genreId,
+      audioKey: (song as any).audioKey || (song as any).audioUrl || `audio/${song.id}.mp3`,
       playCount: 0,
     };
     await prisma.song.upsert({
