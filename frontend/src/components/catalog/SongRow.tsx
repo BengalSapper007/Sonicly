@@ -9,6 +9,7 @@ import { artworkUrl } from '@/lib/api';
 import { ArtworkImage } from '@/components/ui/ArtworkImage';
 import { TrackOptionsMenu } from '@/components/catalog/TrackOptionsMenu';
 import { useMounted } from '@/hooks/useMounted';
+import { prefetchStreamUrl } from '@/lib/stream-cache';
 
 interface SongRowProps {
   song: Song;
@@ -73,6 +74,8 @@ export function SongRow({
         isCurrent && 'bg-vibrant-saffron/10 border-l-4 border-l-crisp-green'
       )}
       onClick={handlePlay}
+      onMouseEnter={() => prefetchStreamUrl(song.id)}
+      onTouchStart={() => prefetchStreamUrl(song.id)}
     >
       {/* Index / Equalizer / Play */}
       <div className="w-6 flex-shrink-0 flex items-center justify-center relative">

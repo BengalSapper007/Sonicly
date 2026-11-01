@@ -94,3 +94,13 @@ export function isStreamCached(songId: string): boolean {
   return readEntry(songId) !== null;
 }
 
+/**
+ * Silently pre-fetches and caches a song's stream URL in the background
+ * (e.g. on mouse hover, touch start, or queue lookahead).
+ */
+export function prefetchStreamUrl(songId?: string | null): void {
+  if (!songId || typeof window === 'undefined') return;
+  if (isStreamCached(songId)) return;
+  getStreamUrl(songId).catch(() => {});
+}
+
