@@ -1,4 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { createHmac } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { MediaService } from '../media/media.service';
 import { AppCacheService } from '../common/cache/app-cache.service';
@@ -6,11 +8,46 @@ import { nanoid } from 'nanoid';
 
 @Injectable()
 export class SongsService {
+  private readonly hmacSecret: string;
+
   constructor(
     private prisma: PrismaService,
     private media: MediaService,
     private cache: AppCacheService,
-  ) {}
+    private config: ConfigService,
+  ) {
+    this.hmacSecret = this.config.get<string>('JWT_SECRET') ?? 'sonicly_stream_secret_2026';
+  }
+
+  /**
+   * Generates a signed, short-lived streaming token valid for 90 seconds.
+   */
+  generateStreamToken(songId: string): string {
+    const expiresAt = Math.floor(Date.now() / 1000) + 90; // 90 seconds
+    const data = `${songId}:${expiresAt}`;
+    const hash = createHmac('sha256', this.hmacSecret).update(data).digest('hex').slice(0, 32);
+    return `${expiresAt}.${hash}`;
+  }
+
+  /**
+   * Validates a stream token against the song ID and expiration timestamp.
+   */
+  validateStreamToken(songId: string, token: string): boolean {
+    if (!token || !token.includes('.')) return false;
+    const [expiresAtStr, hash] = token.split('.');
+    const expiresAt = parseInt(expiresAtStr, 10);
+    if (isNaN(expiresAt) || Math.floor(Date.now() / 1000) > expiresAt) {
+      return false; // Token expired
+    }
+
+    const expectedHash = createHmac('sha256', this.hmacSecret)
+      .update(`${songId}:${expiresAt}`)
+      .digest('hex')
+      .slice(0, 32);
+
+    return hash === expectedHash;
+  }
+
 
   async findOne(id: string, userId?: string) {
     const baseSong = await this.cache.wrap(`catalog:song:${id}`, async () => {
@@ -56,7 +93,7 @@ export class SongsService {
   }
 
   /**
-   * Returns song metadata plus the secure backend stream URL.
+   * Returns song metadata plus the secure backend stream URL with an HMAC token.
    * Note: The raw R2 storage URL is NEVER sent to the client.
    *
    * @param id      Sonicly song ID
@@ -64,15 +101,20 @@ export class SongsService {
    */
   async getStreamUrl(id: string, userId?: string) {
     const song = await this.findOne(id, userId);
-    // Secure backend audio endpoint
-    const streamUrl = `/api/songs/${id}/audio`;
+    const token = this.generateStreamToken(id);
+    const streamUrl = `/api/songs/${id}/audio?token=${token}`;
     return { ...song, streamUrl };
   }
 
   /**
    * Proxies audio bytes from R2 directly to the response with HTTP Range support.
+   * Requires a valid, unexpired HMAC token to prevent direct downloading/scraping.
    */
-  async getAudioStream(id: string, range?: string) {
+  async getAudioStream(id: string, token: string, range?: string) {
+    if (!this.validateStreamToken(id, token)) {
+      throw new ForbiddenException('Invalid or expired stream token');
+    }
+
     const song = await this.prisma.song.findUnique({
       where: { id },
       select: { id: true, audioKey: true },
