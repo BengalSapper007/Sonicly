@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { getStreamUrl, evictStreamUrl, isStreamCached } from '@/lib/stream-cache';
+import { getStreamUrl, evictStreamUrl, isStreamCached, prefetchStreamUrl } from '@/lib/stream-cache';
+import { fetchAudioAsBlobUrl } from '@/lib/audio-loader';
 import { toast } from '@/stores/toast.store';
 import { useDeviceStore } from '@/stores/device.store';
 
@@ -148,8 +149,8 @@ if (typeof window !== 'undefined') {
 
 /**
  * Fetch a presigned R2 stream URL for a song (with sessionStorage TTL cache),
- * then load and play it. The cache prevents redundant /stream API hits when
- * revisiting the same song within a tab session.
+ * converts it into a scoped in-memory Blob URL to protect the R2 endpoint,
+ * and loads/plays it on the audio hardware.
  * On error, evict the cached URL so a fresh one is fetched next attempt.
  */
 async function loadAndPlay(song: Song, startTime?: number): Promise<void> {
@@ -160,17 +161,23 @@ async function loadAndPlay(song: Song, startTime?: number): Promise<void> {
   _loadingSongId = song.id;
 
   try {
-    const streamUrl = await getStreamUrl(song.id);
+    const rawStreamUrl = await getStreamUrl(song.id);
     // If a newer track switch occurred while fetching the URL, abort cleanly
     if (requestId !== _currentPlayRequestId) {
       return;
     }
 
-    if (audio.src !== streamUrl) {
+    // Convert raw R2 presigned URL to an in-memory blob URL
+    const blobUrl = await fetchAudioAsBlobUrl(rawStreamUrl);
+    if (requestId !== _currentPlayRequestId) {
+      return;
+    }
+
+    if (audio.src !== blobUrl) {
       try {
         audio.pause();
       } catch {}
-      audio.src = streamUrl;
+      audio.src = blobUrl;
     }
 
     const seekTime = startTime ?? 0;
@@ -192,6 +199,18 @@ async function loadAndPlay(song: Song, startTime?: number): Promise<void> {
     if (playPromise !== undefined) {
       await playPromise;
     }
+
+    // Lookahead: Pre-warm the cache for the next song in the user's queue or context queue
+    try {
+      const state = usePlayerStore.getState();
+      const nextSongToPrefetch =
+        state.userQueue.length > 0
+          ? state.userQueue[0]
+          : state.queue[state.currentIndex + 1];
+      if (nextSongToPrefetch && nextSongToPrefetch.id !== song.id) {
+        prefetchStreamUrl(nextSongToPrefetch.id);
+      }
+    } catch {}
   } catch (err: any) {
     // AbortError is normal when a user switches tracks while audio is loading
     if (err?.name === 'AbortError' || requestId !== _currentPlayRequestId) {

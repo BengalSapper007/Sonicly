@@ -3,6 +3,7 @@ import {
   Post,
   Body,
   Res,
+  Req,
   Get,
   HttpCode,
   HttpStatus,
@@ -56,11 +57,18 @@ export class AuthController {
   @Public()
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  logout(@Res({ passthrough: true }) res: any) {
+  logout(@Req() req: any, @Res({ passthrough: true }) res: any) {
+    if (req?.cookies) {
+      for (const cookieName of Object.keys(req.cookies)) {
+        res.clearCookie(cookieName, { path: '/' });
+      }
+    }
     // Mirror the same options used to set the cookie so browsers clear it correctly
     const { maxAge: _maxAge, ...clearOptions } = COOKIE_OPTIONS;
     res.clearCookie(COOKIE_NAME, clearOptions);
     res.clearCookie(COOKIE_NAME, { path: '/' });
+    res.clearCookie('sonicly_studio_token', { path: '/' });
+    res.clearCookie('sonicly_artist_id', { path: '/' });
     return { success: true, message: 'Logged out' };
   }
 
