@@ -15,7 +15,7 @@
 import { songsApi } from './api';
 
 const PREFIX = 'sonicly_stream_';
-const TTL_MS = 50 * 60 * 1000; // 50 minutes
+const TTL_MS = 75 * 1000; // 75 seconds (aligns with 90s server HMAC stream token)
 
 interface CacheEntry {
   url: string;
