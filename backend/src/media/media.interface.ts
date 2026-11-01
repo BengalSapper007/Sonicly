@@ -24,4 +24,18 @@ export interface IMediaProvider {
    * @param expiresIn    Expiry in seconds (default: 3600)
    */
   getPresignedUrl(key: string, expiresIn?: number): Promise<string>;
+
+  /**
+   * Fetch an object stream and metadata from storage with optional byte range support.
+   */
+  getObjectStream(
+    key: string,
+    range?: string,
+  ): Promise<{
+    stream: NodeJS.ReadableStream;
+    contentLength?: number;
+    contentRange?: string;
+    contentType?: string;
+    acceptRanges?: string;
+  }>;
 }

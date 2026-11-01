@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { getStreamUrl, evictStreamUrl, isStreamCached, prefetchStreamUrl } from '@/lib/stream-cache';
-import { fetchAudioAsBlobUrl } from '@/lib/audio-loader';
 import { toast } from '@/stores/toast.store';
 import { useDeviceStore } from '@/stores/device.store';
 
@@ -161,23 +160,17 @@ async function loadAndPlay(song: Song, startTime?: number): Promise<void> {
   _loadingSongId = song.id;
 
   try {
-    const rawStreamUrl = await getStreamUrl(song.id);
+    const streamUrl = await getStreamUrl(song.id);
     // If a newer track switch occurred while fetching the URL, abort cleanly
     if (requestId !== _currentPlayRequestId) {
       return;
     }
 
-    // Convert raw R2 presigned URL to an in-memory blob URL
-    const blobUrl = await fetchAudioAsBlobUrl(rawStreamUrl);
-    if (requestId !== _currentPlayRequestId) {
-      return;
-    }
-
-    if (audio.src !== blobUrl) {
+    if (audio.src !== streamUrl) {
       try {
         audio.pause();
       } catch {}
-      audio.src = blobUrl;
+      audio.src = streamUrl;
     }
 
     const seekTime = startTime ?? 0;

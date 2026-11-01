@@ -74,4 +74,11 @@ export class MediaService {
   getPresignedUrl(key: string, expiresIn?: number): Promise<string> {
     return this.r2.getPresignedUrl(key, expiresIn);
   }
+
+  /**
+   * Fetch object stream directly from R2.
+   */
+  getObjectStream(key: string, range?: string) {
+    return this.r2.getObjectStream(key, range);
+  }
 }
