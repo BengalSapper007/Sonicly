@@ -112,6 +112,32 @@ export class R2MediaProvider implements IMediaProvider {
     return url;
   }
 
+  async getObjectStream(
+    key: string,
+    range?: string,
+  ): Promise<{
+    stream: NodeJS.ReadableStream;
+    contentLength?: number;
+    contentRange?: string;
+    contentType?: string;
+    acceptRanges?: string;
+  }> {
+    const command = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      Range: range,
+    });
+    const response = await this.client.send(command);
+
+    return {
+      stream: response.Body as NodeJS.ReadableStream,
+      contentLength: response.ContentLength,
+      contentRange: response.ContentRange,
+      contentType: response.ContentType,
+      acceptRanges: response.AcceptRanges,
+    };
+  }
+
   // ── Private helpers ───────────────────────────────────────────────────────
 
   private async put(

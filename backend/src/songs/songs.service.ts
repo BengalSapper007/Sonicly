@@ -56,21 +56,32 @@ export class SongsService {
   }
 
   /**
-   * Returns song metadata plus a short-lived presigned R2 stream URL.
-   * The URL is safe to send to the browser — it carries no credentials.
+   * Returns song metadata plus the secure backend stream URL.
+   * Note: The raw R2 storage URL is NEVER sent to the client.
    *
    * @param id      Sonicly song ID
    * @param userId  Optional — used to populate the `likes` field
    */
   async getStreamUrl(id: string, userId?: string) {
     const song = await this.findOne(id, userId);
-    // Presigned R2 URLs last 1 hour; cache for 30 minutes
-    const streamUrl = await this.cache.wrap(
-      `stream:url:${song.audioKey}`,
-      () => this.media.getPresignedUrl(song.audioKey, 3600),
-      1800,
-    );
+    // Secure backend audio endpoint
+    const streamUrl = `/api/songs/${id}/audio`;
     return { ...song, streamUrl };
+  }
+
+  /**
+   * Proxies audio bytes from R2 directly to the response with HTTP Range support.
+   */
+  async getAudioStream(id: string, range?: string) {
+    const song = await this.prisma.song.findUnique({
+      where: { id },
+      select: { id: true, audioKey: true },
+    });
+    if (!song || !song.audioKey) {
+      throw new NotFoundException('Track audio not found');
+    }
+
+    return this.media.getObjectStream(song.audioKey, range);
   }
 
   async like(songId: string, userId: string) {
