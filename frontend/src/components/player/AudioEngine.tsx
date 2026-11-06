@@ -7,6 +7,7 @@ import { evictStreamUrl } from '@/lib/stream-cache';
 import { useMusicControls } from '@/hooks/useMusicControls';
 import { useDeviceStore } from '@/stores/device.store';
 import { useDeviceSocket, broadcastLocalPlaybackState } from '@/hooks/useDeviceSocket';
+import { useJamSocket } from '@/hooks/useJamSocket';
 
 /**
  * AudioEngine
@@ -20,6 +21,7 @@ export function AudioEngine() {
   const audioRef = useRef<HTMLAudioElement>(null);
   useMusicControls();
   useDeviceSocket();
+  useJamSocket();
 
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const currentSong = usePlayerStore((s) => s.currentSong);

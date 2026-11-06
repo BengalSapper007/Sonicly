@@ -6,6 +6,7 @@ import { useLibraryStore } from '@/stores/library.store';
 import { useDeviceStore } from '@/stores/device.store';
 import { sendRemotePlayerCommand, transferPlaybackTo } from '@/hooks/useDeviceSocket';
 import { DevicePickerPopover } from '@/components/player/DevicePickerPopover';
+import { JamPill } from '@/components/jam/JamPill';
 import { formatDuration } from '@/lib/utils';
 import { artworkUrl } from '@/lib/api';
 import { ArtworkImage } from '@/components/ui/ArtworkImage';
@@ -252,6 +253,9 @@ export function Player() {
                 <Play className="w-4 h-4 fill-current ml-0.5" />
               )}
             </button>
+
+            {/* Jam Pill */}
+            <JamPill />
 
             {/* Connect to a device (Mobile) */}
             <button
@@ -506,6 +510,9 @@ export function Player() {
         {/* Volume & extras */}
         {/* Right side controls */}
         <div className="flex items-center justify-end gap-2.5 w-72 flex-shrink-0 relative">
+          {/* Jam Pill */}
+          <JamPill />
+
           {/* Device Picker (Spotify Connect) */}
           <button
             onClick={toggleDevicePicker}

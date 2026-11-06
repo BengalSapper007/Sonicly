@@ -12,8 +12,11 @@ import {
   Heart,
   Music2,
   Disc,
+  Radio,
 } from 'lucide-react';
 import { usePlayerStore, type Song } from '@/stores/player.store';
+import { useJamStore } from '@/stores/jam.store';
+import { jamApi } from '@/lib/api';
 import { useLibraryStore } from '@/stores/library.store';
 import { artworkUrl } from '@/lib/api';
 import { ArtworkImage } from '@/components/ui/ArtworkImage';
@@ -42,6 +45,17 @@ export function QueuePanel() {
     playFromUserQueue,
     playFromContextQueue,
   } = usePlayerStore();
+
+  const { isInJam, jamCode, jamQueue, participants, isHost, openModal: openJamModal } = useJamStore();
+
+  const handleRemoveJamQueueItem = async (itemId: string) => {
+    if (!jamCode) return;
+    try {
+      await jamApi.removeFromQueue(jamCode, itemId);
+      const updated = jamQueue.filter((q) => q.id !== itemId);
+      useJamStore.getState().setJamQueue(updated);
+    } catch {}
+  };
 
   const isSongLiked = useLibraryStore((s) => s.isSongLiked);
   const toggleLikeSong = useLibraryStore((s) => s.toggleLikeSong);
@@ -267,6 +281,72 @@ export function QueuePanel() {
               </div>
             )}
           </div>
+
+          {/* JAM COLLABORATIVE QUEUE */}
+          {isInJam && (
+            <div>
+              <div className="flex items-center justify-between px-1 mb-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#E2720A]/15 border border-[#E2720A]/30 text-[#E2720A] text-[10px] font-bold tracking-wide uppercase">
+                    <Radio className="w-3 h-3 animate-pulse" />
+                    Jam Queue
+                  </div>
+                  <span className="text-xs text-slate-400">
+                    ({jamQueue.length} {jamQueue.length === 1 ? 'song' : 'songs'})
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={openJamModal}
+                  className="text-[11px] font-semibold text-[#E2720A] hover:underline cursor-pointer"
+                >
+                  Manage Jam
+                </button>
+              </div>
+
+              {jamQueue.length === 0 ? (
+                <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 text-center text-slate-400 text-xs">
+                  The Jam queue is empty. Anyone can add tracks to keep the party going!
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {jamQueue.map((item) => (
+                    <div
+                      key={item.id}
+                      className="group flex items-center gap-3 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/5 text-xs"
+                    >
+                      <div className="w-9 h-9 rounded-md overflow-hidden bg-slate-800 flex-shrink-0">
+                        <ArtworkImage
+                          src={artworkUrl(item.song?.album?.imageKey)}
+                          alt={item.song?.title}
+                          type="album"
+                          id={item.song?.album?.id || item.song?.id}
+                          size="sm"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-semibold text-white truncate">{item.song?.title}</div>
+                        <div className="text-[11px] text-slate-400 truncate">
+                          {item.song?.album?.artist?.name || 'Artist'}
+                        </div>
+                        <div className="text-[10px] text-[#E2720A] mt-0.5 flex items-center gap-1">
+                          <span>Added by {item.addedBy?.displayName || item.addedBy?.username || 'Listener'}</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveJamQueueItem(item.id)}
+                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-white/10 text-slate-400 hover:text-rose-400 transition"
+                        title="Remove from Jam queue"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* 2. NEXT IN QUEUE (User Queue) */}
           {userQueue.length > 0 && (
