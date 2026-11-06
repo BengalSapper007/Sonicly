@@ -31,6 +31,7 @@ import { useLibraryStore } from '@/stores/library.store';
 import { useDeviceStore } from '@/stores/device.store';
 import { sendRemotePlayerCommand } from '@/hooks/useDeviceSocket';
 import { DevicePickerPopover } from '@/components/player/DevicePickerPopover';
+import { JamPill } from '@/components/jam/JamPill';
 import { artistsApi, artworkUrl } from '@/lib/api';
 import { ArtworkImage } from '@/components/ui/ArtworkImage';
 import { formatDuration, formatNumber } from '@/lib/utils';
@@ -332,6 +333,9 @@ export function DedicatedPlayerScreen({
               <Heart className={`w-5 h-5 ${isLiked ? 'fill-current text-vibrant-saffron' : ''}`} />
             </button>
           )}
+
+          {/* Jam Pill */}
+          <JamPill />
 
           <button
             onClick={toggleQueue}

@@ -269,7 +269,8 @@ interface PlayerState {
     queue?: Song[],
     contextType?: ContextType,
     contextId?: string | null,
-    contextTitle?: string | null
+    contextTitle?: string | null,
+    options?: { skipRemoteBroadcast?: boolean }
   ) => void;
   playQueue: (
     songs: Song[],
@@ -337,7 +338,7 @@ export const usePlayerStore = create<PlayerState>()(
       contextId: null,
       contextTitle: null,
 
-      playSong: (song, queue, contextType = null, contextId = null, contextTitle = null) => {
+      playSong: (song, queue, contextType = null, contextId = null, contextTitle = null, options) => {
         const { currentSong, history } = get();
         const newQueue = queue ?? [song];
         const index = newQueue.findIndex((s) => s.id === song.id);
@@ -390,6 +391,11 @@ export const usePlayerStore = create<PlayerState>()(
         });
         loadAndPlay(song, 0);
         recordHistory(song.id);
+        if (!options?.skipRemoteBroadcast) {
+          import('@/hooks/useJamSocket').then(({ broadcastJamAction }) => {
+            broadcastJamAction('PLAY', { song, songId: song.id, positionMs: 0 });
+          }).catch(() => {});
+        }
         import('@/hooks/useDeviceSocket').then(({ claimActivePlayback, broadcastLocalPlaybackState }) => {
           claimActivePlayback();
           broadcastLocalPlaybackState({ currentSong: song, currentTime: 0, progress: 0, isPlaying: true });
@@ -514,6 +520,11 @@ export const usePlayerStore = create<PlayerState>()(
         }
         getAudioElement()?.pause();
         set({ isPlaying: false });
+        import('@/hooks/useJamSocket').then(({ broadcastJamAction }) => {
+          const audio = getAudioElement();
+          const posMs = audio ? Math.round(audio.currentTime * 1000) : 0;
+          broadcastJamAction('PAUSE', { positionMs: posMs });
+        }).catch(() => {});
         scheduleServerSync(true);
       },
 
@@ -562,6 +573,10 @@ export const usePlayerStore = create<PlayerState>()(
             set({ isPlaying: true });
           }
         }
+        import('@/hooks/useJamSocket').then(({ broadcastJamAction }) => {
+          const posMs = audio ? Math.round(audio.currentTime * 1000) : 0;
+          broadcastJamAction('PLAY', { positionMs: posMs, song: currentSong, songId: currentSong?.id });
+        }).catch(() => {});
       },
 
       next: () => {
@@ -696,6 +711,9 @@ export const usePlayerStore = create<PlayerState>()(
           } catch {}
         }
         set({ progress, currentTime: targetTime });
+        import('@/hooks/useJamSocket').then(({ broadcastJamAction }) => {
+          broadcastJamAction('SEEK', { positionMs: Math.round(targetTime * 1000) });
+        }).catch(() => {});
         scheduleServerSync(false);
       },
 
