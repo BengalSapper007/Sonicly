@@ -8,8 +8,6 @@ import { Player } from '@/components/player/Player';
 import { QueuePanel } from '@/components/player/QueuePanel';
 import { DedicatedPlayerScreen } from '@/components/player/DedicatedPlayerScreen';
 import { AudioEngine } from '@/components/player/AudioEngine';
-import { JamModal } from '@/components/jam/JamModal';
-import { JamFloatingReactions } from '@/components/jam/JamFloatingReactions';
 import { ToastContainer } from '@/components/ui/Toast';
 import { CookieConsentBanner } from '@/components/legal/CookieConsentBanner';
 import { useAuthStore } from '@/stores/auth.store';
@@ -51,8 +49,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <ToastContainer />
       <CookieConsentBanner />
       <AudioEngine />
-      <JamModal />
-      <JamFloatingReactions />
 
       {/* Main layout (Sidebar + Content column) */}
       <div className="relative flex flex-1 min-h-0 overflow-hidden">

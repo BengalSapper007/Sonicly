@@ -237,20 +237,3 @@ export const playerApi = {
   },
 };
 
-// Jam (Collaborative Group Listening)
-export const jamApi = {
-  createJam: (data?: { hostControlsOnly?: boolean; initialSongId?: string }) =>
-    api.post('/jam', data),
-  getJam: (code: string) => api.get(`/jam/${encodeURIComponent(code)}`),
-  joinJam: (code: string) => api.post(`/jam/${encodeURIComponent(code)}/join`),
-  leaveJam: (code: string) => api.post(`/jam/${encodeURIComponent(code)}/leave`),
-  updateJam: (code: string, data: any) =>
-    api.patch(`/jam/${encodeURIComponent(code)}`, data),
-  addToQueue: (code: string, songId: string) =>
-    api.post(`/jam/${encodeURIComponent(code)}/queue`, { songId }),
-  removeFromQueue: (code: string, queueItemId: string) =>
-    api.delete(`/jam/${encodeURIComponent(code)}/queue/${encodeURIComponent(queueItemId)}`),
-  popNextSong: (code: string) => api.post(`/jam/${encodeURIComponent(code)}/next`),
-};
-
-

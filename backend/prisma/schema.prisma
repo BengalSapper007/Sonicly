@@ -122,8 +122,6 @@ model Song {
   history         ListeningHistory[]
   searchHistory   SearchHistory[]
   playbackStates  PlaybackState[]
-  jamCurrentIn    JamSession[]         @relation("CurrentJamSong")
-  jamQueueItems   JamQueueItem[]
 
   playCount       Int      @default(0)
 
@@ -155,11 +153,6 @@ model User {
 
   // Studio memberships
   artistMemberships ArtistMember[]
-
-  // Jam relations
-  hostedJams        JamSession[]       @relation("HostedJams")
-  jamParticipations JamParticipant[]
-  jamQueueEntries   JamQueueItem[]
 
   @@map("users")
 }
@@ -439,58 +432,6 @@ model DailySongMetric {
 
   @@unique([songId, metricDate])
   @@map("daily_song_metrics")
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Jamming / Collaborative Sessions
-// ─────────────────────────────────────────────────────────────────────────────
-
-model JamSession {
-  id               String           @id @default(uuid())
-  code             String           @unique
-  hostId           String
-  host             User             @relation("HostedJams", fields: [hostId], references: [id], onDelete: Cascade)
-  isActive         Boolean          @default(true)
-  hostControlsOnly Boolean          @default(false)
-  currentSongId    String?
-  currentSong      Song?            @relation("CurrentJamSong", fields: [currentSongId], references: [id], onDelete: SetNull)
-  currentPositionMs Int             @default(0)
-  isPlaying        Boolean          @default(false)
-  lastSyncAt       DateTime         @default(now())
-  createdAt        DateTime         @default(now())
-  endedAt          DateTime?
-
-  participants     JamParticipant[]
-  queueItems       JamQueueItem[]
-
-  @@map("jam_sessions")
-}
-
-model JamParticipant {
-  id        String     @id @default(uuid())
-  jamId     String
-  jam       JamSession @relation(fields: [jamId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role      String     @default("GUEST") // HOST | GUEST
-  joinedAt  DateTime   @default(now())
-
-  @@unique([jamId, userId])
-  @@map("jam_participants")
-}
-
-model JamQueueItem {
-  id        String     @id @default(uuid())
-  jamId     String
-  jam       JamSession @relation(fields: [jamId], references: [id], onDelete: Cascade)
-  songId    String
-  song      Song       @relation(fields: [songId], references: [id], onDelete: Cascade)
-  addedById String
-  addedBy   User       @relation(fields: [addedById], references: [id], onDelete: Cascade)
-  order     Int        @default(0)
-  createdAt DateTime   @default(now())
-
-  @@map("jam_queue_items")
 }
 
 

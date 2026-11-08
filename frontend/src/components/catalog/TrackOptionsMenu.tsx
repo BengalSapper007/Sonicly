@@ -10,13 +10,9 @@ import {
   User,
   Copy,
   Check,
-  Radio,
 } from 'lucide-react';
 import { usePlayerStore, type Song } from '@/stores/player.store';
 import { useLibraryStore } from '@/stores/library.store';
-import { useJamStore } from '@/stores/jam.store';
-import { jamApi } from '@/lib/api';
-import { notifyJamQueueUpdated } from '@/hooks/useJamSocket';
 import { toast } from '@/stores/toast.store';
 
 interface TrackOptionsMenuProps {
@@ -38,22 +34,6 @@ export function TrackOptionsMenu({
   const addToQueue = usePlayerStore((s) => s.addToQueue);
   const isSongLiked = useLibraryStore((s) => s.isSongLiked);
   const toggleLikeSong = useLibraryStore((s) => s.toggleLikeSong);
-  const { isInJam, jamCode } = useJamStore();
-
-  const handleAddToJam = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!jamCode) return;
-    try {
-      const res = await jamApi.addToQueue(jamCode, song.id);
-      const currentQueue = useJamStore.getState().jamQueue;
-      useJamStore.getState().setJamQueue([...currentQueue, res.data]);
-      notifyJamQueueUpdated();
-      toast.success(`Added "${song.title}" to Jam!`);
-      setIsOpen(false);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to add to Jam');
-    }
-  };
 
   const liked = isSongLiked(song.id);
 
@@ -146,18 +126,6 @@ export function TrackOptionsMenu({
             <ListMusic className="w-4 h-4 text-crisp-green flex-shrink-0" />
             Add to Queue
           </button>
-
-          {/* Add to Jam */}
-          {isInJam && (
-            <button
-              type="button"
-              onClick={handleAddToJam}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#E2720A] hover:bg-white/10 transition-colors text-left"
-            >
-              <Radio className="w-4 h-4 text-[#E2720A] flex-shrink-0 animate-pulse" />
-              Add to Jam
-            </button>
-          )}
 
           <div className="my-1 border-t border-white/10" />
 
